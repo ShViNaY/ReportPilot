@@ -226,3 +226,42 @@ export type ApiSuccess<T> = {
   success: true;
   data: T;
 };
+
+// Team Management Types
+
+export interface TeamMember {
+  id: string;
+  email: string;
+  role: 'owner' | 'account_manager';
+  created_at: string;
+  assigned_client_count?: number;
+}
+
+export interface TeamListResponse {
+  success: boolean;
+  members?: TeamMember[];
+  error?: string;
+}
+
+export interface AddTeamMemberResponse {
+  success: boolean;
+  member?: TeamMember;
+  error?: string;
+}
+
+export interface UpdateTeamMemberResponse {
+  success: boolean;
+  member?: TeamMember;
+  error?: string;
+}
+
+export interface AssignmentResponse {
+  success: boolean;
+  assignment?: { user_id: string; client_id: string };
+  error?: string;
+}
+
+export type DeleteResponse = {
+  success: boolean;
+  error?: string;
+};
