@@ -4,13 +4,14 @@ import { NextRequest, NextResponse } from 'next/server';
 import { supabaseServer } from '@/lib/supabase/server';
 import { protectedRoute } from '@/lib/middleware';
 import { TeamListResponse, AddTeamMemberResponse } from '@/types';
+import { hashPassword, validateEmail, validatePasswordStrength } from '@/lib/utils/auth';
 
 /**
  * GET /api/team
  * List all team members in the owner's agency
  * Owner only
  */
-export async function GET(request: NextRequest): Promise<NextResponse<TeamListResponse>> {
+export async function GET(request: NextRequest): Promise<NextResponse> {
   try {
     const auth = await protectedRoute(request);
     if (!auth.success) return auth.response;
@@ -72,7 +73,9 @@ export async function GET(request: NextRequest): Promise<NextResponse<TeamListRe
  * Body: { email: string, password: string }
  * (role is always 'account_manager' - owners can't create other owners here)
  */
-export async function POST(request: NextRequest): Promise<NextResponse<AddTeamMemberResponse>> {
+// app/api/team/route.ts (POST function only - keep your existing GET function above this)
+
+export async function POST(request: NextRequest): Promise<NextResponse> {
   try {
     const auth = await protectedRoute(request);
     if (!auth.success) return auth.response;
@@ -96,23 +99,21 @@ export async function POST(request: NextRequest): Promise<NextResponse<AddTeamMe
       );
     }
 
-    // Basic validation
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) {
+    if (!validateEmail(email)) {
       return NextResponse.json(
         { success: false, error: 'Invalid email format' },
         { status: 400 }
       );
     }
 
-    if (password.length < 8) {
+    const passwordError = validatePasswordStrength(password);
+    if (passwordError) {
       return NextResponse.json(
-        { success: false, error: 'Password must be at least 8 characters' },
+        { success: false, error: passwordError },
         { status: 400 }
       );
     }
 
-    // Check email isn't already in use anywhere
     const { data: existing } = await supabaseServer
       .from('users')
       .select('id')
@@ -126,29 +127,14 @@ export async function POST(request: NextRequest): Promise<NextResponse<AddTeamMe
       );
     }
 
-    // Create the auth user via Supabase Admin API (service role required)
-    const { data: authUser, error: authError } =
-      await supabaseServer.auth.admin.createUser({
-        email,
-        password,
-        email_confirm: true,
-      });
+    const password_hash = hashPassword(password);
 
-    if (authError || !authUser?.user) {
-      console.error('Auth user creation error:', authError);
-      return NextResponse.json(
-        { success: false, error: 'Failed to create user account' },
-        { status: 500 }
-      );
-    }
-
-    // Insert the app-level user row, linked to this agency
     const { data: newMember, error: insertError } = await supabaseServer
       .from('users')
       .insert({
-        id: authUser.user.id,
         agency_id,
         email,
+        password_hash,
         role: 'account_manager',
       })
       .select('id, email, role, created_at')
@@ -156,8 +142,6 @@ export async function POST(request: NextRequest): Promise<NextResponse<AddTeamMe
 
     if (insertError) {
       console.error('Team member insert error:', insertError);
-      // Roll back the auth user so we don't leave an orphaned account
-      await supabaseServer.auth.admin.deleteUser(authUser.user.id);
       return NextResponse.json(
         { success: false, error: 'Failed to add team member' },
         { status: 500 }

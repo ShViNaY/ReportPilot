@@ -3,27 +3,22 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseServer } from '@/lib/supabase/server';
 import { protectedRoute } from '@/lib/middleware';
-import { AssignmentResponse, DeleteResponse } from '@/types';
 
 interface RouteParams {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 }
 
-/**
- * POST /api/team/[id]/assignments
- * Assign a client to an account manager (owner only)
- * Body: { client_id: string }
- */
 export async function POST(
   request: NextRequest,
   { params }: RouteParams
-): Promise<NextResponse<AssignmentResponse>> {
+): Promise<NextResponse> {
   try {
+    const { id: managerId } = await params;
+
     const auth = await protectedRoute(request);
     if (!auth.success) return auth.response;
 
     const { agency_id, role } = auth.payload;
-    const managerId = params.id;
 
     if (role !== 'owner') {
       return NextResponse.json(
@@ -42,7 +37,6 @@ export async function POST(
       );
     }
 
-    // Verify manager belongs to this agency
     const { data: manager } = await supabaseServer
       .from('users')
       .select('id, agency_id, role')
@@ -56,7 +50,6 @@ export async function POST(
       );
     }
 
-    // Verify client belongs to this agency (data isolation)
     const { data: client } = await supabaseServer
       .from('clients')
       .select('id, agency_id')
@@ -70,7 +63,6 @@ export async function POST(
       );
     }
 
-    // Upsert to avoid duplicate assignment errors
     const { data: assignment, error } = await supabaseServer
       .from('user_client_assignments')
       .upsert(
@@ -98,20 +90,17 @@ export async function POST(
   }
 }
 
-/**
- * DELETE /api/team/[id]/assignments?client_id=xxx
- * Unassign a client from an account manager (owner only)
- */
 export async function DELETE(
   request: NextRequest,
   { params }: RouteParams
-): Promise<NextResponse<DeleteResponse>> {
+): Promise<NextResponse> {
   try {
+    const { id: managerId } = await params;
+
     const auth = await protectedRoute(request);
     if (!auth.success) return auth.response;
 
     const { agency_id, role } = auth.payload;
-    const managerId = params.id;
 
     if (role !== 'owner') {
       return NextResponse.json(
@@ -130,7 +119,6 @@ export async function DELETE(
       );
     }
 
-    // Verify manager belongs to this agency before touching assignments
     const { data: manager } = await supabaseServer
       .from('users')
       .select('id, agency_id')

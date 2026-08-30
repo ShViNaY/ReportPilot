@@ -4,10 +4,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { supabaseServer } from '@/lib/supabase/server';
 import { protectedRoute } from '@/lib/middleware';
 
-interface RouteParams {
-    params: {
-        id: string;
-    };
+interface RouteParams { 
+    params: Promise<{ id: string }>; 
 }
 
 /**
@@ -26,7 +24,7 @@ export async function GET(
         if (!auth.success) return auth.response;
 
         const { agency_id } = auth.payload;
-        const campaignId = params.id;
+        const { id: campaignId } = await params;
 
         // Step 2: Fetch campaign
         const { data: campaign, error } = await supabaseServer
@@ -72,8 +70,8 @@ export async function PUT(
         if (!auth.success) return auth.response;
 
         const { agency_id } = auth.payload;
-        const campaignId = params.id;
-
+        const { id: campaignId } = await params;
+        
         // Step 2: Parse request
         const body = await request.json();
         const { name, platform, status } = body;
@@ -170,7 +168,7 @@ export async function DELETE(
         if (!auth.success) return auth.response;
 
         const { agency_id } = auth.payload;
-        const campaignId = params.id;
+        const { id: campaignId } = await params;
 
         // Step 2: Verify campaign exists and belongs to user's agency
         const { data: existingCampaign } = await supabaseServer

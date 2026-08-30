@@ -4,10 +4,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { supabaseServer } from '@/lib/supabase/server';
 import { protectedRoute } from '@/lib/middleware';
 
-interface RouteParams {
-    params: {
-        id: string;
-    };
+interface RouteParams { 
+    params: Promise<{ id: string }>; 
 }
 
 /**
@@ -44,7 +42,7 @@ export async function GET(
         if (!auth.success) return auth.response;
 
         const { agency_id } = auth.payload;
-        const metricId = params.id;
+        const { id: metricId } = await params;
 
         // Step 2: Fetch metric
         const { data: metric, error } = await supabaseServer
@@ -90,7 +88,7 @@ export async function PUT(
         if (!auth.success) return auth.response;
 
         const { agency_id } = auth.payload;
-        const metricId = params.id;
+        const { id: metricId } = await params;
 
         // Step 2: Parse request
         const body = await request.json();
@@ -225,7 +223,7 @@ export async function DELETE(
         if (!auth.success) return auth.response;
 
         const { agency_id } = auth.payload;
-        const metricId = params.id;
+        const { id: metricId } = await params;
 
         // Step 2: Verify metric exists and belongs to user's agency
         const { data: existingMetric } = await supabaseServer

@@ -5,8 +5,8 @@ import { supabaseServer } from '@/lib/supabase/server';
 import { protectedRoute } from '@/lib/middleware';
 import { UpdateTeamMemberResponse, DeleteResponse } from '@/types';
 
-interface RouteParams {
-  params: { id: string };
+interface RouteParams { 
+  params: Promise<{ id: string }>; 
 }
 
 /**
@@ -17,13 +17,13 @@ interface RouteParams {
 export async function PUT(
   request: NextRequest,
   { params }: RouteParams
-): Promise<NextResponse<UpdateTeamMemberResponse>> {
+): Promise<NextResponse> {
   try {
     const auth = await protectedRoute(request);
     if (!auth.success) return auth.response;
 
     const { agency_id, role, user_id } = auth.payload;
-    const targetId = params.id;
+    const { id: targetId } = await params;
 
     if (role !== 'owner') {
       return NextResponse.json(
@@ -99,13 +99,13 @@ export async function PUT(
 export async function DELETE(
   request: NextRequest,
   { params }: RouteParams
-): Promise<NextResponse<DeleteResponse>> {
+): Promise<NextResponse> {
   try {
     const auth = await protectedRoute(request);
     if (!auth.success) return auth.response;
 
     const { agency_id, role, user_id } = auth.payload;
-    const targetId = params.id;
+    const { id: targetId } = await params;
 
     if (role !== 'owner') {
       return NextResponse.json(
