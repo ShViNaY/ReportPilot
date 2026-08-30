@@ -1,0 +1,153 @@
+// lib/middleware.ts
+
+import { NextRequest, NextResponse } from 'next/server';
+import { verifyToken, extractTokenFromHeader } from './utils/auth';
+import { AuthPayload } from '@/types';
+
+/**
+ * Middleware to protect API routes
+ * Checks JWT token validity and extracts user info
+ */
+export async function withAuth(request: NextRequest) {
+  try {
+    // Get token from Authorization header
+    const authHeader = request.headers.get('authorization');
+    const token = extractTokenFromHeader(authHeader);
+
+    if (!token) {
+      return NextResponse.json(
+        { success: false, error: 'Missing authorization token' },
+        { status: 401 }
+      );
+    }
+
+    // Verify token
+    const payload = verifyToken(token);
+    if (!payload) {
+      return NextResponse.json(
+        { success: false, error: 'Invalid or expired token' },
+        { status: 401 }
+      );
+    }
+
+    // Token is valid - attach to request
+    // We'll use request.headers to pass data to the route handler
+    request.headers.set('x-user-id', payload.user_id);
+    request.headers.set('x-agency-id', payload.agency_id);
+    request.headers.set('x-user-role', payload.role);
+
+    return { success: true, payload };
+  } catch (error) {
+    console.error('Auth middleware error:', error);
+    return NextResponse.json(
+      { success: false, error: 'Authentication failed' },
+      { status: 500 }
+    );
+  }
+}
+
+/**
+ * Extract auth info from request headers
+ * Use this in your API route handlers
+ */
+export function getAuthFromRequest(request: NextRequest) {
+  const userId = request.headers.get('x-user-id');
+  const agencyId = request.headers.get('x-agency-id');
+  const userRole = request.headers.get('x-user-role');
+
+  if (!userId || !agencyId || !userRole) {
+    return null;
+  }
+
+  return {
+    user_id: userId,
+    agency_id: agencyId,
+    role: userRole as 'owner' | 'account_manager',
+  };
+}
+
+/**
+ * Check if user has required role
+ * Use in routes that require specific permissions
+ */
+export function requireRole(
+  userRole: string,
+  allowedRoles: string[]
+): boolean {
+  return allowedRoles.includes(userRole);
+}
+
+/**
+ * Wrapper to apply auth to an API route
+ * Usage:
+ * 
+ * export async function POST(request: NextRequest) {
+ *   const auth = await protectedRoute(request);
+ *   if (!auth.success) return auth.response;
+ *   
+ *   const { user_id, agency_id } = auth.payload;
+ *   // Your route logic here
+ * }
+ */
+export async function protectedRoute(request: NextRequest) {
+  try {
+    const authHeader = request.headers.get('authorization');
+    const token = extractTokenFromHeader(authHeader);
+
+    if (!token) {
+      return {
+        success: false,
+        response: NextResponse.json(
+          { success: false, error: 'Missing authorization token' },
+          { status: 401 }
+        ),
+      };
+    }
+
+    const payload = verifyToken(token);
+    if (!payload) {
+      return {
+        success: false,
+        response: NextResponse.json(
+          { success: false, error: 'Invalid or expired token' },
+          { status: 401 }
+        ),
+      };
+    }
+
+    return { success: true, payload };
+  } catch (error) {
+    console.error('Protected route error:', error);
+    return {
+      success: false,
+      response: NextResponse.json(
+        { success: false, error: 'Authentication failed' },
+        { status: 500 }
+      ),
+    };
+  }
+}
+
+/**
+ * Require specific role(s) for a route
+ * Usage:
+ * 
+ * const roleCheck = checkRole(auth.payload.role, ['owner']);
+ * if (!roleCheck.success) return roleCheck.response;
+ */
+export function checkRole(
+  userRole: string,
+  allowedRoles: string[]
+) {
+  if (!allowedRoles.includes(userRole)) {
+    return {
+      success: false,
+      response: NextResponse.json(
+        { success: false, error: 'Insufficient permissions' },
+        { status: 403 }
+      ),
+    };
+  }
+
+  return { success: true };
+}
