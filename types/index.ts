@@ -82,12 +82,9 @@ export type LoginRequest = {
   password: string;
 };
 
-export type LoginResponse = {
-  success: boolean;
-  token: string;
-  user: Omit<User, "password_hash">;
-  error?: string;
-};
+export type LoginResponse =
+  | { success: true; token: string; user: Omit<User, "password_hash"> }
+  | { success: false; error: string };
 
 export type SignupRequest = {
   email: string;
@@ -95,13 +92,9 @@ export type SignupRequest = {
   agency_name: string;
 };
 
-export type SignupResponse = {
-  success: boolean;
-  token: string;
-  user: Omit<User, "password_hash">;
-  agency: Agency;
-  error?: string;
-};
+export type SignupResponse =
+  | { success: true; token: string; user: Omit<User, "password_hash">; agency: Agency }
+  | { success: false; error: string };
 
 export type LogoutResponse = {
   success: boolean;
@@ -114,17 +107,13 @@ export type CreateClientRequest = {
   contact_email?: string;
 };
 
-export type CreateClientResponse = {
-  success: boolean;
-  client: Client;
-  error?: string;
-};
+export type CreateClientResponse =
+  | { success: true; client: Client }
+  | { success: false; error: string };
 
-export type GetClientsResponse = {
-  success: boolean;
-  clients: Client[];
-  error?: string;
-};
+export type GetClientsResponse =
+  | { success: true; clients: Client[] }
+  | { success: false; error: string };
 
 // CAMPAIGNS ENDPOINTS
 export type CreateCampaignRequest = {
@@ -133,17 +122,13 @@ export type CreateCampaignRequest = {
   platform: "google_ads" | "meta_ads" | "other";
 };
 
-export type CreateCampaignResponse = {
-  success: boolean;
-  campaign: Campaign;
-  error?: string;
-};
+export type CreateCampaignResponse =
+  | { success: true; campaign: Campaign }
+  | { success: false; error: string };
 
-export type GetCampaignsResponse = {
-  success: boolean;
-  campaigns: Campaign[];
-  error?: string;
-};
+export type GetCampaignsResponse =
+  | { success: true; campaigns: Campaign[] }
+  | { success: false; error: string };
 
 // METRICS ENDPOINTS
 export type CreateMetricEntryRequest = {
@@ -156,17 +141,13 @@ export type CreateMetricEntryRequest = {
   conversions: number;
 };
 
-export type CreateMetricEntryResponse = {
-  success: boolean;
-  entry: MetricEntry;
-  error?: string;
-};
+export type CreateMetricEntryResponse =
+  | { success: true; entry: MetricEntry }
+  | { success: false; error: string };
 
-export type GetMetricsResponse = {
-  success: boolean;
-  metrics: MetricEntry[];
-  error?: string;
-};
+export type GetMetricsResponse =
+  | { success: true; metrics: MetricEntry[] }
+  | { success: false; error: string };
 
 // DASHBOARD ENDPOINTS
 export type AgencyDashboardSummary = {
@@ -179,12 +160,9 @@ export type AgencyDashboardSummary = {
   average_conversion_rate: number;
 };
 
-export type AgencyDashboardResponse = {
-  success: boolean;
-  summary: AgencyDashboardSummary;
-  clients_overview: Client[];
-  error?: string;
-};
+export type AgencyDashboardResponse =
+  | { success: true; summary: AgencyDashboardSummary; clients_overview: Client[] }
+  | { success: false; error: string };
 
 export type ClientDashboardSummary = {
   client_name: string;
@@ -196,13 +174,9 @@ export type ClientDashboardSummary = {
   average_conversion_rate: number;
 };
 
-export type ClientDashboardResponse = {
-  success: boolean;
-  summary: ClientDashboardSummary;
-  campaigns: Campaign[];
-  recent_metrics: MetricEntry[];
-  error?: string;
-};
+export type ClientDashboardResponse =
+  | { success: true; summary: ClientDashboardSummary; campaigns: Campaign[]; recent_metrics: MetricEntry[] }
+  | { success: false; error: string };
 
 // ============================================
 // Utility Types
@@ -237,31 +211,22 @@ export interface TeamMember {
   assigned_client_count?: number;
 }
 
-export interface TeamListResponse {
-  success: boolean;
-  members?: TeamMember[];
-  error?: string;
-}
+export type TeamListResponse =
+  | { success: true; members: TeamMember[] }
+  | { success: false; error: string };
 
-export interface AddTeamMemberResponse {
-  success: boolean;
-  member?: TeamMember;
-  error?: string;
-}
+export type AddTeamMemberResponse =
+  | { success: true; member: TeamMember }
+  | { success: false; error: string };
 
-export interface UpdateTeamMemberResponse {
-  success: boolean;
-  member?: TeamMember;
-  error?: string;
-}
+export type UpdateTeamMemberResponse =
+  | { success: true; member: TeamMember }
+  | { success: false; error: string };
 
-export interface AssignmentResponse {
-  success: boolean;
-  assignment?: { user_id: string; client_id: string };
-  error?: string;
-}
+export type AssignmentResponse =
+  | { success: true; assignment: { user_id: string; client_id: string } }
+  | { success: false; error: string };
 
-export type DeleteResponse = {
-  success: boolean;
-  error?: string;
-};
+export type DeleteResponse =
+  | { success: true }
+  | { success: false; error: string };

@@ -13,7 +13,7 @@ import crypto from 'crypto';
  * Role restriction: Owner & Account Manager can view
  * Data isolation: Only clients in their agency
  */
-export async function GET(request: NextRequest): Promise<NextResponse<GetClientsResponse>> {
+export async function GET(request: NextRequest): Promise<NextResponse> {
   try {
     // Step 1: Authenticate user
     const auth = await protectedRoute(request);
@@ -56,7 +56,8 @@ export async function GET(request: NextRequest): Promise<NextResponse<GetClients
  * Role restriction: Only Owner & Account Manager
  * Data isolation: Client automatically tied to authenticated user's agency
  */
-export async function POST(request: NextRequest): Promise<NextResponse<CreateClientResponse>> {
+
+export async function POST(request: NextRequest): Promise<NextResponse> {
   try {
     // Step 1: Authenticate user
     const auth = await protectedRoute(request);
@@ -101,18 +102,60 @@ export async function POST(request: NextRequest): Promise<NextResponse<CreateCli
       .select()
       .single();
 
-    if (error) {
-      console.error('Insert error:', error);
-      return NextResponse.json(
-        { success: false, error: 'Failed to create client' },
-        { status: 500 }
-      );
-    }
+    // if (error) {
+    //   console.error('Insert error:', error);
+    //   return NextResponse.json(
+    //     { success: false, error: 'Failed to create client' },
+    //     { status: 500 }
+    //   );
+    // }
 
-    return NextResponse.json(
-      { success: true, client },
-      { status: 201 }
-    );
+    // return NextResponse.json(
+    //   { success: true, client },
+    //   { status: 201 }
+    // );
+    if (error || !client) {
+  console.error('Insert error:', error);
+  return NextResponse.json(
+    { success: false, error: 'Failed to create client' },
+    { status: 500 }
+  );
+}
+
+// Step 6: Hash the portal token
+const tokenHash = crypto
+  .createHash('sha256')
+  .update(portalToken)
+  .digest('hex');
+
+// Step 7: Store the hashed token in client_access_tokens
+const { error: tokenError } = await supabaseServer
+  .from('client_access_tokens')
+  .insert([
+    {
+      client_id: client.id,
+      token_hash: tokenHash,
+      expires_at: null,
+    },
+  ]);
+
+if (tokenError) {
+  console.error('Portal token creation error:', tokenError);
+  return NextResponse.json(
+    { success: false, error: 'Failed to create portal access token' },
+    { status: 500 }
+  );
+}
+
+// Step 8: Return client + portal token
+return NextResponse.json(
+  {
+    success: true,
+    client,
+    portal_token: portalToken,
+  },
+  { status: 201 }
+);
   } catch (error) {
     console.error('POST /api/clients error:', error);
     return NextResponse.json(

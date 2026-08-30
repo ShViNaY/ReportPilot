@@ -4,34 +4,49 @@ import { NextRequest, NextResponse } from 'next/server';
 import { verifyToken, extractTokenFromHeader } from './utils/auth';
 import { AuthPayload } from '@/types';
 
+// Explicit discriminated union types so TS can narrow correctly
+type ProtectedRouteResult =
+  | { success: true; payload: AuthPayload }
+  | { success: false; response: NextResponse };
+
+type CheckRoleResult =
+  | { success: true }
+  | { success: false; response: NextResponse };
+
+type WithAuthResult =
+  | { success: true; payload: AuthPayload }
+  | { success: false; response: NextResponse };
+
 /**
  * Middleware to protect API routes
  * Checks JWT token validity and extracts user info
  */
-export async function withAuth(request: NextRequest) {
+export async function withAuth(request: NextRequest): Promise<WithAuthResult> {
   try {
-    // Get token from Authorization header
     const authHeader = request.headers.get('authorization');
-    const token = extractTokenFromHeader(authHeader);
+    const token = extractTokenFromHeader(authHeader ?? undefined);
 
     if (!token) {
-      return NextResponse.json(
-        { success: false, error: 'Missing authorization token' },
-        { status: 401 }
-      );
+      return {
+        success: false,
+        response: NextResponse.json(
+          { success: false, error: 'Missing authorization token' },
+          { status: 401 }
+        ),
+      };
     }
 
-    // Verify token
     const payload = verifyToken(token);
     if (!payload) {
-      return NextResponse.json(
-        { success: false, error: 'Invalid or expired token' },
-        { status: 401 }
-      );
+      return {
+        success: false,
+        response: NextResponse.json(
+          { success: false, error: 'Invalid or expired token' },
+          { status: 401 }
+        ),
+      };
     }
 
-    // Token is valid - attach to request
-    // We'll use request.headers to pass data to the route handler
     request.headers.set('x-user-id', payload.user_id);
     request.headers.set('x-agency-id', payload.agency_id);
     request.headers.set('x-user-role', payload.role);
@@ -39,10 +54,13 @@ export async function withAuth(request: NextRequest) {
     return { success: true, payload };
   } catch (error) {
     console.error('Auth middleware error:', error);
-    return NextResponse.json(
-      { success: false, error: 'Authentication failed' },
-      { status: 500 }
-    );
+    return {
+      success: false,
+      response: NextResponse.json(
+        { success: false, error: 'Authentication failed' },
+        { status: 500 }
+      ),
+    };
   }
 }
 
@@ -80,19 +98,19 @@ export function requireRole(
 /**
  * Wrapper to apply auth to an API route
  * Usage:
- * 
+ *
  * export async function POST(request: NextRequest) {
  *   const auth = await protectedRoute(request);
  *   if (!auth.success) return auth.response;
- *   
+ *
  *   const { user_id, agency_id } = auth.payload;
  *   // Your route logic here
  * }
  */
-export async function protectedRoute(request: NextRequest) {
+export async function protectedRoute(request: NextRequest): Promise<ProtectedRouteResult> {
   try {
     const authHeader = request.headers.get('authorization');
-    const token = extractTokenFromHeader(authHeader);
+    const token = extractTokenFromHeader(authHeader ?? undefined);
 
     if (!token) {
       return {
@@ -131,14 +149,14 @@ export async function protectedRoute(request: NextRequest) {
 /**
  * Require specific role(s) for a route
  * Usage:
- * 
+ *
  * const roleCheck = checkRole(auth.payload.role, ['owner']);
  * if (!roleCheck.success) return roleCheck.response;
  */
 export function checkRole(
   userRole: string,
   allowedRoles: string[]
-) {
+): CheckRoleResult {
   if (!allowedRoles.includes(userRole)) {
     return {
       success: false,
