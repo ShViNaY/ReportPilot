@@ -2,6 +2,8 @@
 
 'use client';
 
+import { TrendChart } from '@/components/charts/TrendChart';
+import { CampaignChart } from '@/components/charts/CampaignChart';
 import { useState, useEffect } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { ProtectedRoute } from '@/lib/context/ProtectedRoute';
@@ -426,6 +428,27 @@ export default function MetricsPage() {
               </form>
             </div>
           )}
+
+          {/* Charts */}
+            {sortedMetrics.length > 0 && (
+            <div className="space-y-6">
+                <div>
+                <h2 className="text-lg font-semibold text-slate-900 mb-4">Performance Trends</h2>
+                <TrendChart metrics={sortedMetrics} title="Metrics Over Time" />
+                </div>
+
+                {campaigns.length > 0 && (
+                <div>
+                    <h2 className="text-lg font-semibold text-slate-900 mb-4">Campaign Performance</h2>
+                    <CampaignChart 
+                    metrics={sortedMetrics} 
+                    campaigns={campaigns} 
+                    title="Ad Spend, Leads & Conversions by Campaign"
+                    />
+                </div>
+                )}
+            </div>
+            )}
 
           {/* Metrics Table */}
           {sortedMetrics.length === 0 ? (

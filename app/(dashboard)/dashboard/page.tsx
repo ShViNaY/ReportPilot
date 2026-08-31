@@ -2,39 +2,51 @@
 
 'use client';
 
+import { TrendChart } from '@/components/charts/TrendChart';
+import { KPISummary } from '@/components/charts/KPISummary';
 import { useState, useEffect } from 'react';
 import { ProtectedRoute } from '@/lib/context/ProtectedRoute';
 import { DashboardLayout } from '@/components/layouts/DashboardLayout';
 import { apiFetch } from '@/lib/utils/apiClient';
-import { AgencyDashboardSummary } from '@/types';
+import { AgencyDashboardSummary, MetricEntry } from '@/types';
 
 export default function DashboardPage() {
-  const [summary, setSummary] = useState<AgencyDashboardSummary | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState('');
+    const [summary, setSummary] = useState<AgencyDashboardSummary | null>(null);
+    const [metrics, setMetrics] = useState<MetricEntry[]>([]);
+    const [isLoading, setIsLoading] = useState(true);
+    const [error, setError] = useState('');
 
-  useEffect(() => {
-    const fetchDashboard = async () => {
-      try {
-        const res = await apiFetch('/api/dashboard/agency');
-        const data = await res.json();
+    useEffect(() => {
+        const fetchDashboard = async () => {
+        try {
+            // Fetch dashboard summary
+            const res = await apiFetch('/api/dashboard/agency');
+            const data = await res.json();
 
-        if (!data.success) {
-          setError(data.error || 'Failed to load dashboard');
-          return;
+            if (!data.success) {
+                setError(data.error || 'Failed to load dashboard');
+                return;
+            }
+
+            setSummary(data.summary);
+
+            // Fetch metrics for charts
+            const metricsRes = await apiFetch('/api/metrics');
+            const metricsData = await metricsRes.json();
+
+            if (metricsData.success) {
+                setMetrics(metricsData.metrics || []);
+            }
+        } catch (err) {
+            setError('Something went wrong');
+            console.error(err);
+        } finally {
+            setIsLoading(false);
         }
-
-        setSummary(data.summary);
-      } catch (err) {
-        setError('Something went wrong');
-        console.error(err);
-      } finally {
-        setIsLoading(false);
-      }
     };
 
     fetchDashboard();
-  }, []);
+    }, []);
 
   const StatCard = ({
     label,
@@ -178,6 +190,21 @@ export default function DashboardPage() {
               </div>
             </div>
           </div>
+
+                    
+          {/* KPI Charts */}
+            <div>
+            <h2 className="text-lg font-semibold text-slate-900 mb-4">Key Performance Indicators</h2>
+            <KPISummary metrics={metrics} />
+            </div>
+
+            {/* Trend Chart */}
+            {metrics.length > 0 && (
+            <div>
+                <h2 className="text-lg font-semibold text-slate-900 mb-4">Performance Trends</h2>
+                <TrendChart metrics={metrics} title="Ad Spend, Leads & Conversions Over Time" />
+            </div>
+            )}
 
           {/* Quick Actions */}
           <div className="bg-indigo-50 border border-indigo-200 rounded-lg p-6">
