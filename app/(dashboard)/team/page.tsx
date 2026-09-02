@@ -319,12 +319,15 @@ export default function TeamPage() {
           <div className="bg-blue-50 border border-blue-200 rounded-lg p-6">
             <h3 className="font-semibold text-blue-900 mb-2">Team Roles</h3>
             <div className="space-y-2 text-sm text-blue-800">
-              <p>
-                <strong>Owner:</strong> Full access, can manage all clients, campaigns, and team members
-              </p>
-              <p>
-                <strong>Account Manager:</strong> Can manage assigned clients and enter metrics
-              </p>
+                <p>
+                    <strong>Owner:</strong> Full access, can manage all clients, campaigns, and team members
+                </p>
+                <p>
+                    <strong>Account Manager:</strong> Can manage assigned clients and enter metrics
+                </p>
+                <p>
+                    <strong>Client:</strong> No account needed — views their own campaigns and metrics through a private, read-only shareable link
+                </p>
             </div>
           </div>
         </div>
