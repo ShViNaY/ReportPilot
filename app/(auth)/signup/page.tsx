@@ -7,6 +7,25 @@ import { useAuth } from '@/lib/context/AuthContext';
 import { Button } from '@/components/common/Button';
 import { Input } from '@/components/common/Input';
 
+function validatePasswordStrength(password: string): string | null {
+  if (password.length < 8) {
+    return 'Password must be at least 8 characters.';
+  }
+  if (!/[a-z]/.test(password)) {
+    return 'Password must contain at least one lowercase letter.';
+  }
+  if (!/[A-Z]/.test(password)) {
+    return 'Password must contain at least one uppercase letter.';
+  }
+  if (!/[0-9]/.test(password)) {
+    return 'Password must contain at least one number.';
+  }
+  if (!/[^A-Za-z0-9]/.test(password)) {
+    return 'Password must contain at least one special character.';
+  }
+  return null;
+}
+
 export default function SignupPage() {
   const { signup } = useAuth();
   const [agencyName, setAgencyName] = useState('');
@@ -19,8 +38,9 @@ export default function SignupPage() {
     e.preventDefault();
     setError('');
 
-    if (password.length < 8) {
-      setError('Password must be at least 8 characters.');
+    const passwordError = validatePasswordStrength(password);
+    if (passwordError) {
+      setError(passwordError);
       return;
     }
 
@@ -66,16 +86,21 @@ export default function SignupPage() {
           required
         />
 
-        <Input
-          label="Password"
-          type="password"
-          name="password"
-          autoComplete="new-password"
-          placeholder="At least 8 characters"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          required
-        />
+        <div className="space-y-1.5">
+          <Input
+            label="Password"
+            type="password"
+            name="password"
+            autoComplete="new-password"
+            placeholder="Enter a strong password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            required
+          />
+          <p className="text-xs text-slate-400">
+            Must be 8+ characters and include an uppercase letter, a lowercase letter, a number, and a special character.
+          </p>
+      </div>
 
         {error && (
           <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">
