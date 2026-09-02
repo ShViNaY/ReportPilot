@@ -15,13 +15,11 @@ import crypto from 'crypto';
  */
 export async function GET(request: NextRequest): Promise<NextResponse> {
   try {
-    // Step 1: Authenticate user
     const auth = await protectedRoute(request);
     if (!auth.success) return auth.response;
 
     const { agency_id } = auth.payload;
 
-    // Step 2: Query clients for this agency ONLY
     const { data: clients, error } = await supabaseServer
       .from('clients')
       .select('*')
@@ -36,8 +34,42 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       );
     }
 
+    // Look up assignments for these clients, and the manager for each
+    const clientIds = (clients || []).map((c) => c.id);
+
+    let assignedManagerByClientId: Record<string, { id: string; email: string }> = {};
+
+    if (clientIds.length > 0) {
+      const { data: assignments } = await supabaseServer
+        .from('user_client_assignments')
+        .select('client_id, user_id')
+        .in('client_id', clientIds);
+
+      if (assignments && assignments.length > 0) {
+        const managerIds = [...new Set(assignments.map((a) => a.user_id))];
+
+        const { data: managers } = await supabaseServer
+          .from('users')
+          .select('id, email')
+          .in('id', managerIds);
+
+        const managerById = new Map((managers || []).map((m) => [m.id, m]));
+
+        assignedManagerByClientId = assignments.reduce((acc, a) => {
+          const manager = managerById.get(a.user_id);
+          if (manager) acc[a.client_id] = { id: manager.id, email: manager.email };
+          return acc;
+        }, {} as Record<string, { id: string; email: string }>);
+      }
+    }
+
+    const clientsWithAssignment = (clients || []).map((c) => ({
+      ...c,
+      assigned_manager: assignedManagerByClientId[c.id] || null,
+    }));
+
     return NextResponse.json(
-      { success: true, clients: clients || [] },
+      { success: true, clients: clientsWithAssignment },
       { status: 200 }
     );
   } catch (error) {
@@ -48,7 +80,6 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     );
   }
 }
-
 /**
  * POST /api/clients
  * Create a new client for the agency

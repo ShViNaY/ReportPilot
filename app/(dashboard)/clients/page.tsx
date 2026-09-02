@@ -1,17 +1,24 @@
 // app/(dashboard)/clients/page.tsx
-
 'use client';
 
 import { useState, useEffect } from 'react';
 import { ProtectedRoute } from '@/lib/context/ProtectedRoute';
 import { DashboardLayout } from '@/components/layouts/DashboardLayout';
+import { useAuth } from '@/lib/context/AuthContext';
 import { Button } from '@/components/common/Button';
 import { Input } from '@/components/common/Input';
 import { apiFetch } from '@/lib/utils/apiClient';
-import { Client } from '@/types';
+import { Client, TeamMember } from '@/types';
+
+type ClientWithAssignment = Client & {
+  assigned_manager: { id: string; email: string } | null;
+};
 
 export default function ClientsPage() {
-  const [clients, setClients] = useState<Client[]>([]);
+  const { user } = useAuth();
+  const [clients, setClients] = useState<ClientWithAssignment[]>([]);
+  const [managers, setManagers] = useState<TeamMember[]>([]);
+  const [assigningClientId, setAssigningClientId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
   const [showForm, setShowForm] = useState(false);
@@ -27,7 +34,10 @@ export default function ClientsPage() {
   // Fetch clients on mount
   useEffect(() => {
     fetchClients();
-  }, []);
+    if (user?.role === 'owner') {
+      fetchManagers();
+    }
+  }, [user?.role]);
 
   const fetchClients = async () => {
     try {
@@ -46,6 +56,44 @@ export default function ClientsPage() {
       console.error(err);
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const fetchManagers = async () => {
+    try {
+      const res = await apiFetch('/api/team');
+      const data = await res.json();
+      if (data.success) {
+        setManagers((data.members || []).filter((m: TeamMember) => m.role === 'account_manager'));
+      }
+    } catch (err) {
+      console.error('Failed to load team members', err);
+    }
+  };
+
+  const handleAssign = async (clientId: string, managerId: string) => {
+    setAssigningClientId(clientId);
+    try {
+      if (managerId === '') {
+        const client = clients.find((c) => c.id === clientId);
+        if (client?.assigned_manager) {
+          await apiFetch(
+            `/api/team/${client.assigned_manager.id}/assignments?client_id=${clientId}`,
+            { method: 'DELETE' }
+          );
+        }
+      } else {
+        await apiFetch(`/api/team/${managerId}/assignments`, {
+          method: 'POST',
+          body: JSON.stringify({ client_id: clientId }),
+        });
+      }
+      await fetchClients();
+    } catch (err) {
+      setError('Failed to update assignment');
+      console.error(err);
+    } finally {
+      setAssigningClientId(null);
     }
   };
 
@@ -242,6 +290,30 @@ export default function ClientsPage() {
                         </p>
                       )}
                     </div>
+
+                    <div className="bg-slate-50 rounded p-3">
+                        <p className="text-xs text-slate-600 mb-1.5">Assigned to:</p>
+                        {user?.role === 'owner' ? (
+                            <select
+                            value={client.assigned_manager?.id || ''}
+                            onChange={(e) => handleAssign(client.id, e.target.value)}
+                            disabled={assigningClientId === client.id}
+                            className="w-full text-sm border border-slate-300 rounded px-2 py-1.5 bg-white disabled:opacity-50"
+                            >
+                            <option value="">Unassigned</option>
+                            {managers.map((m) => (
+                                <option key={m.id} value={m.id}>
+                                {m.email}
+                                </option>
+                            ))}
+                            </select>
+                        ) : (
+                            <p className="text-sm text-slate-700">
+                            {client.assigned_manager?.email || 'Unassigned'}
+                            </p>
+                        )}
+                    </div>
+
 
                     {/* Portal Token */}
                     <div className="bg-slate-50 rounded p-3">
