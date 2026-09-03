@@ -25,6 +25,7 @@ export default function MetricsPage() {
   const [showForm, setShowForm] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [selectedPeriod, setSelectedPeriod] = useState<string>('all');
 
   // Form state
   const [formData, setFormData] = useState({
@@ -231,15 +232,28 @@ export default function MetricsPage() {
     return campaigns.find(c => c.id === campaignId)?.name || 'Unknown Campaign';
   };
 
-  // Filter metrics if campaign_id is provided
-  const filteredMetrics = filterCampaignId
-    ? metrics.filter(m => m.campaign_id === filterCampaignId)
-    : metrics;
+// Filter metrics if campaign_id is provided
+const filteredMetrics = filterCampaignId
+  ? metrics.filter(m => m.campaign_id === filterCampaignId)
+  : metrics;
 
-  // Sort by reporting period (newest first)
-  const sortedMetrics = [...filteredMetrics].sort(
-    (a, b) => new Date(b.reporting_period).getTime() - new Date(a.reporting_period).getTime()
-  );
+// Unique reporting periods available in the current view, newest first
+const availablePeriods = [...new Set(filteredMetrics.map(m => m.reporting_period))]
+  .sort((a, b) => new Date(b).getTime() - new Date(a).getTime());
+
+const formatPeriod = (period: string) =>
+  new Date(period).toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+
+// Further filter by the selected month, if one is chosen
+const periodFilteredMetrics =
+  selectedPeriod === 'all'
+    ? filteredMetrics
+    : filteredMetrics.filter(m => m.reporting_period === selectedPeriod);
+
+// Sort by reporting period (newest first)
+const sortedMetrics = [...periodFilteredMetrics].sort(
+  (a, b) => new Date(b.reporting_period).getTime() - new Date(a.reporting_period).getTime()
+);
 
   if (isLoading) {
     return (
@@ -268,27 +282,43 @@ export default function MetricsPage() {
       <DashboardLayout>
         <div className="space-y-6">
           {/* Header */}
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-3xl font-bold text-slate-900">Campaign Metrics</h1>
-              <p className="text-slate-500 mt-1">
-                {filterCampaignId
-                  ? `Metrics for ${getCampaignName(filterCampaignId)}`
-                  : 'Track all campaign performance metrics'}
-              </p>
+            <div className="flex items-center justify-between flex-wrap gap-4">
+                <div>
+                    <h1 className="text-3xl font-bold text-slate-900">Campaign Metrics</h1>
+                    <p className="text-slate-500 mt-1">
+                    {filterCampaignId
+                        ? `Metrics for ${getCampaignName(filterCampaignId)}`
+                        : 'Track all campaign performance metrics'}
+                    </p>
+                </div>
+                <div className="flex items-center gap-3">
+                    {availablePeriods.length > 1 && (
+                    <select
+                        value={selectedPeriod}
+                        onChange={(e) => setSelectedPeriod(e.target.value)}
+                        className="px-3 py-2 text-sm border border-slate-300 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-indigo-600"
+                    >
+                    <option value="all">All periods</option>
+                    {availablePeriods.map((period) => (
+                        <option key={period} value={period}>
+                            {formatPeriod(period)}
+                        </option>
+                    ))}
+                    </select>
+                )}
+                <Button
+                    onClick={() => {
+                        if (showForm) {
+                            resetForm();
+                        }
+                        setShowForm(!showForm);
+                    }}
+                    className="bg-indigo-600 hover:bg-indigo-700 text-white"
+                >
+                    {showForm ? 'Cancel' : '+ Add Metrics'}
+                </Button>
             </div>
-            <Button
-              onClick={() => {
-                if (showForm) {
-                  resetForm();
-                }
-                setShowForm(!showForm);
-              }}
-              className="bg-indigo-600 hover:bg-indigo-700 text-white"
-            >
-              {showForm ? 'Cancel' : '+ Add Metrics'}
-            </Button>
-          </div>
+            </div>
 
           {/* Error Message */}
           {error && (
