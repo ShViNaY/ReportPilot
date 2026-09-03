@@ -256,10 +256,18 @@ export async function DELETE(
         const auth = await protectedRoute(request);
         if (!auth.success) return auth.response;
 
-        const { agency_id, user_id, role } = auth.payload;
+        const { agency_id, role } = auth.payload;
         const { id: metricId } = await params;
 
-        // Step 2: Verify metric exists and belongs to user's agency
+        // Step 2: Only owners can delete metric entries
+        if (role !== 'owner') {
+            return NextResponse.json(
+                { success: false, error: 'Only agency owners can delete metric entries' },
+                { status: 403 }
+            );
+        }
+
+        // Step 3: Verify metric exists and belongs to user's agency
         const { data: existingMetric } = await supabaseServer
             .from('metric_entries')
             .select('id, client_id')
@@ -272,23 +280,6 @@ export async function DELETE(
                 { success: false, error: 'Metric entry not found' },
                 { status: 404 }
             );
-        }
-
-        // Step 2b: Account managers can only delete metrics for their assigned clients
-        if (role === 'account_manager') {
-            const { data: assignment } = await supabaseServer
-                .from('user_client_assignments')
-                .select('id')
-                .eq('user_id', user_id)
-                .eq('client_id', existingMetric.client_id)
-                .single();
-
-            if (!assignment) {
-                return NextResponse.json(
-                    { success: false, error: 'Metric entry not found' },
-                    { status: 404 }
-                );
-            }
         }
 
         // Step 3: Delete metric

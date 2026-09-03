@@ -5,6 +5,7 @@
 import { useState, useEffect } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { ProtectedRoute } from '@/lib/context/ProtectedRoute';
+import { useAuth } from '@/lib/context/AuthContext';
 import { DashboardLayout } from '@/components/layouts/DashboardLayout';
 import { Button } from '@/components/common/Button';
 import { Input } from '@/components/common/Input';
@@ -12,6 +13,7 @@ import { apiFetch } from '@/lib/utils/apiClient';
 import { Campaign, Client } from '@/types';
 
 export default function CampaignsPage() {
+  const { user } = useAuth();
   const searchParams = useSearchParams();
   const filterClientId = searchParams.get('client_id');
 
@@ -394,13 +396,15 @@ export default function CampaignsPage() {
                         View Metrics
                       </a>
 
-                      {/* Delete Button */}
-                      <button
-                        onClick={() => handleDelete(campaign.id)}
-                        className="px-3 py-2 bg-red-50 text-red-600 hover:bg-red-100 rounded text-sm font-medium transition-colors"
-                      >
-                        Delete
-                      </button>
+                      {/* Delete Button — owner only */}
+                      {user?.role === 'owner' && (
+                        <button
+                          onClick={() => handleDelete(campaign.id)}
+                          className="px-3 py-2 bg-red-50 text-red-600 hover:bg-red-100 rounded text-sm font-medium transition-colors"
+                        >
+                          Delete
+                        </button>
+                      )}
                     </div>
                   </div>
                 </div>

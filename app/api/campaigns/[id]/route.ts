@@ -201,10 +201,18 @@ export async function DELETE(
         const auth = await protectedRoute(request);
         if (!auth.success) return auth.response;
 
-        const { agency_id, user_id, role } = auth.payload;
+        const { agency_id, role } = auth.payload;
         const { id: campaignId } = await params;
 
-        // Step 2: Verify campaign exists and belongs to user's agency
+        // Step 2: Only owners can delete campaigns
+        if (role !== 'owner') {
+            return NextResponse.json(
+                { success: false, error: 'Only agency owners can delete campaigns' },
+                { status: 403 }
+            );
+        }
+
+        // Step 3: Verify campaign exists and belongs to user's agency
         const { data: existingCampaign } = await supabaseServer
             .from('campaigns')
             .select('id, client_id')
@@ -217,23 +225,6 @@ export async function DELETE(
                 { success: false, error: 'Campaign not found' },
                 { status: 404 }
             );
-        }
-
-        // Step 2b: Account managers can only delete campaigns for their assigned clients
-        if (role === 'account_manager') {
-            const { data: assignment } = await supabaseServer
-                .from('user_client_assignments')
-                .select('id')
-                .eq('user_id', user_id)
-                .eq('client_id', existingCampaign.client_id)
-                .single();
-
-            if (!assignment) {
-                return NextResponse.json(
-                    { success: false, error: 'Campaign not found' },
-                    { status: 404 }
-                );
-            }
         }
 
         // Step 3: Delete campaign

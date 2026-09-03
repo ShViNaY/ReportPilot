@@ -2,7 +2,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseServer } from '@/lib/supabase/server';
-import { protectedRoute, checkRole } from '@/lib/middleware';
+import { protectedRoute } from '@/lib/middleware';
 import { CreateClientRequest, CreateClientResponse, GetClientsResponse } from '@/types';
 import crypto from 'crypto';
 

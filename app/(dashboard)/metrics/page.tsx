@@ -9,12 +9,14 @@ import { useState, useEffect } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { ProtectedRoute } from '@/lib/context/ProtectedRoute';
 import { DashboardLayout } from '@/components/layouts/DashboardLayout';
+import { useAuth } from '@/lib/context/AuthContext';
 import { Button } from '@/components/common/Button';
 import { Input } from '@/components/common/Input';
 import { apiFetch } from '@/lib/utils/apiClient';
 import { MetricEntry, Campaign, Client } from '@/types';
 
 export default function MetricsPage() {
+    const { user } = useAuth();
     const searchParams = useSearchParams();
     const filterCampaignId = searchParams.get('campaign_id');
 
@@ -611,12 +613,14 @@ export default function MetricsPage() {
                                                 >
                                                     Edit
                                                 </button>
-                                                <button
-                                                    onClick={() => handleDelete(metric.id)}
-                                                    className="text-red-600 hover:text-red-700 font-medium text-xs"
-                                                >
-                                                    Delete
-                                                </button>
+                                                {user?.role === 'owner' && (
+                                                    <button
+                                                        onClick={() => handleDelete(metric.id)}
+                                                        className="text-red-600 hover:text-red-700 font-medium text-xs"
+                                                    >
+                                                        Delete
+                                                    </button>
+                                                )}
                                             </td>
                                         </tr>
                                     ))}

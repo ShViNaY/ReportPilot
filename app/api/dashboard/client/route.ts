@@ -1,6 +1,7 @@
 // app/api/dashboard/client/route.ts
 
 import { NextRequest, NextResponse } from 'next/server';
+import crypto from 'crypto';
 import { supabaseServer } from '@/lib/supabase/server';
 import { ClientDashboardResponse, ClientDashboardSummary } from '@/types';
 
@@ -16,10 +17,39 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       );
     }
 
+    // Look up the token by its hash, never by the raw value — this is the
+    // credential a client presents on every request, so it should be
+    // verified the same way a password would be.
+    const tokenHash = crypto
+      .createHash('sha256')
+      .update(portalToken)
+      .digest('hex');
+
+    const { data: accessToken, error: accessTokenError } = await supabaseServer
+      .from('client_access_tokens')
+      .select('client_id, expires_at')
+      .eq('token_hash', tokenHash)
+      .maybeSingle();
+
+    if (accessTokenError || !accessToken) {
+      return NextResponse.json(
+        { success: false, error: 'Invalid or expired portal token' },
+        { status: 401 }
+      );
+    }
+
+    // Honor expiration now that it's actually being checked
+    if (accessToken.expires_at && new Date(accessToken.expires_at) < new Date()) {
+      return NextResponse.json(
+        { success: false, error: 'Invalid or expired portal token' },
+        { status: 401 }
+      );
+    }
+
     const { data: client, error: clientError } = await supabaseServer
       .from('clients')
       .select('id, name, agency_id')
-      .eq('portal_token', portalToken)
+      .eq('id', accessToken.client_id)
       .single();
 
     if (clientError || !client) {
