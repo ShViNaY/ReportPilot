@@ -2,6 +2,7 @@
 
 'use client';
 
+import { DateRangeFilter, DateRange } from '@/components/filters/DateRangeFilter';
 import { TrendChart } from '@/components/charts/TrendChart';
 import { CampaignChart } from '@/components/charts/CampaignChart';
 import { useState, useEffect } from 'react';
@@ -26,6 +27,9 @@ export default function MetricsPage() {
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [editingId, setEditingId] = useState<string | null>(null);
     const [selectedPeriod, setSelectedPeriod] = useState<string>('all');
+    const [dateRange, setDateRange] = useState<DateRange>('thisMonth');
+    const [startDate, setStartDate] = useState<Date | null>(null);
+    const [endDate, setEndDate] = useState<Date | null>(null);
 
     // Form state
     const [formData, setFormData] = useState({
@@ -40,17 +44,33 @@ export default function MetricsPage() {
     const [formError, setFormError] = useState('');
 
     // Fetch data on mount
-    useEffect(() => {
-        fetchData();
-    }, []);
+   useEffect(() => {
+    const today = new Date();
+    const monthStart = new Date(
+        today.getFullYear(),
+        today.getMonth(),
+        1
+    );
 
-    const fetchData = async () => {
+    setStartDate(monthStart);
+    setEndDate(today);
+
+    fetchData(monthStart, today);
+}, []);
+    const fetchData = async (start?: Date, end?: Date) => {
         try {
             setIsLoading(true);
 
             // Fetch metrics
             let metricsUrl = '/api/metrics';
-            if (filterCampaignId) {
+
+            if (start && end) {
+                metricsUrl += `?startDate=${start.toISOString()}&endDate=${end.toISOString()}`;
+
+                if (filterCampaignId) {
+                    metricsUrl += `&campaign_id=${filterCampaignId}`;
+                }
+            } else if (filterCampaignId) {
                 metricsUrl += `?campaign_id=${filterCampaignId}`;
             }
             const metricsRes = await apiFetch(metricsUrl);
@@ -318,6 +338,22 @@ export default function MetricsPage() {
                                 {showForm ? 'Cancel' : '+ Add Metrics'}
                             </Button>
                         </div>
+                    </div>
+
+                    {/* Date Range Filter */}
+                    <div className="bg-white rounded-lg border border-slate-200 p-4">
+                        <DateRangeFilter
+                            selectedRange={dateRange}
+                            onRangeChange={(range, start, end) => {
+                                setDateRange(range);
+
+                                if (start && end) {
+                                    setStartDate(start);
+                                    setEndDate(end);
+                                    fetchData(start, end);
+                                }
+                            }}
+                        />
                     </div>
 
                     {/* Error Message */}

@@ -2,6 +2,7 @@
 
 'use client';
 
+import { DateRangeFilter, DateRange } from '@/components/filters/DateRangeFilter';
 import { useState, useEffect } from 'react';
 import { useParams } from 'next/navigation';
 import { apiFetch } from '@/lib/utils/apiClient';
@@ -14,20 +15,32 @@ export default function ClientPortalPage() {
   const [data, setData] = useState<ClientDashboardResponse | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
+  const [dateRange, setDateRange] = useState<DateRange>('thisMonth');
+  const [startDate, setStartDate] = useState<Date | null>(null);
+  const [endDate, setEndDate] = useState<Date | null>(null);
+
+  useEffect(() => {
+    const today = new Date();
+    const monthStart = new Date(today.getFullYear(), today.getMonth(), 1);
+    setStartDate(monthStart);
+    setEndDate(today);
+  }, []);
 
   useEffect(() => {
     const fetchPortalData = async () => {
       try {
         setIsLoading(true);
-        // Note: No Authorization header needed for portal access
-        const res = await fetch(`/api/dashboard/client?token=${token}`);
+        let url = `/api/dashboard/client?token=${token}`;
+        if (startDate && endDate) {
+          url += `&startDate=${startDate.toISOString()}&endDate=${endDate.toISOString()}`;
+        }
+        const res = await fetch(url);
         const result = await res.json();
 
         if (!result.success) {
           setError(result.error || 'Unable to access this client portal');
           return;
         }
-
         setData(result);
       } catch (err) {
         setError('Something went wrong');
@@ -37,10 +50,10 @@ export default function ClientPortalPage() {
       }
     };
 
-    if (token) {
+    if (token && startDate && endDate) {
       fetchPortalData();
     }
-  }, [token]);
+  }, [token, startDate, endDate]);
 
   if (isLoading) {
     return (
@@ -112,6 +125,18 @@ export default function ClientPortalPage() {
             <p className="text-slate-500">
               Campaign performance dashboard
             </p>
+          </div>
+          <div className="mt-4">
+            <DateRangeFilter
+              selectedRange={dateRange}
+              onRangeChange={(range, start, end) => {
+                setDateRange(range);
+                if (start && end) {
+                  setStartDate(start);
+                  setEndDate(end);
+                }
+              }}
+            />
           </div>
         </div>
       </div>

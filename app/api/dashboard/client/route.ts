@@ -9,8 +9,6 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     const { searchParams } = new URL(request.url);
     const portalToken = searchParams.get('token')?.trim();
 
-    console.log('Received portal token:', portalToken); // DEBUG
-
     if (!portalToken) {
       return NextResponse.json(
         { success: false, error: 'Portal token is required' },
@@ -23,8 +21,6 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       .select('id, name, agency_id')
       .eq('portal_token', portalToken)
       .single();
-
-    console.log('Client lookup result:', { client, clientError }); // DEBUG
 
     if (clientError || !client) {
       return NextResponse.json(
@@ -49,12 +45,25 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       );
     }
 
-    const { data: metrics, error: metricsError } = await supabaseServer
+    const startDateParam = searchParams.get('startDate');
+    const endDateParam = searchParams.get('endDate');
+
+    let metricsQuery = supabaseServer
       .from('metric_entries')
       .select('*')
-      .eq('client_id', clientId)
-      .order('reporting_period', { ascending: false })
-      .limit(12);
+      .eq('client_id', clientId);
+
+    if (startDateParam) {
+      metricsQuery = metricsQuery.gte('reporting_period', startDateParam.split('T')[0]);
+    }
+    if (endDateParam) {
+      metricsQuery = metricsQuery.lte('reporting_period', endDateParam.split('T')[0]);
+    }
+
+    const { data: metrics, error: metricsError } = await metricsQuery.order(
+      'reporting_period',
+      { ascending: false }
+    );
 
     if (metricsError) {
       console.error('Metrics fetch error:', metricsError);
@@ -98,11 +107,15 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       average_conversion_rate: averageConversionRate,
     };
 
+    // Summary above uses the full filtered set; the table only needs the
+    // most recent 12 within that range (metrics is already sorted desc).
+    const recentMetrics = (metrics || []).slice(0, 12);
+
     const response: ClientDashboardResponse = {
       success: true,
       summary,
       campaigns: campaigns || [],
-      recent_metrics: metrics || [],
+      recent_metrics: recentMetrics,
     };
 
     return NextResponse.json(response, { status: 200 });

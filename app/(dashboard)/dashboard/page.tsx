@@ -2,51 +2,72 @@
 
 'use client';
 
-import { TrendChart } from '@/components/charts/TrendChart';
-import { KPISummary } from '@/components/charts/KPISummary';
 import { useState, useEffect } from 'react';
 import { ProtectedRoute } from '@/lib/context/ProtectedRoute';
 import { DashboardLayout } from '@/components/layouts/DashboardLayout';
+import { DateRangeFilter, DateRange } from '@/components/filters/DateRangeFilter';
+import { TrendChart } from '@/components/charts/TrendChart';
+import { KPISummary } from '@/components/charts/KPISummary';
 import { apiFetch } from '@/lib/utils/apiClient';
 import { AgencyDashboardSummary, MetricEntry } from '@/types';
 
 export default function DashboardPage() {
-    const [summary, setSummary] = useState<AgencyDashboardSummary | null>(null);
-    const [metrics, setMetrics] = useState<MetricEntry[]>([]);
-    const [isLoading, setIsLoading] = useState(true);
-    const [error, setError] = useState('');
+  const [summary, setSummary] = useState<AgencyDashboardSummary | null>(null);
+  const [metrics, setMetrics] = useState<MetricEntry[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState('');
 
-    useEffect(() => {
-        const fetchDashboard = async () => {
-        try {
-            // Fetch dashboard summary
-            const res = await apiFetch('/api/dashboard/agency');
-            const data = await res.json();
+  // Date range state
+  const [dateRange, setDateRange] = useState<DateRange>('thisMonth');
+  const [startDate, setStartDate] = useState<Date | null>(null);
+  const [endDate, setEndDate] = useState<Date | null>(null);
 
-            if (!data.success) {
-                setError(data.error || 'Failed to load dashboard');
-                return;
-            }
+  // Initialize and fetch data
+  useEffect(() => {
+    // Initialize with "This Month"
+    const today = new Date();
+    const monthStart = new Date(today.getFullYear(), today.getMonth(), 1);
+    setStartDate(monthStart);
+    setEndDate(today);
+  }, []);
 
-            setSummary(data.summary);
+  // Fetch data when dates change
+  useEffect(() => {
+    if (startDate && endDate) {
+      fetchDashboard();
+    }
+  }, [startDate, endDate]);
 
-            // Fetch metrics for charts
-            const metricsRes = await apiFetch('/api/metrics');
-            const metricsData = await metricsRes.json();
+  const fetchDashboard = async () => {
+    try {
+      setIsLoading(true);
+      
+      // Fetch dashboard summary
+      const res = await apiFetch('/api/dashboard/agency');
+      const data = await res.json();
 
-            if (metricsData.success) {
-                setMetrics(metricsData.metrics || []);
-            }
-        } catch (err) {
-            setError('Something went wrong');
-            console.error(err);
-        } finally {
-            setIsLoading(false);
-        }
-    };
+      if (!data.success) {
+        setError(data.error || 'Failed to load dashboard');
+        return;
+      }
 
-    fetchDashboard();
-    }, []);
+      setSummary(data.summary);
+
+      // Fetch metrics for charts with date filtering
+      const metricsUrl = `/api/metrics?startDate=${startDate?.toISOString()}&endDate=${endDate?.toISOString()}`;
+      const metricsRes = await apiFetch(metricsUrl);
+      const metricsData = await metricsRes.json();
+
+      if (metricsData.success) {
+        setMetrics(metricsData.metrics || []);
+      }
+    } catch (err) {
+      setError('Something went wrong');
+      console.error(err);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const StatCard = ({
     label,
@@ -117,6 +138,20 @@ export default function DashboardPage() {
             <p className="text-slate-500 mt-1">
               Welcome back! Here's your agency performance.
             </p>
+          </div>
+
+          {/* Date Range Filter */}
+          <div className="bg-white rounded-lg border border-slate-200 p-4">
+            <DateRangeFilter
+              selectedRange={dateRange}
+              onRangeChange={(range, start, end) => {
+                setDateRange(range);
+                if (start && end) {
+                  setStartDate(start);
+                  setEndDate(end);
+                }
+              }}
+            />
           </div>
 
           {/* Summary Cards */}
@@ -191,20 +226,35 @@ export default function DashboardPage() {
             </div>
           </div>
 
-                    
           {/* KPI Charts */}
-            <div>
-            <h2 className="text-lg font-semibold text-slate-900 mb-4">Key Performance Indicators</h2>
+          <div>
+            <h2 className="text-lg font-semibold text-slate-900 mb-4">
+              Key Performance Indicators
+            </h2>
             <KPISummary metrics={metrics} />
-            </div>
+          </div>
 
-            {/* Trend Chart */}
-            {metrics.length > 0 && (
+          {/* Trend Chart */}
+          {metrics.length > 0 && (
             <div>
-                <h2 className="text-lg font-semibold text-slate-900 mb-4">Performance Trends</h2>
-                <TrendChart metrics={metrics} title="Ad Spend, Leads & Conversions Over Time" />
+              <h2 className="text-lg font-semibold text-slate-900 mb-4">
+                Performance Trends
+              </h2>
+              <TrendChart 
+                metrics={metrics} 
+                title="Ad Spend, Leads & Conversions Over Time" 
+              />
             </div>
-            )}
+          )}
+
+          {/* No Data Message */}
+          {metrics.length === 0 && (
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-6 text-center">
+              <p className="text-blue-700">
+                📊 No metrics data for the selected date range. Enter metrics to see trends!
+              </p>
+            </div>
+          )}
 
           {/* Quick Actions */}
           <div className="bg-indigo-50 border border-indigo-200 rounded-lg p-6">
