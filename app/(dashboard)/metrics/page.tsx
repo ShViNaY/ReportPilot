@@ -30,9 +30,17 @@ export default function MetricsPage() {
     const [editingId, setEditingId] = useState<string | null>(null);
     const [selectedPeriod, setSelectedPeriod] = useState<string>('all');
     const [selectedClientId, setSelectedClientId] = useState<string>('');
+    const [selectedCampaignId, setSelectedCampaignId] = useState<string>(filterCampaignId || '');
     const [dateRange, setDateRange] = useState<DateRange>('thisMonth');
     const [startDate, setStartDate] = useState<Date | null>(null);
     const [endDate, setEndDate] = useState<Date | null>(null);
+
+    // Sync URL filterCampaignId if changed
+    useEffect(() => {
+        if (filterCampaignId) {
+            setSelectedCampaignId(filterCampaignId);
+        }
+    }, [filterCampaignId]);
 
     // Form state
     const [formData, setFormData] = useState({
@@ -47,19 +55,20 @@ export default function MetricsPage() {
     const [formError, setFormError] = useState('');
 
     // Fetch data on mount
-   useEffect(() => {
-    const today = new Date();
-    const monthStart = new Date(
-        today.getFullYear(),
-        today.getMonth(),
-        1
-    );
+    useEffect(() => {
+        const today = new Date();
+        const monthStart = new Date(
+            today.getFullYear(),
+            today.getMonth(),
+            1
+        );
 
-    setStartDate(monthStart);
-    setEndDate(today);
+        setStartDate(monthStart);
+        setEndDate(today);
 
-    fetchData(monthStart, today);
-}, []);
+        fetchData(monthStart, today);
+    }, []);
+
     const fetchData = async (start?: Date, end?: Date) => {
         try {
             setIsLoading(true);
@@ -69,12 +78,6 @@ export default function MetricsPage() {
 
             if (start && end) {
                 metricsUrl += `?startDate=${start.toISOString()}&endDate=${end.toISOString()}`;
-
-                if (filterCampaignId) {
-                    metricsUrl += `&campaign_id=${filterCampaignId}`;
-                }
-            } else if (filterCampaignId) {
-                metricsUrl += `?campaign_id=${filterCampaignId}`;
             }
             const metricsRes = await apiFetch(metricsUrl);
             const metricsData = await metricsRes.json();
@@ -254,6 +257,11 @@ export default function MetricsPage() {
     const getCampaignName = (campaignId: string) => {
         return campaigns.find(c => c.id === campaignId)?.name || 'Unknown Campaign';
     };
+
+    const getClientName = (clientId: string) => {
+        return clients.find(c => c.id === clientId)?.name || 'Unknown Client';
+    };
+
     const exportToCSV = () => {
     if (!selectedClientId) return;
 
@@ -301,13 +309,18 @@ export default function MetricsPage() {
     URL.revokeObjectURL(url);
 };
 
-    // Filter metrics if campaign_id is provided
-    const filteredMetrics = filterCampaignId
-        ? metrics.filter(m => m.campaign_id === filterCampaignId)
+    // Step 1: Filter by selected client (if any)
+    const clientFilteredMetrics = selectedClientId
+        ? metrics.filter(m => m.client_id === selectedClientId)
         : metrics;
 
+    // Step 2: Filter by selected campaign (clicked in table or selector)
+    const campaignFilteredMetrics = selectedCampaignId
+        ? clientFilteredMetrics.filter(m => m.campaign_id === selectedCampaignId)
+        : clientFilteredMetrics;
+
     // Unique reporting periods available in the current view, newest first
-    const availablePeriods = [...new Set(filteredMetrics.map(m => m.reporting_period))]
+    const availablePeriods = [...new Set(campaignFilteredMetrics.map(m => m.reporting_period))]
         .sort((a, b) => new Date(b).getTime() - new Date(a).getTime());
 
     const formatPeriod = (period: string) =>
@@ -316,13 +329,21 @@ export default function MetricsPage() {
     // Further filter by the selected month, if one is chosen
     const periodFilteredMetrics =
         selectedPeriod === 'all'
-            ? filteredMetrics
-            : filteredMetrics.filter(m => m.reporting_period === selectedPeriod);
+            ? campaignFilteredMetrics
+            : campaignFilteredMetrics.filter(m => m.reporting_period === selectedPeriod);
 
     // Sort by reporting period (newest first)
     const sortedMetrics = [...periodFilteredMetrics].sort(
         (a, b) => new Date(b.reporting_period).getTime() - new Date(a.reporting_period).getTime()
     );
+
+    // Selected campaign object for info display
+    const selectedCampaign = campaigns.find(c => c.id === selectedCampaignId);
+
+    // Filter campaigns list for campaign dropdown
+    const availableCampaigns = selectedClientId
+        ? campaigns.filter(c => c.client_id === selectedClientId)
+        : campaigns;
 
     if (isLoading) {
         return (
@@ -389,6 +410,72 @@ export default function MetricsPage() {
                         </div>
                     </div>
 
+                    {/* Client & Campaign Selectors */}
+                    <div className="bg-white rounded-lg border border-slate-200 p-4 flex flex-wrap items-center gap-4">
+                        {/* Client Selector */}
+                        <div className="flex items-center gap-2">
+                            <span className="text-sm font-medium text-slate-700">Client:</span>
+                            <select
+                                value={selectedClientId}
+                                onChange={(e) => {
+                                    setSelectedClientId(e.target.value);
+                                    setSelectedCampaignId('');
+                                    setSelectedPeriod('all');
+                                }}
+                                className="px-3 py-2 text-sm border border-slate-300 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-indigo-600"
+                            >
+                                {clients.length > 1 && <option value="">All clients</option>}
+                                {clients.map((client) => (
+                                    <option key={client.id} value={client.id}>
+                                        {client.name}
+                                    </option>
+                                ))}
+                            </select>
+                        </div>
+
+                        {/* Campaign Selector */}
+                        <div className="flex items-center gap-2">
+                            <span className="text-sm font-medium text-slate-700">Campaign:</span>
+                            <select
+                                value={selectedCampaignId}
+                                onChange={(e) => {
+                                    setSelectedCampaignId(e.target.value);
+                                    setSelectedPeriod('all');
+                                }}
+                                className="px-3 py-2 text-sm border border-slate-300 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-indigo-600"
+                            >
+                                <option value="">All campaigns</option>
+                                {availableCampaigns.map((campaign) => (
+                                    <option key={campaign.id} value={campaign.id}>
+                                        {campaign.name}
+                                    </option>
+                                ))}
+                            </select>
+                            {selectedCampaignId && (
+                                <button
+                                    onClick={() => setSelectedCampaignId('')}
+                                    className="text-xs text-indigo-600 hover:text-indigo-800 font-medium hover:underline ml-1"
+                                >
+                                    Reset
+                                </button>
+                            )}
+                        </div>
+
+                        {/* Export */}
+                        <div className="ml-auto flex items-center gap-2">
+                            <Button
+                                onClick={exportToCSV}
+                                disabled={!selectedClientId}
+                                variant="secondary"
+                            >
+                                ⬇ Export CSV
+                            </Button>
+                            {!selectedClientId && (
+                                <span className="text-xs text-slate-400">Select a client to export</span>
+                            )}
+                        </div>
+                    </div>
+
                     {/* Date Range Filter */}
                     <div className="bg-white rounded-lg border border-slate-200 p-4">
                         <DateRangeFilter
@@ -403,33 +490,6 @@ export default function MetricsPage() {
                                 }
                             }}
                         />
-                    </div>
-
-                    {/* Export */}
-                    <div className="bg-white rounded-lg border border-slate-200 p-4 flex flex-wrap items-center gap-3">
-                        <span className="text-sm font-medium text-slate-700">Export client metrics:</span>
-                        <select
-                            value={selectedClientId}
-                            onChange={(e) => setSelectedClientId(e.target.value)}
-                            className="px-3 py-2 text-sm border border-slate-300 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-indigo-600"
-                        >
-                            <option value="">Select a client...</option>
-                            {clients.map((client) => (
-                                <option key={client.id} value={client.id}>
-                                    {client.name}
-                                </option>
-                            ))}
-                        </select>
-                        <Button
-                            onClick={exportToCSV}
-                            disabled={!selectedClientId}
-                            variant="secondary"
-                        >
-                            ⬇ Export CSV
-                        </Button>
-                        <span className="text-xs text-slate-400">
-                            Downloads metrics for the date range selected above
-                        </span>
                     </div>
 
                     {/* Error Message */}
@@ -448,7 +508,7 @@ export default function MetricsPage() {
 
                             <form onSubmit={handleSubmit} className="space-y-4">
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                    {/* Campaign Selector */}
+                                    {/* Campaign Selector — filtered by selected client */}
                                     <div>
                                         <label className="block text-sm font-medium text-slate-700 mb-2">
                                             Campaign
@@ -463,12 +523,17 @@ export default function MetricsPage() {
                                             required
                                         >
                                             <option value="">Select a campaign...</option>
-                                            {campaigns.map(campaign => (
-                                                <option key={campaign.id} value={campaign.id}>
-                                                    {campaign.name}
-                                                </option>
-                                            ))}
+                                            {campaigns
+                                                .filter(c => !selectedClientId || c.client_id === selectedClientId)
+                                                .map(campaign => (
+                                                    <option key={campaign.id} value={campaign.id}>
+                                                        {campaign.name}
+                                                    </option>
+                                                ))}
                                         </select>
+                                        {selectedClientId === '' && clients.length > 1 && (
+                                            <p className="text-xs text-slate-400 mt-1">Select a client above to filter campaigns</p>
+                                        )}
                                     </div>
 
                                     {/* Reporting Period */}
@@ -579,21 +644,77 @@ export default function MetricsPage() {
                         </div>
                     )}
 
+                    {/* Focused Campaign Info Card */}
+                    {selectedCampaign && (
+                        <div className="bg-indigo-50 border border-indigo-200 rounded-lg p-5 flex flex-wrap items-center justify-between gap-4">
+                            <div className="space-y-1">
+                                <div className="flex items-center gap-3">
+                                    <span className="text-[11px] font-bold uppercase tracking-wider text-indigo-700 bg-indigo-100 px-2 py-0.5 rounded">
+                                        Focused Campaign
+                                    </span>
+                                    <h2 className="text-xl font-bold text-slate-900">{selectedCampaign.name}</h2>
+                                    <span className={`px-2.5 py-0.5 rounded-full text-xs font-medium capitalize ${
+                                        selectedCampaign.status === 'active'
+                                            ? 'bg-green-100 text-green-800'
+                                            : selectedCampaign.status === 'paused'
+                                            ? 'bg-yellow-100 text-yellow-800'
+                                            : 'bg-slate-100 text-slate-800'
+                                    }`}>
+                                        {selectedCampaign.status}
+                                    </span>
+                                </div>
+                                <div className="flex flex-wrap items-center gap-4 text-sm text-slate-600 pt-1">
+                                    <p>Client: <span className="font-semibold text-slate-800">{getClientName(selectedCampaign.client_id)}</span></p>
+                                    <span>•</span>
+                                    <p>Platform: <span className="font-semibold text-slate-800 capitalize">
+                                        {selectedCampaign.platform === 'google_ads'
+                                            ? 'Google Ads'
+                                            : selectedCampaign.platform === 'meta_ads'
+                                            ? 'Meta Ads'
+                                            : selectedCampaign.platform.replace('_', ' ')}
+                                    </span></p>
+                                    <span>•</span>
+                                    <p>Created: <span className="font-semibold text-slate-800">{new Date(selectedCampaign.created_at).toLocaleDateString()}</span></p>
+                                </div>
+                            </div>
+                            <div className="flex items-center gap-2">
+                                <Button
+                                    variant="secondary"
+                                    onClick={() => setSelectedCampaignId('')}
+                                    className="text-xs bg-white hover:bg-slate-100 border border-slate-300 shadow-sm"
+                                >
+                                    ✕ View All Campaigns
+                                </Button>
+                            </div>
+                        </div>
+                    )}
+
                     {/* Charts */}
                     {sortedMetrics.length > 0 && (
                         <div className="space-y-6">
                             <div>
-                                <h2 className="text-lg font-semibold text-slate-900 mb-4">Performance Trends</h2>
-                                <TrendChart metrics={sortedMetrics} title="Metrics Over Time" />
+                                <h2 className="text-lg font-semibold text-slate-900 mb-4">
+                                    {selectedCampaign
+                                        ? `Performance Trends: ${selectedCampaign.name}`
+                                        : 'Performance Trends'}
+                                </h2>
+                                <TrendChart
+                                    metrics={sortedMetrics}
+                                    title={selectedCampaign ? `Metrics Over Time (${selectedCampaign.name})` : 'Metrics Over Time'}
+                                />
                             </div>
 
                             {campaigns.length > 0 && (
                                 <div>
-                                    <h2 className="text-lg font-semibold text-slate-900 mb-4">Campaign Performance</h2>
+                                    <h2 className="text-lg font-semibold text-slate-900 mb-4">
+                                        {selectedCampaign
+                                            ? `Campaign Performance Breakdown: ${selectedCampaign.name}`
+                                            : 'Campaign Performance'}
+                                    </h2>
                                     <CampaignChart
                                         metrics={sortedMetrics}
-                                        campaigns={campaigns}
-                                        title="Ad Spend, Leads & Conversions by Campaign"
+                                        campaigns={selectedCampaign ? [selectedCampaign] : availableCampaigns}
+                                        title={selectedCampaign ? `${selectedCampaign.name} Summary` : 'Ad Spend, Leads & Conversions by Campaign'}
                                     />
                                 </div>
                             )}
@@ -604,14 +725,26 @@ export default function MetricsPage() {
                     {sortedMetrics.length === 0 ? (
                         <div className="rounded-lg border-2 border-dashed border-slate-300 p-12 text-center">
                             <p className="text-slate-600 mb-4">
-                                {filterCampaignId ? 'No metrics for this campaign' : 'No metrics entered yet'}
+                                {selectedCampaignId
+                                    ? `No metrics found for ${getCampaignName(selectedCampaignId)} in this date range`
+                                    : 'No metrics entered yet'}
                             </p>
-                            <Button
-                                onClick={() => setShowForm(true)}
-                                className="bg-indigo-600 hover:bg-indigo-700 text-white"
-                            >
-                                Enter Your First Metric
-                            </Button>
+                            <div className="flex justify-center gap-3">
+                                {selectedCampaignId && (
+                                    <Button
+                                        onClick={() => setSelectedCampaignId('')}
+                                        variant="secondary"
+                                    >
+                                        View All Campaigns
+                                    </Button>
+                                )}
+                                <Button
+                                    onClick={() => setShowForm(true)}
+                                    className="bg-indigo-600 hover:bg-indigo-700 text-white"
+                                >
+                                    Enter Metrics
+                                </Button>
+                            </div>
                         </div>
                     ) : (
                         <div className="overflow-x-auto bg-white rounded-lg border border-slate-200">
@@ -622,7 +755,7 @@ export default function MetricsPage() {
                                             Date
                                         </th>
                                         <th className="px-6 py-3 text-left text-xs font-semibold text-slate-900">
-                                            Campaign
+                                            Campaign <span className="text-[10px] font-normal text-slate-400">(click to focus)</span>
                                         </th>
                                         <th className="px-6 py-3 text-right text-xs font-semibold text-slate-900">
                                             Ad Spend
@@ -652,12 +785,37 @@ export default function MetricsPage() {
                                 </thead>
                                 <tbody className="divide-y divide-slate-200">
                                     {sortedMetrics.map(metric => (
-                                        <tr key={metric.id} className="hover:bg-slate-50 transition-colors">
+                                        <tr
+                                            key={metric.id}
+                                            className={`transition-colors ${
+                                                selectedCampaignId === metric.campaign_id
+                                                    ? 'bg-indigo-50/50 hover:bg-indigo-50'
+                                                    : 'hover:bg-slate-50'
+                                            }`}
+                                        >
                                             <td className="px-6 py-4 text-sm text-slate-900 font-medium">
                                                 {new Date(metric.reporting_period).toLocaleDateString()}
                                             </td>
-                                            <td className="px-6 py-4 text-sm text-slate-600">
-                                                {getCampaignName(metric.campaign_id)}
+                                            <td className="px-6 py-4 text-sm">
+                                                <button
+                                                    type="button"
+                                                    onClick={() => {
+                                                        setSelectedCampaignId(
+                                                            selectedCampaignId === metric.campaign_id
+                                                                ? ''
+                                                                : metric.campaign_id
+                                                        );
+                                                    }}
+                                                    className="text-left font-semibold text-indigo-600 hover:text-indigo-900 hover:underline inline-flex items-center gap-1.5 transition-colors group cursor-pointer"
+                                                    title="Click to view charts and info for this campaign"
+                                                >
+                                                    <span>{getCampaignName(metric.campaign_id)}</span>
+                                                    {selectedCampaignId === metric.campaign_id && (
+                                                        <span className="text-[10px] bg-indigo-200 text-indigo-800 px-1.5 py-0.5 rounded font-bold">
+                                                            Active
+                                                        </span>
+                                                    )}
+                                                </button>
                                             </td>
                                             <td className="px-6 py-4 text-sm text-slate-900 text-right font-medium">
                                                 ${metric.ad_spend.toLocaleString()}
