@@ -34,7 +34,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
         // Step 2: Get clients (filtered by role)
         let clientsQuery = supabaseServer
             .from('clients')
-            .select('*')
+            .select('id, agency_id, name, contact_email, created_at, updated_at')
             .eq('agency_id', agency_id);
 
         let clientIds: string[] = [];
@@ -85,7 +85,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
         // Step 3: Fetch full client details
         const { data: clients, error: clientError } = await supabaseServer
             .from('clients')
-            .select('*')
+            .select('id, agency_id, name, contact_email, created_at, updated_at')
             .eq('agency_id', agency_id)
             .in('id', clientIds);
 

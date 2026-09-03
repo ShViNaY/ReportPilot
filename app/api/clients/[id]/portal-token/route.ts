@@ -3,15 +3,81 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseServer } from '@/lib/supabase/server';
 import { protectedRoute } from '@/lib/middleware';
-import { PortalTokenResponse, RevokePortalTokenResponse } from '@/types';
+import { PortalTokenResponse, PortalTokenStatusResponse, RevokePortalTokenResponse } from '@/types';
 import crypto from 'crypto';
 
 interface RouteParams {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 }
 
 interface GenerateTokenRequest {
   expirationDays?: number | null; // null = no expiration
+}
+
+/**
+ * GET /api/clients/[id]/portal-token
+ * Check if the client has an active portal token (owner only)
+ * Returns { has_token, expires_at } — never the raw token or hash
+ */
+export async function GET(
+  request: NextRequest,
+  { params }: RouteParams
+): Promise<NextResponse<PortalTokenStatusResponse>> {
+  try {
+    const auth = await protectedRoute(request);
+    if (!auth.success) {
+      return NextResponse.json<PortalTokenStatusResponse>(
+        { success: false, error: 'Unauthorized' },
+        { status: 401 }
+      );
+    }
+
+    const { agency_id, role } = auth.payload;
+    const { id: clientId } = await params;
+
+    if (role !== 'owner') {
+      return NextResponse.json<PortalTokenStatusResponse>(
+        { success: false, error: 'Only agency owners can manage portal tokens' },
+        { status: 403 }
+      );
+    }
+
+    // Verify client belongs to agency
+    const { data: client, error: clientError } = await supabaseServer
+      .from('clients')
+      .select('id')
+      .eq('id', clientId)
+      .eq('agency_id', agency_id)
+      .single();
+
+    if (clientError || !client) {
+      return NextResponse.json<PortalTokenStatusResponse>(
+        { success: false, error: 'Client not found' },
+        { status: 404 }
+      );
+    }
+
+    const { data: tokenRow } = await supabaseServer
+      .from('client_access_tokens')
+      .select('expires_at')
+      .eq('client_id', clientId)
+      .maybeSingle();
+
+    return NextResponse.json<PortalTokenStatusResponse>(
+      {
+        success: true,
+        has_token: !!tokenRow,
+        expires_at: tokenRow?.expires_at ?? null,
+      },
+      { status: 200 }
+    );
+  } catch (error) {
+    console.error('GET /api/clients/[id]/portal-token error:', error);
+    return NextResponse.json<PortalTokenStatusResponse>(
+      { success: false, error: 'Server error' },
+      { status: 500 }
+    );
+  }
 }
 
 /**
@@ -33,7 +99,7 @@ export async function POST(
     }
 
     const { agency_id, role } = auth.payload;
-    const clientId = params.id;
+    const { id: clientId } = await params;
 
     if (role !== 'owner') {
       return NextResponse.json<PortalTokenResponse>(
@@ -138,7 +204,7 @@ export async function DELETE(
     }
 
     const { agency_id, role } = auth.payload;
-    const clientId = params.id;
+    const { id: clientId } = await params;
 
     if (role !== 'owner') {
       return NextResponse.json<RevokePortalTokenResponse>(

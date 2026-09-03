@@ -10,7 +10,7 @@ import {
 } from '@/types';
 
 interface RouteParams {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 }
 
 /**
@@ -31,7 +31,7 @@ export async function GET(
     }
 
     const { agency_id, user_id, role } = auth.payload;
-    const clientId = params.id;
+    const { id: clientId } = await params;
 
     // Fetch client without portal_token
     const { data: client, error } = await supabaseServer
@@ -96,7 +96,7 @@ export async function PUT(
     }
 
     const { agency_id, user_id, role } = auth.payload;
-    const clientId = params.id;
+    const { id: clientId } = await params;
 
     const body: UpdateClientRequest = await request.json();
     const { name, contact_email } = body;
@@ -170,7 +170,7 @@ export async function DELETE(
     }
 
     const { agency_id, role } = auth.payload;
-    const clientId = params.id;
+    const { id: clientId } = await params;
 
     if (role !== 'owner') {
       return NextResponse.json(

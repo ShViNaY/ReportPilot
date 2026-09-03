@@ -4,7 +4,6 @@ import { NextRequest, NextResponse } from 'next/server';
 import { supabaseServer } from '@/lib/supabase/server';
 import { protectedRoute } from '@/lib/middleware';
 import { CreateClientRequest, CreateClientResponse, GetClientsResponse } from '@/types';
-import crypto from 'crypto';
 
 /**
  * GET /api/clients
@@ -107,15 +106,8 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
 
 /**
  * POST /api/clients
- * Create a new client for the agency
- * 
- * Role restriction: Only Owner & Account Manager
- * Data isolation: Client automatically tied to authenticated user's agency
- */
-
-/**
- * POST /api/clients
- * Create a new client (owner only)
+ * Create a new client (owner only).
+ * Portal link generation is a separate step via POST /api/clients/[id]/portal-token.
  */
 export async function POST(request: NextRequest): Promise<NextResponse<CreateClientResponse>> {
   try {
@@ -141,24 +133,10 @@ export async function POST(request: NextRequest): Promise<NextResponse<CreateCli
       );
     }
 
-    // Generate portal token
-    const portalToken = crypto.randomBytes(16).toString('hex');
-    const tokenHash = crypto
-      .createHash('sha256')
-      .update(portalToken)
-      .digest('hex');
-
-    // Create client
+    // Create client (no portal token here — generated on-demand by the owner)
     const { data: client, error: clientError } = await supabaseServer
       .from('clients')
-      .insert([
-        {
-          agency_id,
-          name,
-          contact_email,
-          portal_token: tokenHash, // Store hash, not raw token
-        },
-      ])
+      .insert([{ agency_id, name, contact_email }])
       .select('id, agency_id, name, contact_email, created_at, updated_at')
       .single();
 
@@ -171,12 +149,7 @@ export async function POST(request: NextRequest): Promise<NextResponse<CreateCli
     }
 
     return NextResponse.json<CreateClientResponse>(
-      {
-        success: true,
-        client,
-        portal_token: portalToken,
-        portal_url: `/portal/${portalToken}`,
-      },
+      { success: true, client },
       { status: 201 }
     );
   } catch (error) {

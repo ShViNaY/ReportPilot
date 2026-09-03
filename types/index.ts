@@ -107,7 +107,7 @@ export type CreateClientRequest = {
 };
 
 export type CreateClientResponse =
-  | { success: true; client: Client; portal_token: string; portal_url: string }
+  | { success: true; client: Client }
   | { success: false; error: string };
 
 export type GetClientsResponse =
@@ -133,6 +133,10 @@ export type PortalTokenResponse =
 
 export type RevokePortalTokenResponse =
   | { success: true }
+  | { success: false; error: string };
+
+export type PortalTokenStatusResponse =
+  | { success: true; has_token: boolean; expires_at: string | null }
   | { success: false; error: string };
   
 // CAMPAIGNS ENDPOINTS
