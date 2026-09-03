@@ -10,7 +10,7 @@ import { AgencyDashboardResponse, AgencyDashboardSummary } from '@/types';
  * Get agency-wide dashboard summary for internal team
  * 
  * Shows:
- * - Total clients, campaigns, ad spend
+ * - Active clients, active campaigns, total ad spend
  * - Total leads, conversions
  * - Average CPL and conversion rate
  * - List of all clients (for owner)
@@ -18,7 +18,7 @@ import { AgencyDashboardResponse, AgencyDashboardSummary } from '@/types';
  * 
  * Data isolation: Only user's agency data
  */
-export async function GET(request: NextRequest): Promise<NextResponse<AgencyDashboardResponse>> {
+export async function GET(request: NextRequest): Promise<NextResponse> {
     try {
         // Step 1: Authenticate user
         const auth = await protectedRoute(request);
@@ -26,10 +26,15 @@ export async function GET(request: NextRequest): Promise<NextResponse<AgencyDash
 
         const { agency_id, user_id, role } = auth.payload;
 
+        // Step 1b: Optional date range filter (matches /api/metrics convention)
+        const url = new URL(request.url);
+        const startDateParam = url.searchParams.get('startDate');
+        const endDateParam = url.searchParams.get('endDate');
+
         // Step 2: Get clients (filtered by role)
         let clientsQuery = supabaseServer
             .from('clients')
-            .select('id, name, contact_email, created_at')
+            .select('*')
             .eq('agency_id', agency_id);
 
         let clientIds: string[] = [];
@@ -80,7 +85,7 @@ export async function GET(request: NextRequest): Promise<NextResponse<AgencyDash
         // Step 3: Fetch full client details
         const { data: clients, error: clientError } = await supabaseServer
             .from('clients')
-            .select('id, name, contact_email, created_at')
+            .select('*')
             .eq('agency_id', agency_id)
             .in('id', clientIds);
 
@@ -92,25 +97,37 @@ export async function GET(request: NextRequest): Promise<NextResponse<AgencyDash
             );
         }
 
-        // Step 4: Count total clients and campaigns
-        const { count: totalClients } = await supabaseServer
-            .from('clients')
-            .select('id', { count: 'exact' })
-            .eq('agency_id', agency_id)
-            .in('id', clientIds);
-
-        const { count: totalCampaigns } = await supabaseServer
+        // Step 4: Fetch campaigns (needed to determine which are Active)
+        const { data: campaignsData, error: campaignsError } = await supabaseServer
             .from('campaigns')
-            .select('id', { count: 'exact' })
+            .select('id, client_id, status')
             .eq('agency_id', agency_id)
             .in('client_id', clientIds);
 
-        // Step 5: Fetch all metrics for aggregation
-        const { data: metrics, error: metricsError } = await supabaseServer
+        if (campaignsError) {
+            console.error('Campaigns fetch error:', campaignsError);
+            return NextResponse.json(
+                { success: false, error: 'Failed to fetch campaigns' },
+                { status: 500 }
+            );
+        }
+
+        // Step 5: Fetch metrics for aggregation (filtered by date range if provided)
+        let metricsQuery = supabaseServer
             .from('metric_entries')
-            .select('ad_spend, leads, conversions, cost_per_lead, conversion_rate')
+            .select('campaign_id, ad_spend, leads, conversions, cost_per_lead, conversion_rate')
             .eq('agency_id', agency_id)
             .in('client_id', clientIds);
+
+        if (startDateParam) {
+            metricsQuery = metricsQuery.gte('reporting_period', startDateParam.split('T')[0]);
+        }
+
+        if (endDateParam) {
+            metricsQuery = metricsQuery.lte('reporting_period', endDateParam.split('T')[0]);
+        }
+
+        const { data: metrics, error: metricsError } = await metricsQuery;
 
         if (metricsError) {
             console.error('Metrics fetch error:', metricsError);
@@ -151,10 +168,26 @@ export async function GET(request: NextRequest): Promise<NextResponse<AgencyDash
             ? Math.round((conversionRateValues.reduce((a, b) => a + b, 0) / conversionRateValues.length) * 100) / 100
             : 0;
 
+        // Step 6b: Determine Active Clients / Active Campaigns
+        // An "active campaign" has status 'active' AND (when a date range is set)
+        // has at least one metric entry within that range.
+        const isDateRangeApplied = Boolean(startDateParam || endDateParam);
+        const metricCampaignIds = new Set((metrics || []).map((m) => m.campaign_id));
+
+        const activeStatusCampaigns = (campaignsData || []).filter(
+            (c) => c.status === 'active'
+        );
+
+        const activeCampaigns = isDateRangeApplied
+            ? activeStatusCampaigns.filter((c) => metricCampaignIds.has(c.id))
+            : activeStatusCampaigns;
+
+        const activeClientIds = new Set(activeCampaigns.map((c) => c.client_id));
+
         // Step 7: Build summary
         const summary: AgencyDashboardSummary = {
-            total_clients: totalClients || 0,
-            total_campaigns: totalCampaigns || 0,
+            total_clients: activeClientIds.size,
+            total_campaigns: activeCampaigns.length,
             total_ad_spend: Math.round(totalAdSpend * 100) / 100,
             total_leads: totalLeads,
             total_conversions: totalConversions,

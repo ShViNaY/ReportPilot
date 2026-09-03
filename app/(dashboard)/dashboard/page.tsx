@@ -41,9 +41,10 @@ export default function DashboardPage() {
   const fetchDashboard = async () => {
     try {
       setIsLoading(true);
-      
-      // Fetch dashboard summary
-      const res = await apiFetch('/api/dashboard/agency');
+
+      // Fetch dashboard summary (filtered by the same selected date range)
+      const summaryUrl = `/api/dashboard/agency?startDate=${startDate?.toISOString()}&endDate=${endDate?.toISOString()}`;
+      const res = await apiFetch(summaryUrl);
       const data = await res.json();
 
       if (!data.success) {
@@ -157,17 +158,17 @@ export default function DashboardPage() {
           {/* Summary Cards */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             <StatCard
-              label="Total Clients"
+              label="Active Clients"
               value={summary?.total_clients ?? 0}
               icon="👥"
             />
             <StatCard
-              label="Total Campaigns"
+              label="Active Campaigns"
               value={summary?.total_campaigns ?? 0}
               icon="📢"
             />
             <StatCard
-              label="Total Ad Spend"
+              label="Total Spend"
               value={`$${(summary?.total_ad_spend ?? 0).toLocaleString()}`}
               icon="💰"
             />
