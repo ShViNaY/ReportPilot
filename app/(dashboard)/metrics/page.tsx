@@ -29,6 +29,7 @@ export default function MetricsPage() {
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [editingId, setEditingId] = useState<string | null>(null);
     const [selectedPeriod, setSelectedPeriod] = useState<string>('all');
+    const [selectedClientId, setSelectedClientId] = useState<string>('');
     const [dateRange, setDateRange] = useState<DateRange>('thisMonth');
     const [startDate, setStartDate] = useState<Date | null>(null);
     const [endDate, setEndDate] = useState<Date | null>(null);
@@ -253,6 +254,52 @@ export default function MetricsPage() {
     const getCampaignName = (campaignId: string) => {
         return campaigns.find(c => c.id === campaignId)?.name || 'Unknown Campaign';
     };
+    const exportToCSV = () => {
+    if (!selectedClientId) return;
+
+    const clientMetrics = metrics
+        .filter(m => m.client_id === selectedClientId)
+        .sort((a, b) => new Date(a.reporting_period).getTime() - new Date(b.reporting_period).getTime());
+
+    if (clientMetrics.length === 0) {
+        alert('No metrics found for this client in the selected date range.');
+        return;
+    }
+
+    const headers = [
+        'Date', 'Campaign', 'Ad Spend', 'Impressions', 'Clicks',
+        'Leads', 'Conversions', 'CPL', 'Conversion Rate',
+    ];
+
+    const rows = clientMetrics.map(m => [
+        m.reporting_period,
+        getCampaignName(m.campaign_id).replace(/,/g, ''),
+        m.ad_spend,
+        m.impressions,
+        m.clicks,
+        m.leads,
+        m.conversions,
+        m.cost_per_lead ?? '',
+        m.conversion_rate ?? '',
+    ]);
+
+    const csvContent = [headers, ...rows].map(row => row.join(',')).join('\n');
+
+    const clientName = clients.find(c => c.id === selectedClientId)?.name || 'client';
+    const rangeStart = startDate?.toISOString().split('T')[0] || 'start';
+    const rangeEnd = endDate?.toISOString().split('T')[0] || 'end';
+    const fileName = `${clientName.replace(/\s+/g, '_')}_metrics_${rangeStart}_to_${rangeEnd}.csv`;
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', fileName);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+};
 
     // Filter metrics if campaign_id is provided
     const filteredMetrics = filterCampaignId
@@ -356,6 +403,33 @@ export default function MetricsPage() {
                                 }
                             }}
                         />
+                    </div>
+
+                    {/* Export */}
+                    <div className="bg-white rounded-lg border border-slate-200 p-4 flex flex-wrap items-center gap-3">
+                        <span className="text-sm font-medium text-slate-700">Export client metrics:</span>
+                        <select
+                            value={selectedClientId}
+                            onChange={(e) => setSelectedClientId(e.target.value)}
+                            className="px-3 py-2 text-sm border border-slate-300 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-indigo-600"
+                        >
+                            <option value="">Select a client...</option>
+                            {clients.map((client) => (
+                                <option key={client.id} value={client.id}>
+                                    {client.name}
+                                </option>
+                            ))}
+                        </select>
+                        <Button
+                            onClick={exportToCSV}
+                            disabled={!selectedClientId}
+                            variant="secondary"
+                        >
+                            ⬇ Export CSV
+                        </Button>
+                        <span className="text-xs text-slate-400">
+                            Downloads metrics for the date range selected above
+                        </span>
                     </div>
 
                     {/* Error Message */}
