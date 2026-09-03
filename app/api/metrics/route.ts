@@ -185,6 +185,24 @@ export async function POST(request: NextRequest): Promise<NextResponse<CreateMet
             }
         }
 
+        // Prevent duplicate entries for the same campaign + reporting period
+        const { data: existingEntry } = await supabaseServer
+            .from('metric_entries')
+            .select('id')
+            .eq('campaign_id', campaign_id)
+            .eq('reporting_period', reporting_period)
+            .single();
+
+        if (existingEntry) {
+            return NextResponse.json(
+                {
+                    success: false,
+                    error: 'A metric entry already exists for this campaign and reporting period. Edit it instead of creating a new one.',
+                },
+                { status: 409 }
+            );
+        }
+
         // Step 6: Calculate KPIs
         const { cost_per_lead, conversion_rate } = calculateKPIs(
             ad_spend,

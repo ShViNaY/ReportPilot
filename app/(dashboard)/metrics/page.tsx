@@ -330,15 +330,23 @@ export default function MetricsPage() {
                   </div>
 
                   {/* Reporting Period */}
-                  <Input
-                    label="Reporting Period"
-                    type="date"
-                    value={formData.reporting_period}
-                    onChange={(e) =>
-                      setFormData({ ...formData, reporting_period: e.target.value })
-                    }
-                    required
-                  />
+                  <div>
+                    <Input
+                        label="Reporting Period"
+                        type="date"
+                        value={formData.reporting_period}
+                        onChange={(e) =>
+                        setFormData({ ...formData, reporting_period: e.target.value })
+                        }
+                        disabled={editingId !== null}
+                        required
+                    />
+                    {editingId && (
+                        <p className="text-xs text-slate-400 mt-1">
+                        Campaign and period can't be changed once created — delete and re-enter if needed.
+                        </p>
+                    )}
+                  </div>
                 </div>
 
                 {/* Metrics Grid */}
