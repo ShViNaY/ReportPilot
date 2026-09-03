@@ -45,10 +45,10 @@ export async function GET(
         if (role === 'account_manager') {
             const { data: assignment } = await supabaseServer
                 .from('user_client_assignments')
-                .select('id')
+                .select('client_id')
                 .eq('user_id', user_id)
                 .eq('client_id', campaign.client_id)
-                .single();
+                .maybeSingle();
 
             if (!assignment) {
                 return NextResponse.json(
@@ -73,9 +73,10 @@ export async function GET(
 
 /**
  * PUT /api/campaigns/[id]
- * Update a campaign
+ * Update campaign details (name, platform, status)
  * 
- * Data isolation: Verify campaign belongs to user's agency (and, for Account Managers, is for an assigned client)
+ * Data isolation: Verify campaign belongs to user's agency
+ * For account managers: Verify campaign is for an assigned client
  */
 export async function PUT(
     request: NextRequest,
@@ -94,16 +95,16 @@ export async function PUT(
         const { name, platform, status } = body;
 
         // Step 3: Validate input
-        if (name && name.trim() === '') {
+        if (name !== undefined && name.trim() === '') {
             return NextResponse.json(
                 { success: false, error: 'Campaign name cannot be empty' },
                 { status: 400 }
             );
         }
 
-        if (platform && !['google_ads', 'meta_ads', 'other'].includes(platform)) {
+        if (platform !== undefined && platform.trim() === '') {
             return NextResponse.json(
-                { success: false, error: 'Invalid platform' },
+                { success: false, error: 'Platform cannot be empty' },
                 { status: 400 }
             );
         }
@@ -134,10 +135,10 @@ export async function PUT(
         if (role === 'account_manager') {
             const { data: assignment } = await supabaseServer
                 .from('user_client_assignments')
-                .select('id')
+                .select('client_id')
                 .eq('user_id', user_id)
                 .eq('client_id', existingCampaign.client_id)
-                .single();
+                .maybeSingle();
 
             if (!assignment) {
                 return NextResponse.json(
@@ -148,12 +149,12 @@ export async function PUT(
         }
 
         // Step 5: Build update object (only include provided fields)
-        const updateData: any = {
+        const updateData: Record<string, any> = {
             updated_at: new Date().toISOString(),
         };
 
-        if (name) updateData.name = name.trim();
-        if (platform) updateData.platform = platform;
+        if (name && name.trim() !== '') updateData.name = name.trim();
+        if (platform && platform.trim() !== '') updateData.platform = platform.trim();
         if (status) updateData.status = status;
 
         // Step 6: Update campaign

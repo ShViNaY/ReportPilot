@@ -33,7 +33,7 @@ export type Campaign = {
   client_id: string;
   agency_id: string;
   name: string;
-  platform: "google_ads" | "meta_ads" | "other";
+  platform: "google_ads" | "meta_ads" | "other" | (string & {});
   status: "active" | "paused" | "completed";
   created_at: string;
   updated_at: string;
@@ -139,11 +139,10 @@ export type PortalTokenStatusResponse =
   | { success: true; has_token: boolean; expires_at: string | null }
   | { success: false; error: string };
   
-// CAMPAIGNS ENDPOINTS
 export type CreateCampaignRequest = {
   client_id: string;
   name: string;
-  platform: "google_ads" | "meta_ads" | "other";
+  platform: "google_ads" | "meta_ads" | "other" | (string & {});
 };
 
 export type CreateCampaignResponse =

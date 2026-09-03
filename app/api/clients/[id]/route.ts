@@ -52,10 +52,10 @@ export async function GET(
     if (role === 'account_manager') {
       const { data: assignment } = await supabaseServer
         .from('user_client_assignments')
-        .select('id')
+        .select('client_id')
         .eq('user_id', user_id)
         .eq('client_id', clientId)
-        .single();
+        .maybeSingle();
 
       if (!assignment) {
         return NextResponse.json<GetClientResponse>(
@@ -105,10 +105,10 @@ export async function PUT(
     if (role === 'account_manager') {
       const { data: assignment } = await supabaseServer
         .from('user_client_assignments')
-        .select('id')
+        .select('client_id')
         .eq('user_id', user_id)
         .eq('client_id', clientId)
-        .single();
+        .maybeSingle();
 
       if (!assignment) {
         return NextResponse.json<UpdateClientResponse>(

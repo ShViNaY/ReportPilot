@@ -189,10 +189,10 @@ export async function POST(request: NextRequest): Promise<NextResponse<CreateMet
     if (role === 'account_manager') {
       const { data: assignment } = await supabaseServer
         .from('user_client_assignments')
-        .select('id')
+        .select('client_id')
         .eq('user_id', user_id)
         .eq('client_id', campaign.client_id)
-        .single();
+        .maybeSingle();
 
       if (!assignment) {
         return NextResponse.json<CreateMetricEntryResponse>(

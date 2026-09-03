@@ -93,16 +93,9 @@ export async function POST(request: NextRequest): Promise<NextResponse<CreateCam
         const { client_id, name, platform } = body;
 
         // Step 3: Validate input
-        if (!client_id || !name || !platform) {
+        if (!client_id || !name || !name.trim() || !platform || !platform.trim()) {
             return NextResponse.json(
                 { success: false, error: 'Client ID, campaign name, and platform are required' },
-                { status: 400 }
-            );
-        }
-
-        if (!['google_ads', 'meta_ads', 'other'].includes(platform)) {
-            return NextResponse.json(
-                { success: false, error: 'Invalid platform' },
                 { status: 400 }
             );
         }
@@ -126,10 +119,10 @@ export async function POST(request: NextRequest): Promise<NextResponse<CreateCam
         if (role === 'account_manager') {
             const { data: assignment } = await supabaseServer
                 .from('user_client_assignments')
-                .select('id')
+                .select('client_id')
                 .eq('user_id', user_id)
                 .eq('client_id', client_id)
-                .single();
+                .maybeSingle();
 
             if (!assignment) {
                 return NextResponse.json(
@@ -145,9 +138,9 @@ export async function POST(request: NextRequest): Promise<NextResponse<CreateCam
             .insert([
                 {
                     client_id,
-                    agency_id, // Automatically use user's agency
+                    agency_id,
                     name: name.trim(),
-                    platform,
+                    platform: platform.trim(),
                     status: 'active',
                 },
             ])
@@ -157,7 +150,7 @@ export async function POST(request: NextRequest): Promise<NextResponse<CreateCam
         if (error) {
             console.error('Insert error:', error);
             return NextResponse.json(
-                { success: false, error: 'Failed to create campaign' },
+                { success: false, error: error.message || 'Failed to create campaign' },
                 { status: 500 }
             );
         }

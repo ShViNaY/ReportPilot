@@ -126,9 +126,9 @@ export async function POST(request: NextRequest): Promise<NextResponse<CreateCli
     const body: CreateClientRequest = await request.json();
     const { name, contact_email } = body;
 
-    if (!name || !contact_email) {
+    if (!name) {
       return NextResponse.json<CreateClientResponse>(
-        { success: false, error: 'Name and email are required' },
+        { success: false, error: 'Client name is required' },
         { status: 400 }
       );
     }
