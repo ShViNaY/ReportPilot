@@ -169,7 +169,7 @@ export async function PUT(
         if (error) {
             console.error('Update error:', error);
             return NextResponse.json(
-                { success: false, error: 'Failed to update campaign' },
+                { success: false, error: error.message || 'Failed to update campaign' },
                 { status: 500 }
             );
         }

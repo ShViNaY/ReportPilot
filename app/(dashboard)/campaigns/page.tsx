@@ -23,6 +23,7 @@ export default function CampaignsPage() {
   const [error, setError] = useState('');
   const [showForm, setShowForm] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [editingCampaignId, setEditingCampaignId] = useState<string | null>(null);
 
   // Form state
   const [formData, setFormData] = useState({
@@ -68,6 +69,31 @@ export default function CampaignsPage() {
     }
   };
 
+  const resetForm = () => {
+    setEditingCampaignId(null);
+    setFormData({
+      client_id: filterClientId || '',
+      name: '',
+      platform: 'google_ads',
+      custom_platform: '',
+    });
+    setFormError('');
+  };
+
+  const handleEdit = (campaign: Campaign) => {
+    const isKnown = ['google_ads', 'meta_ads'].includes(campaign.platform);
+    setEditingCampaignId(campaign.id);
+    setFormData({
+      client_id: campaign.client_id,
+      name: campaign.name,
+      platform: isKnown ? campaign.platform : 'other',
+      custom_platform: isKnown ? '' : campaign.platform,
+    });
+    setFormError('');
+    setShowForm(true);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setFormError('');
@@ -94,29 +120,48 @@ export default function CampaignsPage() {
 
     try {
       setIsSubmitting(true);
-      const res = await apiFetch('/api/campaigns', {
-        method: 'POST',
-        body: JSON.stringify({
-          client_id: formData.client_id,
-          name: formData.name.trim(),
-          platform: finalPlatform,
-        }),
-      });
 
-      const data = await res.json();
+      if (editingCampaignId) {
+        // Update existing campaign
+        const res = await apiFetch(`/api/campaigns/${editingCampaignId}`, {
+          method: 'PUT',
+          body: JSON.stringify({
+            name: formData.name.trim(),
+            platform: finalPlatform,
+          }),
+        });
 
-      if (!data.success) {
-        setFormError(data.error || 'Failed to create campaign');
-        return;
+        const data = await res.json();
+
+        if (!data.success) {
+          setFormError(data.error || 'Failed to update campaign');
+          return;
+        }
+
+        // Update local state and refresh
+        setCampaigns(
+          campaigns.map((c) => (c.id === editingCampaignId ? data.campaign : c))
+        );
+      } else {
+        // Create new campaign
+        const res = await apiFetch('/api/campaigns', {
+          method: 'POST',
+          body: JSON.stringify({
+            client_id: formData.client_id,
+            name: formData.name.trim(),
+            platform: finalPlatform,
+          }),
+        });
+
+        const data = await res.json();
+
+        if (!data.success) {
+          setFormError(data.error || 'Failed to create campaign');
+          return;
+        }
       }
 
-      // Reset form and refresh list
-      setFormData({
-        client_id: filterClientId || '',
-        name: '',
-        platform: 'google_ads',
-        custom_platform: '',
-      });
+      resetForm();
       setShowForm(false);
       await fetchData();
     } catch (err) {
@@ -227,7 +272,12 @@ export default function CampaignsPage() {
               </p>
             </div>
             <Button
-              onClick={() => setShowForm(!showForm)}
+              onClick={() => {
+                if (showForm) {
+                  resetForm();
+                }
+                setShowForm(!showForm);
+              }}
               className="bg-indigo-600 hover:bg-indigo-700 text-white"
             >
               {showForm ? 'Cancel' : '+ Add Campaign'}
@@ -241,11 +291,11 @@ export default function CampaignsPage() {
             </div>
           )}
 
-          {/* Create Form */}
+          {/* Create / Edit Form */}
           {showForm && (
             <div className="bg-white rounded-lg border border-slate-200 p-6">
               <h2 className="text-lg font-semibold text-slate-900 mb-4">
-                Create New Campaign
+                {editingCampaignId ? 'Edit Campaign' : 'Create New Campaign'}
               </h2>
 
               <form onSubmit={handleSubmit} className="space-y-4">
@@ -259,7 +309,8 @@ export default function CampaignsPage() {
                     onChange={(e) =>
                       setFormData({ ...formData, client_id: e.target.value })
                     }
-                    className="block w-full rounded-lg border border-slate-300 px-3.5 py-2.5 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-600 focus:border-indigo-600"
+                    disabled={editingCampaignId !== null}
+                    className="block w-full rounded-lg border border-slate-300 px-3.5 py-2.5 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-600 focus:border-indigo-600 disabled:bg-slate-100 disabled:text-slate-500"
                     required
                   >
                     <option value="">Select a client...</option>
@@ -269,6 +320,9 @@ export default function CampaignsPage() {
                       </option>
                     ))}
                   </select>
+                  {editingCampaignId && (
+                    <p className="text-xs text-slate-400 mt-1">Client cannot be changed once created.</p>
+                  )}
                 </div>
 
                 <Input
@@ -329,11 +383,14 @@ export default function CampaignsPage() {
                     isLoading={isSubmitting}
                     className="bg-indigo-600 hover:bg-indigo-700 text-white"
                   >
-                    Create Campaign
+                    {editingCampaignId ? 'Update Campaign' : 'Create Campaign'}
                   </Button>
                   <Button
                     type="button"
-                    onClick={() => setShowForm(false)}
+                    onClick={() => {
+                      resetForm();
+                      setShowForm(false);
+                    }}
                     variant="secondary"
                   >
                     Cancel
@@ -350,7 +407,10 @@ export default function CampaignsPage() {
                 {filterClientId ? 'No campaigns for this client' : 'No campaigns yet'}
               </p>
               <Button
-                onClick={() => setShowForm(true)}
+                onClick={() => {
+                  resetForm();
+                  setShowForm(true);
+                }}
                 className="bg-indigo-600 hover:bg-indigo-700 text-white"
               >
                 Create Your First Campaign
@@ -386,11 +446,11 @@ export default function CampaignsPage() {
 
                       <div className="mt-3 space-y-1">
                         <p className="text-sm text-slate-600">
-                          Client: <span className="font-medium">{getClientName(campaign.client_id)}</span>
+                          Client: <span className="font-medium text-slate-900">{getClientName(campaign.client_id)}</span>
                         </p>
                         <p className="text-sm text-slate-600">
                           Platform:{' '}
-                          <span className="font-medium capitalize">
+                          <span className="font-medium text-slate-900 capitalize">
                             {campaign.platform === 'google_ads'
                               ? 'Google Ads'
                               : campaign.platform === 'meta_ads'
@@ -405,7 +465,7 @@ export default function CampaignsPage() {
                     </div>
 
                     {/* Actions */}
-                    <div className="flex flex-col gap-2 ml-4">
+                    <div className="flex flex-col gap-2 ml-4 min-w-[140px]">
                       {/* Status Dropdown */}
                       <select
                         value={campaign.status}
@@ -415,17 +475,26 @@ export default function CampaignsPage() {
                             e.target.value as 'active' | 'paused' | 'completed'
                           )
                         }
-                        className="px-3 py-2 text-sm border border-slate-300 rounded hover:border-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-600"
+                        className="px-3 py-2 text-sm bg-white text-slate-800 border border-slate-300 rounded hover:border-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-600 font-medium cursor-pointer"
                       >
                         <option value="active">Active</option>
                         <option value="paused">Paused</option>
                         <option value="completed">Completed</option>
                       </select>
 
+                      {/* Edit Button */}
+                      <button
+                        type="button"
+                        onClick={() => handleEdit(campaign)}
+                        className="px-3 py-2 bg-indigo-50 text-indigo-600 hover:bg-indigo-100 rounded text-sm font-medium text-center transition-colors cursor-pointer"
+                      >
+                        Edit
+                      </button>
+
                       {/* View Metrics Button */}
-                      
-                        <a href={`/metrics?campaign_id=${campaign.id}`}
-                        className="px-3 py-2 bg-indigo-50 text-indigo-600 hover:bg-indigo-100 rounded text-sm font-medium text-center transition-colors"
+                      <a
+                        href={`/metrics?campaign_id=${campaign.id}`}
+                        className="px-3 py-2 bg-slate-100 text-slate-700 hover:bg-slate-200 rounded text-sm font-medium text-center transition-colors"
                       >
                         View Metrics
                       </a>
@@ -433,8 +502,9 @@ export default function CampaignsPage() {
                       {/* Delete Button — owner only */}
                       {user?.role === 'owner' && (
                         <button
+                          type="button"
                           onClick={() => handleDelete(campaign.id)}
-                          className="px-3 py-2 bg-red-50 text-red-600 hover:bg-red-100 rounded text-sm font-medium transition-colors"
+                          className="px-3 py-2 bg-red-50 text-red-600 hover:bg-red-100 rounded text-sm font-medium transition-colors cursor-pointer"
                         >
                           Delete
                         </button>
