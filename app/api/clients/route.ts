@@ -24,8 +24,8 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     // Step 2: Query clients for this agency ONLY
     let query = supabaseServer
       .from('clients')
-      .select('*')
-      .eq('agency_id', agency_id); // DATA ISOLATION: agency only
+      .select('id, agency_id, name, contact_email, created_at, updated_at')
+      .eq('agency_id', agency_id);
 
     // Step 2b: Account managers only see their assigned clients
     if (role === 'account_manager') {
@@ -113,96 +113,75 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
  * Data isolation: Client automatically tied to authenticated user's agency
  */
 
-export async function POST(request: NextRequest): Promise<NextResponse> {
+/**
+ * POST /api/clients
+ * Create a new client (owner only)
+ */
+export async function POST(request: NextRequest): Promise<NextResponse<CreateClientResponse>> {
   try {
-    // Step 1: Authenticate user
     const auth = await protectedRoute(request);
     if (!auth.success) return auth.response;
 
     const { agency_id, role } = auth.payload;
 
-    // Step 2: Parse request
+    if (role !== 'owner') {
+      return NextResponse.json<CreateClientResponse>(
+        { success: false, error: 'Only agency owners can create clients' },
+        { status: 403 }
+      );
+    }
+
     const body: CreateClientRequest = await request.json();
     const { name, contact_email } = body;
 
-    // Step 3: Validate input
-    if (!name || name.trim() === '') {
-      return NextResponse.json(
-        { success: false, error: 'Client name is required' },
+    if (!name || !contact_email) {
+      return NextResponse.json<CreateClientResponse>(
+        { success: false, error: 'Name and email are required' },
         { status: 400 }
       );
     }
 
-    if (contact_email && !contact_email.includes('@')) {
-      return NextResponse.json(
-        { success: false, error: 'Invalid email format' },
-        { status: 400 }
-      );
-    }
-
-    // Step 4: Generate unique portal token
-    // This token will be used for client-facing dashboard access
+    // Generate portal token
     const portalToken = crypto.randomBytes(16).toString('hex');
-
-    // Step 5: Create client
-    const { data: client, error } = await supabaseServer
-      .from('clients')
-      .insert([
-        {
-          agency_id, // Automatically use authenticated user's agency
-          name: name.trim(),
-          contact_email: contact_email?.trim() || null,
-          portal_token: portalToken,
-        },
-      ])
-      .select()
-      .single();
-
-    if (error || !client) {
-      console.error('Insert error:', error);
-      return NextResponse.json(
-        { success: false, error: 'Failed to create client' },
-        { status: 500 }
-      );
-    }
-
-    // Step 6: Hash the portal token
     const tokenHash = crypto
       .createHash('sha256')
       .update(portalToken)
       .digest('hex');
 
-    // Step 7: Store the hashed token in client_access_tokens
-    const { error: tokenError } = await supabaseServer
-      .from('client_access_tokens')
+    // Create client
+    const { data: client, error: clientError } = await supabaseServer
+      .from('clients')
       .insert([
         {
-          client_id: client.id,
-          token_hash: tokenHash,
-          expires_at: null,
+          agency_id,
+          name,
+          contact_email,
+          portal_token: tokenHash, // Store hash, not raw token
         },
-      ]);
+      ])
+      .select('id, agency_id, name, contact_email, created_at, updated_at')
+      .single();
 
-    if (tokenError) {
-      console.error('Portal token creation error:', tokenError);
-      return NextResponse.json(
-        { success: false, error: 'Failed to create portal access token' },
+    if (clientError) {
+      console.error('Client creation error:', clientError);
+      return NextResponse.json<CreateClientResponse>(
+        { success: false, error: 'Failed to create client' },
         { status: 500 }
       );
     }
 
-    // Step 8: Return client + portal token
-    return NextResponse.json(
+    return NextResponse.json<CreateClientResponse>(
       {
         success: true,
         client,
         portal_token: portalToken,
+        portal_url: `/portal/${portalToken}`,
       },
       { status: 201 }
     );
   } catch (error) {
     console.error('POST /api/clients error:', error);
-    return NextResponse.json(
+    return NextResponse.json<CreateClientResponse>(
       { success: false, error: 'Server error' },
       { status: 500 }
     );

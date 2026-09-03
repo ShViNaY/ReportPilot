@@ -4,15 +4,20 @@ import { NextRequest, NextResponse } from 'next/server';
 import { verifyToken, extractTokenFromHeader } from './utils/auth';
 import { AuthPayload } from '@/types';
 
-// Explicit discriminated union types so TS can narrow correctly
+// Explicit discriminated union types so TS can narrow correctly.
+// The failure response is typed as NextResponse<{ success: false; error: string }>
+// (not plain NextResponse, which defaults to NextResponse<unknown>) so that
+// `return auth.response` type-checks inside routes with a strict return type
+// like Promise<NextResponse<CreateClientResponse>> — every generated
+// ...Response union includes this exact { success: false; error: string } shape,
+// so it's assignable no matter which route is calling it.
 type ProtectedRouteResult =
   | { success: true; payload: AuthPayload }
-  | { success: false; response: NextResponse };
+  | { success: false; response: NextResponse<{ success: false; error: string }> };
 
 type CheckRoleResult =
   | { success: true }
-  | { success: false; response: NextResponse };
-
+  | { success: false; response: NextResponse<{ success: false; error: string }> };
 
 /**
  * Wrapper to apply auth to an API route

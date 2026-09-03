@@ -3,45 +3,52 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseServer } from '@/lib/supabase/server';
 import { protectedRoute } from '@/lib/middleware';
+import { 
+  GetClientResponse, 
+  UpdateClientRequest, 
+  UpdateClientResponse 
+} from '@/types';
 
-interface RouteParams { 
-  params: Promise<{ id: string }>; 
+interface RouteParams {
+  params: { id: string };
 }
 
 /**
  * GET /api/clients/[id]
- * Get a specific client
- * 
- * Data isolation: Verify client belongs to user's agency (and, for Account Managers, is assigned to them)
+ * Get a specific client (owner or assigned account manager)
  */
 export async function GET(
   request: NextRequest,
   { params }: RouteParams
-): Promise<NextResponse> {
+): Promise<NextResponse<GetClientResponse>> {
   try {
-    // Step 1: Authenticate user
     const auth = await protectedRoute(request);
-    if (!auth.success) return auth.response;
+    if (!auth.success) {
+      return NextResponse.json<GetClientResponse>(
+        { success: false, error: 'Unauthorized' },
+        { status: 401 }
+      );
+    }
 
     const { agency_id, user_id, role } = auth.payload;
-    const { id: clientId } = await params;
+    const clientId = params.id;
 
-    // Step 2: Fetch client
+    // Fetch client without portal_token
     const { data: client, error } = await supabaseServer
       .from('clients')
-      .select('*')
+      .select('id, agency_id, name, contact_email, created_at, updated_at')
       .eq('id', clientId)
-      .eq('agency_id', agency_id) // DATA ISOLATION: Only this agency's clients
+      .eq('agency_id', agency_id)
       .single();
 
     if (error || !client) {
-      return NextResponse.json(
+      return NextResponse.json<GetClientResponse>(
         { success: false, error: 'Client not found' },
         { status: 404 }
       );
     }
 
-    // Step 3: Account managers can only view their assigned clients
+    // Check if account manager has access
     if (role === 'account_manager') {
       const { data: assignment } = await supabaseServer
         .from('user_client_assignments')
@@ -51,20 +58,20 @@ export async function GET(
         .single();
 
       if (!assignment) {
-        return NextResponse.json(
-          { success: false, error: 'Client not found' },
-          { status: 404 }
+        return NextResponse.json<GetClientResponse>(
+          { success: false, error: 'Access denied' },
+          { status: 403 }
         );
       }
     }
 
-    return NextResponse.json(
+    return NextResponse.json<GetClientResponse>(
       { success: true, client },
       { status: 200 }
     );
   } catch (error) {
     console.error('GET /api/clients/[id] error:', error);
-    return NextResponse.json(
+    return NextResponse.json<GetClientResponse>(
       { success: false, error: 'Server error' },
       { status: 500 }
     );
@@ -73,57 +80,28 @@ export async function GET(
 
 /**
  * PUT /api/clients/[id]
- * Update a client
- * 
- * Data isolation: Verify client belongs to user's agency (and, for Account Managers, is assigned to them)
+ * Update a client (owner or assigned account manager)
  */
 export async function PUT(
   request: NextRequest,
   { params }: RouteParams
-): Promise<NextResponse> {
+): Promise<NextResponse<UpdateClientResponse>> {
   try {
-    // Step 1: Authenticate user
     const auth = await protectedRoute(request);
-    if (!auth.success) return auth.response;
+    if (!auth.success) {
+      return NextResponse.json<UpdateClientResponse>(
+        { success: false, error: 'Unauthorized' },
+        { status: 401 }
+      );
+    }
 
     const { agency_id, user_id, role } = auth.payload;
-    const { id: clientId } = await params;
+    const clientId = params.id;
 
-    // Step 2: Parse request
-    const body = await request.json();
+    const body: UpdateClientRequest = await request.json();
     const { name, contact_email } = body;
 
-    // Step 3: Validate input
-    if (!name || name.trim() === '') {
-      return NextResponse.json(
-        { success: false, error: 'Client name is required' },
-        { status: 400 }
-      );
-    }
-
-    if (contact_email && !contact_email.includes('@')) {
-      return NextResponse.json(
-        { success: false, error: 'Invalid email format' },
-        { status: 400 }
-      );
-    }
-
-    // Step 4: Verify client exists and belongs to this agency
-    const { data: existingClient } = await supabaseServer
-      .from('clients')
-      .select('id')
-      .eq('id', clientId)
-      .eq('agency_id', agency_id) // DATA ISOLATION
-      .single();
-
-    if (!existingClient) {
-      return NextResponse.json(
-        { success: false, error: 'Client not found' },
-        { status: 404 }
-      );
-    }
-
-    // Step 4b: Account managers can only edit their assigned clients
+    // Check if account manager has access
     if (role === 'account_manager') {
       const { data: assignment } = await supabaseServer
         .from('user_client_assignments')
@@ -133,41 +111,41 @@ export async function PUT(
         .single();
 
       if (!assignment) {
-        return NextResponse.json(
-          { success: false, error: 'Client not found' },
-          { status: 404 }
+        return NextResponse.json<UpdateClientResponse>(
+          { success: false, error: 'Access denied' },
+          { status: 403 }
         );
       }
     }
 
-    // Step 5: Update client
+    // Update client
     const { data: client, error } = await supabaseServer
       .from('clients')
       .update({
-        name: name.trim(),
-        contact_email: contact_email?.trim() || null,
+        name,
+        contact_email,
         updated_at: new Date().toISOString(),
       })
       .eq('id', clientId)
-      .eq('agency_id', agency_id) // DATA ISOLATION: Extra safety
-      .select()
+      .eq('agency_id', agency_id)
+      .select('id, agency_id, name, contact_email, created_at, updated_at')
       .single();
 
     if (error) {
       console.error('Update error:', error);
-      return NextResponse.json(
+      return NextResponse.json<UpdateClientResponse>(
         { success: false, error: 'Failed to update client' },
         { status: 500 }
       );
     }
 
-    return NextResponse.json(
+    return NextResponse.json<UpdateClientResponse>(
       { success: true, client },
       { status: 200 }
     );
   } catch (error) {
     console.error('PUT /api/clients/[id] error:', error);
-    return NextResponse.json(
+    return NextResponse.json<UpdateClientResponse>(
       { success: false, error: 'Server error' },
       { status: 500 }
     );
@@ -176,24 +154,24 @@ export async function PUT(
 
 /**
  * DELETE /api/clients/[id]
- * Delete a client (and all related data via CASCADE)
- * 
- * Data isolation: Verify client belongs to user's agency
- * Role restriction: Only owner can delete
+ * Delete a client (owner only)
  */
 export async function DELETE(
   request: NextRequest,
   { params }: RouteParams
 ): Promise<NextResponse> {
   try {
-    // Step 1: Authenticate user
     const auth = await protectedRoute(request);
-    if (!auth.success) return auth.response;
+    if (!auth.success) {
+      return NextResponse.json(
+        { success: false, error: 'Unauthorized' },
+        { status: 401 }
+      );
+    }
 
     const { agency_id, role } = auth.payload;
-    const { id: clientId } = await params;
+    const clientId = params.id;
 
-    // Step 1b: Only owners can delete clients
     if (role !== 'owner') {
       return NextResponse.json(
         { success: false, error: 'Only agency owners can delete clients' },
@@ -201,28 +179,24 @@ export async function DELETE(
       );
     }
 
-    // Step 2: Verify client exists and belongs to this agency
-    const { data: existingClient } = await supabaseServer
-      .from('clients')
-      .select('id')
-      .eq('id', clientId)
-      .eq('agency_id', agency_id) // DATA ISOLATION
-      .single();
+    // Delete associated portal tokens
+    await supabaseServer
+      .from('client_access_tokens')
+      .delete()
+      .eq('client_id', clientId);
 
-    if (!existingClient) {
-      return NextResponse.json(
-        { success: false, error: 'Client not found' },
-        { status: 404 }
-      );
-    }
+    // Delete associated assignments
+    await supabaseServer
+      .from('user_client_assignments')
+      .delete()
+      .eq('client_id', clientId);
 
-    // Step 3: Delete client
-    // All related campaigns, metrics, and tokens will cascade delete
+    // Delete the client
     const { error } = await supabaseServer
       .from('clients')
       .delete()
       .eq('id', clientId)
-      .eq('agency_id', agency_id); // DATA ISOLATION: Extra safety
+      .eq('agency_id', agency_id);
 
     if (error) {
       console.error('Delete error:', error);
@@ -232,10 +206,7 @@ export async function DELETE(
       );
     }
 
-    return NextResponse.json(
-      { success: true, message: 'Client deleted successfully' },
-      { status: 200 }
-    );
+    return NextResponse.json({ success: true }, { status: 200 });
   } catch (error) {
     console.error('DELETE /api/clients/[id] error:', error);
     return NextResponse.json(

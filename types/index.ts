@@ -24,7 +24,6 @@ export type Client = {
   agency_id: string;
   name: string;
   contact_email: string | null;
-  portal_token: string;
   created_at: string;
   updated_at: string;
 };
@@ -108,13 +107,34 @@ export type CreateClientRequest = {
 };
 
 export type CreateClientResponse =
-  | { success: true; client: Client }
+  | { success: true; client: Client; portal_token: string; portal_url: string }
   | { success: false; error: string };
 
 export type GetClientsResponse =
   | { success: true; clients: Client[] }
   | { success: false; error: string };
 
+export type GetClientResponse =
+  | { success: true; client: Client }
+  | { success: false; error: string };
+
+export type UpdateClientRequest = {
+  name?: string;
+  contact_email?: string;
+};
+
+export type UpdateClientResponse =
+  | { success: true; client: Client }
+  | { success: false; error: string };
+
+export type PortalTokenResponse =
+  | { success: true; portal_token: string; portal_url: string; expires_at: string | null }
+  | { success: false; error: string };
+
+export type RevokePortalTokenResponse =
+  | { success: true }
+  | { success: false; error: string };
+  
 // CAMPAIGNS ENDPOINTS
 export type CreateCampaignRequest = {
   client_id: string;
