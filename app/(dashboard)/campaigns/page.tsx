@@ -28,7 +28,8 @@ export default function CampaignsPage() {
   const [formData, setFormData] = useState({
     client_id: filterClientId || '',
     name: '',
-    platform: 'google_ads' as 'google_ads' | 'meta_ads' | 'other',
+    platform: 'google_ads',
+    custom_platform: '',
   });
   const [formError, setFormError] = useState('');
 
@@ -81,11 +82,25 @@ export default function CampaignsPage() {
       return;
     }
 
+    const finalPlatform =
+      formData.platform === 'other'
+        ? formData.custom_platform.trim() || 'Other'
+        : formData.platform;
+
+    if (formData.platform === 'other' && !formData.custom_platform.trim()) {
+      setFormError('Please specify the platform name');
+      return;
+    }
+
     try {
       setIsSubmitting(true);
       const res = await apiFetch('/api/campaigns', {
         method: 'POST',
-        body: JSON.stringify(formData),
+        body: JSON.stringify({
+          client_id: formData.client_id,
+          name: formData.name.trim(),
+          platform: finalPlatform,
+        }),
       });
 
       const data = await res.json();
@@ -100,6 +115,7 @@ export default function CampaignsPage() {
         client_id: filterClientId || '',
         name: '',
         platform: 'google_ads',
+        custom_platform: '',
       });
       setShowForm(false);
       await fetchData();
@@ -276,7 +292,7 @@ export default function CampaignsPage() {
                     onChange={(e) =>
                       setFormData({
                         ...formData,
-                        platform: e.target.value as 'google_ads' | 'meta_ads' | 'other',
+                        platform: e.target.value,
                       })
                     }
                     className="block w-full rounded-lg border border-slate-300 px-3.5 py-2.5 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-600 focus:border-indigo-600"
@@ -286,6 +302,20 @@ export default function CampaignsPage() {
                     <option value="other">Other</option>
                   </select>
                 </div>
+
+                {/* Custom Platform Input when 'other' is selected */}
+                {formData.platform === 'other' && (
+                  <Input
+                    label="Specify Platform"
+                    type="text"
+                    placeholder="e.g. LinkedIn, TikTok, Twitter/X, Pinterest"
+                    value={formData.custom_platform}
+                    onChange={(e) =>
+                      setFormData({ ...formData, custom_platform: e.target.value })
+                    }
+                    required
+                  />
+                )}
 
                 {formError && (
                   <p className="text-sm text-red-600 bg-red-50 rounded px-3 py-2">
@@ -361,7 +391,11 @@ export default function CampaignsPage() {
                         <p className="text-sm text-slate-600">
                           Platform:{' '}
                           <span className="font-medium capitalize">
-                            {campaign.platform.replace('_', ' ')}
+                            {campaign.platform === 'google_ads'
+                              ? 'Google Ads'
+                              : campaign.platform === 'meta_ads'
+                              ? 'Meta Ads'
+                              : campaign.platform.replace('_', ' ')}
                           </span>
                         </p>
                         <p className="text-xs text-slate-500">
