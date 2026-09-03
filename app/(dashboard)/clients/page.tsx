@@ -69,6 +69,10 @@ export default function ClientsPage() {
   // Portal token state map: clientId → PortalTokenState (owner only)
   const [portalState, setPortalState] = useState<Record<string, PortalTokenState>>({});
 
+  // Pagination
+  const PAGE_SIZE = 12;
+  const [currentPage, setCurrentPage] = useState(1);
+
   // ---------------------------------------------------------------------------
   // Helpers
   // ---------------------------------------------------------------------------
@@ -94,6 +98,7 @@ export default function ClientsPage() {
         return;
       }
       setClients(data.clients || []);
+      setCurrentPage(1); // reset to first page on refresh
     } catch (err) {
       setError('Something went wrong');
       console.error(err);
@@ -401,8 +406,44 @@ export default function ClientsPage() {
               )}
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {clients.map((client) => {
+            <>
+              {/* Pagination indicator */}
+              <div className="flex items-center justify-between mb-3">
+                <p className="text-sm text-slate-500">
+                  Showing{' '}
+                  <span className="font-medium text-slate-700">
+                    {Math.min((currentPage - 1) * PAGE_SIZE + 1, clients.length)}–
+                    {Math.min(currentPage * PAGE_SIZE, clients.length)}
+                  </span>{' '}
+                  of{' '}
+                  <span className="font-medium text-slate-700">{clients.length}</span>{' '}
+                  {clients.length === 1 ? 'client' : 'clients'}
+                </p>
+                {clients.length > PAGE_SIZE && (
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                      disabled={currentPage === 1}
+                      className="px-3 py-1.5 text-sm border border-slate-300 rounded hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                    >
+                      ← Prev
+                    </button>
+                    <span className="text-sm text-slate-500">
+                      Page {currentPage} of {Math.ceil(clients.length / PAGE_SIZE)}
+                    </span>
+                    <button
+                      onClick={() => setCurrentPage((p) => Math.min(Math.ceil(clients.length / PAGE_SIZE), p + 1))}
+                      disabled={currentPage >= Math.ceil(clients.length / PAGE_SIZE)}
+                      className="px-3 py-1.5 text-sm border border-slate-300 rounded hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                    >
+                      Next →
+                    </button>
+                  </div>
+                )}
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {clients.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE).map((client) => {
                 const pt = portalState[client.id] ?? defaultPortalState();
                 return (
                   <div
@@ -601,7 +642,8 @@ export default function ClientsPage() {
                   </div>
                 );
               })}
-            </div>
+              </div>
+            </>
           )}
         </div>
       </DashboardLayout>
