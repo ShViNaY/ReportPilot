@@ -30,7 +30,7 @@ function calculateKPIs(ad_spend: number, leads: number, conversions: number) {
  * GET /api/metrics/[id]
  * Get a specific metric entry
  * 
- * Data isolation: Verify metric belongs to user's agency
+ * Data isolation: Verify metric belongs to user's agency (and, for Account Managers, is for an assigned client)
  */
 export async function GET(
     request: NextRequest,
@@ -41,7 +41,7 @@ export async function GET(
         const auth = await protectedRoute(request);
         if (!auth.success) return auth.response;
 
-        const { agency_id } = auth.payload;
+        const { agency_id, user_id, role } = auth.payload;
         const { id: metricId } = await params;
 
         // Step 2: Fetch metric
@@ -57,6 +57,23 @@ export async function GET(
                 { success: false, error: 'Metric entry not found' },
                 { status: 404 }
             );
+        }
+
+        // Step 3: Account managers can only view metrics for their assigned clients
+        if (role === 'account_manager') {
+            const { data: assignment } = await supabaseServer
+                .from('user_client_assignments')
+                .select('id')
+                .eq('user_id', user_id)
+                .eq('client_id', metric.client_id)
+                .single();
+
+            if (!assignment) {
+                return NextResponse.json(
+                    { success: false, error: 'Metric entry not found' },
+                    { status: 404 }
+                );
+            }
         }
 
         return NextResponse.json(
@@ -76,7 +93,7 @@ export async function GET(
  * PUT /api/metrics/[id]
  * Update a metric entry and recalculate KPIs
  * 
- * Data isolation: Verify metric belongs to user's agency
+ * Data isolation: Verify metric belongs to user's agency (and, for Account Managers, is for an assigned client)
  */
 export async function PUT(
     request: NextRequest,
@@ -87,7 +104,7 @@ export async function PUT(
         const auth = await protectedRoute(request);
         if (!auth.success) return auth.response;
 
-        const { agency_id } = auth.payload;
+        const { agency_id, user_id, role } = auth.payload;
         const { id: metricId } = await params;
 
         // Step 2: Parse request
@@ -151,6 +168,23 @@ export async function PUT(
             );
         }
 
+        // Step 4b: Account managers can only edit metrics for their assigned clients
+        if (role === 'account_manager') {
+            const { data: assignment } = await supabaseServer
+                .from('user_client_assignments')
+                .select('id')
+                .eq('user_id', user_id)
+                .eq('client_id', existingMetric.client_id)
+                .single();
+
+            if (!assignment) {
+                return NextResponse.json(
+                    { success: false, error: 'Metric entry not found' },
+                    { status: 404 }
+                );
+            }
+        }
+
         // Step 5: Prepare update data
         const updateData: any = {
             updated_at: new Date().toISOString(),
@@ -211,7 +245,7 @@ export async function PUT(
  * DELETE /api/metrics/[id]
  * Delete a metric entry
  * 
- * Data isolation: Verify metric belongs to user's agency
+ * Data isolation: Verify metric belongs to user's agency (and, for Account Managers, is for an assigned client)
  */
 export async function DELETE(
     request: NextRequest,
@@ -222,13 +256,13 @@ export async function DELETE(
         const auth = await protectedRoute(request);
         if (!auth.success) return auth.response;
 
-        const { agency_id } = auth.payload;
+        const { agency_id, user_id, role } = auth.payload;
         const { id: metricId } = await params;
 
         // Step 2: Verify metric exists and belongs to user's agency
         const { data: existingMetric } = await supabaseServer
             .from('metric_entries')
-            .select('id')
+            .select('id, client_id')
             .eq('id', metricId)
             .eq('agency_id', agency_id) // DATA ISOLATION
             .single();
@@ -238,6 +272,23 @@ export async function DELETE(
                 { success: false, error: 'Metric entry not found' },
                 { status: 404 }
             );
+        }
+
+        // Step 2b: Account managers can only delete metrics for their assigned clients
+        if (role === 'account_manager') {
+            const { data: assignment } = await supabaseServer
+                .from('user_client_assignments')
+                .select('id')
+                .eq('user_id', user_id)
+                .eq('client_id', existingMetric.client_id)
+                .single();
+
+            if (!assignment) {
+                return NextResponse.json(
+                    { success: false, error: 'Metric entry not found' },
+                    { status: 404 }
+                );
+            }
         }
 
         // Step 3: Delete metric

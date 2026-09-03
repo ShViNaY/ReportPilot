@@ -11,20 +11,44 @@ import crypto from 'crypto';
  * Get all clients for the authenticated user's agency
  * 
  * Role restriction: Owner & Account Manager can view
- * Data isolation: Only clients in their agency
+ * Data isolation: Only clients in their agency (Account Managers: only assigned clients)
  */
 export async function GET(request: NextRequest): Promise<NextResponse> {
   try {
+    // Step 1: Authenticate user
     const auth = await protectedRoute(request);
     if (!auth.success) return auth.response;
 
-    const { agency_id } = auth.payload;
+    const { agency_id, user_id, role } = auth.payload;
 
-    const { data: clients, error } = await supabaseServer
+    // Step 2: Query clients for this agency ONLY
+    let query = supabaseServer
       .from('clients')
       .select('*')
-      .eq('agency_id', agency_id)
-      .order('created_at', { ascending: false });
+      .eq('agency_id', agency_id); // DATA ISOLATION: agency only
+
+    // Step 2b: Account managers only see their assigned clients
+    if (role === 'account_manager') {
+      const { data: assignments } = await supabaseServer
+        .from('user_client_assignments')
+        .select('client_id')
+        .eq('user_id', user_id);
+
+      const assignedClientIds = assignments?.map((a) => a.client_id) || [];
+
+      if (assignedClientIds.length === 0) {
+        return NextResponse.json(
+          { success: true, clients: [] },
+          { status: 200 }
+        );
+      }
+
+      query = query.in('id', assignedClientIds);
+    }
+
+    const { data: clients, error } = await query.order('created_at', {
+      ascending: false,
+    });
 
     if (error) {
       console.error('Query error:', error);
@@ -34,7 +58,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       );
     }
 
-    // Look up assignments for these clients, and the manager for each
+    // Step 3: Look up assignments for these clients, and the manager for each
     const clientIds = (clients || []).map((c) => c.id);
 
     let assignedManagerByClientId: Record<string, { id: string; email: string }> = {};
@@ -80,6 +104,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     );
   }
 }
+
 /**
  * POST /api/clients
  * Create a new client for the agency
@@ -133,60 +158,48 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       .select()
       .single();
 
-    // if (error) {
-    //   console.error('Insert error:', error);
-    //   return NextResponse.json(
-    //     { success: false, error: 'Failed to create client' },
-    //     { status: 500 }
-    //   );
-    // }
-
-    // return NextResponse.json(
-    //   { success: true, client },
-    //   { status: 201 }
-    // );
     if (error || !client) {
-  console.error('Insert error:', error);
-  return NextResponse.json(
-    { success: false, error: 'Failed to create client' },
-    { status: 500 }
-  );
-}
+      console.error('Insert error:', error);
+      return NextResponse.json(
+        { success: false, error: 'Failed to create client' },
+        { status: 500 }
+      );
+    }
 
-// Step 6: Hash the portal token
-const tokenHash = crypto
-  .createHash('sha256')
-  .update(portalToken)
-  .digest('hex');
+    // Step 6: Hash the portal token
+    const tokenHash = crypto
+      .createHash('sha256')
+      .update(portalToken)
+      .digest('hex');
 
-// Step 7: Store the hashed token in client_access_tokens
-const { error: tokenError } = await supabaseServer
-  .from('client_access_tokens')
-  .insert([
-    {
-      client_id: client.id,
-      token_hash: tokenHash,
-      expires_at: null,
-    },
-  ]);
+    // Step 7: Store the hashed token in client_access_tokens
+    const { error: tokenError } = await supabaseServer
+      .from('client_access_tokens')
+      .insert([
+        {
+          client_id: client.id,
+          token_hash: tokenHash,
+          expires_at: null,
+        },
+      ]);
 
-if (tokenError) {
-  console.error('Portal token creation error:', tokenError);
-  return NextResponse.json(
-    { success: false, error: 'Failed to create portal access token' },
-    { status: 500 }
-  );
-}
+    if (tokenError) {
+      console.error('Portal token creation error:', tokenError);
+      return NextResponse.json(
+        { success: false, error: 'Failed to create portal access token' },
+        { status: 500 }
+      );
+    }
 
-// Step 8: Return client + portal token
-return NextResponse.json(
-  {
-    success: true,
-    client,
-    portal_token: portalToken,
-  },
-  { status: 201 }
-);
+    // Step 8: Return client + portal token
+    return NextResponse.json(
+      {
+        success: true,
+        client,
+        portal_token: portalToken,
+      },
+      { status: 201 }
+    );
   } catch (error) {
     console.error('POST /api/clients error:', error);
     return NextResponse.json(

@@ -12,7 +12,7 @@ interface RouteParams {
  * GET /api/campaigns/[id]
  * Get a specific campaign
  * 
- * Data isolation: Verify campaign belongs to user's agency
+ * Data isolation: Verify campaign belongs to user's agency (and, for Account Managers, is for an assigned client)
  */
 export async function GET(
     request: NextRequest,
@@ -23,7 +23,7 @@ export async function GET(
         const auth = await protectedRoute(request);
         if (!auth.success) return auth.response;
 
-        const { agency_id } = auth.payload;
+        const { agency_id, user_id, role } = auth.payload;
         const { id: campaignId } = await params;
 
         // Step 2: Fetch campaign
@@ -39,6 +39,23 @@ export async function GET(
                 { success: false, error: 'Campaign not found' },
                 { status: 404 }
             );
+        }
+
+        // Step 3: Account managers can only view campaigns for their assigned clients
+        if (role === 'account_manager') {
+            const { data: assignment } = await supabaseServer
+                .from('user_client_assignments')
+                .select('id')
+                .eq('user_id', user_id)
+                .eq('client_id', campaign.client_id)
+                .single();
+
+            if (!assignment) {
+                return NextResponse.json(
+                    { success: false, error: 'Campaign not found' },
+                    { status: 404 }
+                );
+            }
         }
 
         return NextResponse.json(
@@ -58,7 +75,7 @@ export async function GET(
  * PUT /api/campaigns/[id]
  * Update a campaign
  * 
- * Data isolation: Verify campaign belongs to user's agency
+ * Data isolation: Verify campaign belongs to user's agency (and, for Account Managers, is for an assigned client)
  */
 export async function PUT(
     request: NextRequest,
@@ -69,7 +86,7 @@ export async function PUT(
         const auth = await protectedRoute(request);
         if (!auth.success) return auth.response;
 
-        const { agency_id } = auth.payload;
+        const { agency_id, user_id, role } = auth.payload;
         const { id: campaignId } = await params;
         
         // Step 2: Parse request
@@ -101,7 +118,7 @@ export async function PUT(
         // Step 4: Verify campaign exists and belongs to user's agency
         const { data: existingCampaign } = await supabaseServer
             .from('campaigns')
-            .select('id')
+            .select('id, client_id')
             .eq('id', campaignId)
             .eq('agency_id', agency_id) // DATA ISOLATION
             .single();
@@ -111,6 +128,23 @@ export async function PUT(
                 { success: false, error: 'Campaign not found' },
                 { status: 404 }
             );
+        }
+
+        // Step 4b: Account managers can only edit campaigns for their assigned clients
+        if (role === 'account_manager') {
+            const { data: assignment } = await supabaseServer
+                .from('user_client_assignments')
+                .select('id')
+                .eq('user_id', user_id)
+                .eq('client_id', existingCampaign.client_id)
+                .single();
+
+            if (!assignment) {
+                return NextResponse.json(
+                    { success: false, error: 'Campaign not found' },
+                    { status: 404 }
+                );
+            }
         }
 
         // Step 5: Build update object (only include provided fields)
@@ -156,7 +190,7 @@ export async function PUT(
  * DELETE /api/campaigns/[id]
  * Delete a campaign (cascades to metrics, etc.)
  * 
- * Data isolation: Verify campaign belongs to user's agency
+ * Data isolation: Verify campaign belongs to user's agency (and, for Account Managers, is for an assigned client)
  */
 export async function DELETE(
     request: NextRequest,
@@ -167,13 +201,13 @@ export async function DELETE(
         const auth = await protectedRoute(request);
         if (!auth.success) return auth.response;
 
-        const { agency_id } = auth.payload;
+        const { agency_id, user_id, role } = auth.payload;
         const { id: campaignId } = await params;
 
         // Step 2: Verify campaign exists and belongs to user's agency
         const { data: existingCampaign } = await supabaseServer
             .from('campaigns')
-            .select('id')
+            .select('id, client_id')
             .eq('id', campaignId)
             .eq('agency_id', agency_id) // DATA ISOLATION
             .single();
@@ -183,6 +217,23 @@ export async function DELETE(
                 { success: false, error: 'Campaign not found' },
                 { status: 404 }
             );
+        }
+
+        // Step 2b: Account managers can only delete campaigns for their assigned clients
+        if (role === 'account_manager') {
+            const { data: assignment } = await supabaseServer
+                .from('user_client_assignments')
+                .select('id')
+                .eq('user_id', user_id)
+                .eq('client_id', existingCampaign.client_id)
+                .single();
+
+            if (!assignment) {
+                return NextResponse.json(
+                    { success: false, error: 'Campaign not found' },
+                    { status: 404 }
+                );
+            }
         }
 
         // Step 3: Delete campaign

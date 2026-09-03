@@ -12,7 +12,7 @@ interface RouteParams {
  * GET /api/clients/[id]
  * Get a specific client
  * 
- * Data isolation: Verify client belongs to user's agency
+ * Data isolation: Verify client belongs to user's agency (and, for Account Managers, is assigned to them)
  */
 export async function GET(
   request: NextRequest,
@@ -23,7 +23,7 @@ export async function GET(
     const auth = await protectedRoute(request);
     if (!auth.success) return auth.response;
 
-    const { agency_id } = auth.payload;
+    const { agency_id, user_id, role } = auth.payload;
     const { id: clientId } = await params;
 
     // Step 2: Fetch client
@@ -39,6 +39,23 @@ export async function GET(
         { success: false, error: 'Client not found' },
         { status: 404 }
       );
+    }
+
+    // Step 3: Account managers can only view their assigned clients
+    if (role === 'account_manager') {
+      const { data: assignment } = await supabaseServer
+        .from('user_client_assignments')
+        .select('id')
+        .eq('user_id', user_id)
+        .eq('client_id', clientId)
+        .single();
+
+      if (!assignment) {
+        return NextResponse.json(
+          { success: false, error: 'Client not found' },
+          { status: 404 }
+        );
+      }
     }
 
     return NextResponse.json(
@@ -58,7 +75,7 @@ export async function GET(
  * PUT /api/clients/[id]
  * Update a client
  * 
- * Data isolation: Verify client belongs to user's agency
+ * Data isolation: Verify client belongs to user's agency (and, for Account Managers, is assigned to them)
  */
 export async function PUT(
   request: NextRequest,
@@ -69,7 +86,7 @@ export async function PUT(
     const auth = await protectedRoute(request);
     if (!auth.success) return auth.response;
 
-    const { agency_id } = auth.payload;
+    const { agency_id, user_id, role } = auth.payload;
     const { id: clientId } = await params;
 
     // Step 2: Parse request
@@ -104,6 +121,23 @@ export async function PUT(
         { success: false, error: 'Client not found' },
         { status: 404 }
       );
+    }
+
+    // Step 4b: Account managers can only edit their assigned clients
+    if (role === 'account_manager') {
+      const { data: assignment } = await supabaseServer
+        .from('user_client_assignments')
+        .select('id')
+        .eq('user_id', user_id)
+        .eq('client_id', clientId)
+        .single();
+
+      if (!assignment) {
+        return NextResponse.json(
+          { success: false, error: 'Client not found' },
+          { status: 404 }
+        );
+      }
     }
 
     // Step 5: Update client
@@ -158,6 +192,14 @@ export async function DELETE(
 
     const { agency_id, role } = auth.payload;
     const { id: clientId } = await params;
+
+    // Step 1b: Only owners can delete clients
+    if (role !== 'owner') {
+      return NextResponse.json(
+        { success: false, error: 'Only agency owners can delete clients' },
+        { status: 403 }
+      );
+    }
 
     // Step 2: Verify client exists and belongs to this agency
     const { data: existingClient } = await supabaseServer
