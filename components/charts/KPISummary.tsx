@@ -1,8 +1,8 @@
 // components/charts/KPISummary.tsx
-
 'use client';
 
 import { MetricEntry } from '@/types';
+import { IconSpend, IconConversions, IconMetrics } from '@/components/common/Icons';
 
 interface KPISummaryProps {
   metrics: MetricEntry[];
@@ -22,59 +22,70 @@ export function KPISummary({ metrics }: KPISummaryProps) {
 
   const roi = totalSpend > 0 ? ((totalConversions * 50) / totalSpend) * 100 : 0; // Assuming $50 per conversion
 
-  const KPICard = ({
-    label,
-    value,
-    unit,
-    trend,
-    color,
-  }: {
-    label: string;
-    value: number;
-    unit: string;
-    trend?: 'up' | 'down' | 'neutral';
-    color: string;
-  }) => (
-    <div className={`bg-gradient-to-br from-${color}-50 to-${color}-100 rounded-lg p-4 border border-${color}-200`}>
-      <p className={`text-sm text-${color}-700 font-medium`}>{label}</p>
-      <div className="flex items-baseline gap-2 mt-2">
-        <p className={`text-2xl font-bold text-${color}-900`}>
-          {value.toLocaleString('en-US', {
-            maximumFractionDigits: value < 100 ? 2 : 0,
-          })}
-        </p>
-        <p className={`text-sm text-${color}-600`}>{unit}</p>
-      </div>
-      {trend && (
-        <p className={`text-xs mt-2 ${
-          trend === 'up' ? 'text-green-600' : trend === 'down' ? 'text-red-600' : 'text-slate-600'
-        }`}>
-          {trend === 'up' ? '↑' : trend === 'down' ? '↓' : '→'} {trend !== 'neutral' ? 'vs last period' : 'stable'}
-        </p>
-      )}
-    </div>
-  );
-
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-      <KPICard
-        label="Average CPL"
-        value={avgCPL}
-        unit="$"
-        color="indigo"
-      />
-      <KPICard
-        label="Conversion Rate"
-        value={avgConvRate}
-        unit="%"
-        color="green"
-      />
-      <KPICard
-        label="ROI"
-        value={roi}
-        unit="%"
-        color="blue"
-      />
+    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      {/* Average CPL Card */}
+      <div className="bg-white rounded-xl p-5 border border-slate-200/80 shadow-xs hover:border-slate-300 transition-colors">
+        <div className="flex items-center justify-between">
+          <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Average CPL</p>
+          <div className="w-8 h-8 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center">
+            <IconSpend className="w-4 h-4" />
+          </div>
+        </div>
+        <div className="flex items-baseline gap-1.5 mt-3">
+          <span className="text-xs text-slate-400 font-medium">$</span>
+          <span className="text-2xl font-bold text-slate-900 tracking-tight tabular-nums">
+            {avgCPL.toFixed(2)}
+          </span>
+        </div>
+        <div className="flex items-center gap-1.5 mt-2">
+          <span className="inline-flex items-center gap-1 text-[11px] font-medium text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded-full">
+            Cost per acquisition
+          </span>
+        </div>
+      </div>
+
+      {/* Conversion Rate Card */}
+      <div className="bg-white rounded-xl p-5 border border-slate-200/80 shadow-xs hover:border-slate-300 transition-colors">
+        <div className="flex items-center justify-between">
+          <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Avg Conversion Rate</p>
+          <div className="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center">
+            <IconConversions className="w-4 h-4" />
+          </div>
+        </div>
+        <div className="flex items-baseline gap-1 mt-3">
+          <span className="text-2xl font-bold text-slate-900 tracking-tight tabular-nums">
+            {avgConvRate.toFixed(1)}
+          </span>
+          <span className="text-sm font-semibold text-slate-500">%</span>
+        </div>
+        <div className="flex items-center gap-1.5 mt-2">
+          <span className="inline-flex items-center gap-1 text-[11px] font-medium text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full">
+            Leads → Conversions
+          </span>
+        </div>
+      </div>
+
+      {/* Est. Campaign Efficiency / ROI Card */}
+      <div className="bg-white rounded-xl p-5 border border-slate-200/80 shadow-xs hover:border-slate-300 transition-colors">
+        <div className="flex items-center justify-between">
+          <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Est. Return Index</p>
+          <div className="w-8 h-8 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center">
+            <IconMetrics className="w-4 h-4" />
+          </div>
+        </div>
+        <div className="flex items-baseline gap-1 mt-3">
+          <span className="text-2xl font-bold text-slate-900 tracking-tight tabular-nums">
+            {roi.toFixed(0)}
+          </span>
+          <span className="text-sm font-semibold text-slate-500">%</span>
+        </div>
+        <div className="flex items-center gap-1.5 mt-2">
+          <span className="inline-flex items-center gap-1 text-[11px] font-medium text-blue-700 bg-blue-50 px-2 py-0.5 rounded-full">
+            Performance ratio
+          </span>
+        </div>
+      </div>
     </div>
   );
-}
+}

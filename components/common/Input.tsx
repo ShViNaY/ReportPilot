@@ -4,10 +4,11 @@ import { InputHTMLAttributes, forwardRef, useState } from 'react';
 interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
   label: string;
   error?: string;
+  hint?: string;
 }
 
 export const Input = forwardRef<HTMLInputElement, InputProps>(
-  ({ label, error, id, className = '', type = 'text', ...props }, ref) => {
+  ({ label, error, hint, id, className = '', type = 'text', ...props }, ref) => {
     const inputId = id || props.name;
     const [showPassword, setShowPassword] = useState(false);
 
@@ -16,23 +17,30 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
     const displayType = isPasswordField && showPassword ? 'text' : type;
 
     return (
-      <div className="space-y-1.5">
-        <label
-          htmlFor={inputId}
-          className="block text-sm font-medium text-slate-700"
-        >
-          {label}
-        </label>
+      <div className="space-y-1.5 w-full text-left">
+        <div className="flex items-center justify-between">
+          <label
+            htmlFor={inputId}
+            className="block text-xs font-semibold text-slate-700 tracking-wide"
+          >
+            {label}
+          </label>
+          {hint && <span className="text-xs text-slate-400">{hint}</span>}
+        </div>
 
-        {/* Input wrapper for password visibility toggle */}
-        <div className="relative">
+        {/* Input wrapper */}
+        <div className="relative rounded-lg shadow-2xs">
           <input
             ref={ref}
             id={inputId}
             type={displayType}
-            className={`block w-full rounded-lg border px-3.5 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-600 focus:border-indigo-600 ${
+            className={`block w-full rounded-lg border bg-white px-3.5 py-2 text-sm text-slate-900 placeholder:text-slate-400 transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-indigo-600/20 focus:border-indigo-600 disabled:bg-slate-50 disabled:text-slate-500 disabled:cursor-not-allowed ${
               isPasswordField ? 'pr-10' : ''
-            } ${error ? 'border-red-400' : 'border-slate-300'} ${className}`}
+            } ${
+              error
+                ? 'border-rose-300 focus:border-rose-500 focus:ring-rose-500/20 text-rose-900'
+                : 'border-slate-200 hover:border-slate-300'
+            } ${className}`}
             {...props}
           />
 
@@ -41,36 +49,38 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
             <button
               type="button"
               onClick={() => setShowPassword(!showPassword)}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-700 transition-colors"
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors p-0.5 rounded focus:outline-none"
               aria-label={showPassword ? 'Hide password' : 'Show password'}
             >
               {showPassword ? (
-                // Eye icon (visible)
+                // Eye-off icon
                 <svg
-                  className="w-5 h-5"
-                  fill="currentColor"
-                  viewBox="0 0 20 20"
+                  className="w-4 h-4"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
                 >
-                  <path d="M10 12a2 2 0 100-4 2 2 0 000 4z" />
-                  <path
-                    fillRule="evenodd"
-                    d="M.458 10C1.732 5.943 5.522 3 10 3s8.268 2.943 9.542 7c-1.274 4.057-5.064 7-9.542 7S1.732 14.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 018 0z"
-                    clipRule="evenodd"
-                  />
+                  <path d="M9.88 9.88a3 3 0 1 0 4.24 4.24" />
+                  <path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68" />
+                  <path d="M6.61 6.61A13.526 13.526 0 0 0 2 12s3 7 10 7a9.74 9.74 0 0 0 5.39-1.61" />
+                  <line x1="2" x2="22" y1="2" y2="22" />
                 </svg>
               ) : (
-                // Eye-off icon (hidden)
+                // Eye icon
                 <svg
-                  className="w-5 h-5"
-                  fill="currentColor"
-                  viewBox="0 0 20 20"
+                  className="w-4 h-4"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
                 >
-                  <path
-                    fillRule="evenodd"
-                    d="M3.707 2.293a1 1 0 00-1.414 1.414l14 14a1 1 0 001.414-1.414l-1.473-1.473A10.014 10.014 0 0019.542 10C18.268 5.943 14.478 3 10 3a9.958 9.958 0 00-4.512 1.074l-1.78-1.781zm4.261 4.26l1.514 1.515a2.003 2.003 0 012.45 2.45l1.514 1.514a4 4 0 00-5.478-5.478z"
-                    clipRule="evenodd"
-                  />
-                  <path d="M15.171 13.576l1.414 1.414A10.016 10.016 0 0019.542 10c-1.274-4.057-5.064-7-9.542-7a9.958 9.958 0 00-2.572.35l1.286 1.286A4 4 0 0115.171 13.576z" />
+                  <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z" />
+                  <circle cx="12" cy="12" r="3" />
                 </svg>
               )}
             </button>
@@ -78,9 +88,24 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
         </div>
 
         {/* Error Message */}
-        {error && <p className="text-sm text-red-600">{error}</p>}
+        {error && (
+          <p className="text-xs text-rose-600 font-medium flex items-center gap-1.5 mt-1">
+            <svg
+              className="w-3.5 h-3.5 shrink-0"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+            >
+              <circle cx="12" cy="12" r="10" />
+              <line x1="12" x2="12" y1="8" y2="12" />
+              <line x1="12" x2="12.01" y1="16" y2="16" />
+            </svg>
+            {error}
+          </p>
+        )}
       </div>
     );
   }
 );
-Input.displayName = 'Input';
+Input.displayName = 'Input';

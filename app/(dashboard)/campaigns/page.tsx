@@ -1,9 +1,9 @@
 // app/(dashboard)/campaigns/page.tsx
-
 'use client';
 
 import { useState, useEffect } from 'react';
 import { useSearchParams } from 'next/navigation';
+import Link from 'next/link';
 import { ProtectedRoute } from '@/lib/context/ProtectedRoute';
 import { useAuth } from '@/lib/context/AuthContext';
 import { DashboardLayout } from '@/components/layouts/DashboardLayout';
@@ -11,6 +11,14 @@ import { Button } from '@/components/common/Button';
 import { Input } from '@/components/common/Input';
 import { apiFetch } from '@/lib/utils/apiClient';
 import { Campaign, Client } from '@/types';
+import {
+  IconCampaigns,
+  IconEdit,
+  IconTrash,
+  IconMetrics,
+  IconPlus,
+  IconArrowUpRight,
+} from '@/components/common/Icons';
 
 export default function CampaignsPage() {
   const { user } = useAuth();
@@ -239,17 +247,28 @@ export default function CampaignsPage() {
     return (
       <ProtectedRoute>
         <DashboardLayout>
-          <div className="flex items-center justify-center min-h-screen">
-            <div className="text-center">
+          <div className="flex items-center justify-center min-h-[60vh]">
+            <div className="text-center space-y-3">
               <svg
-                className="w-12 h-12 text-indigo-600 animate-spin mx-auto"
+                className="w-10 h-10 text-indigo-600 animate-spin mx-auto"
                 fill="none"
-                stroke="currentColor"
                 viewBox="0 0 24 24"
               >
-                <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2" />
+                <circle
+                  className="opacity-25"
+                  cx="12"
+                  cy="12"
+                  r="10"
+                  stroke="currentColor"
+                  strokeWidth="3.5"
+                />
+                <path
+                  className="opacity-90"
+                  fill="currentColor"
+                  d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
+                />
               </svg>
-              <p className="text-slate-600 mt-4">Loading campaigns...</p>
+              <p className="text-sm font-medium text-slate-500">Loading campaigns...</p>
             </div>
           </div>
         </DashboardLayout>
@@ -262,47 +281,69 @@ export default function CampaignsPage() {
       <DashboardLayout>
         <div className="space-y-6">
           {/* Header */}
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>
-              <h1 className="text-3xl font-bold text-slate-900">Campaigns</h1>
-              <p className="text-slate-500 mt-1">
+              <div className="flex items-center gap-2">
+                <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 tracking-tight">Campaigns</h1>
+                {filterClientId && (
+                  <span className="text-xs font-semibold text-indigo-700 bg-indigo-50 border border-indigo-200/80 px-2.5 py-0.5 rounded-full">
+                    Filtered: {getClientName(filterClientId)}
+                  </span>
+                )}
+              </div>
+              <p className="text-xs sm:text-sm text-slate-500 mt-0.5">
                 {filterClientId
-                  ? `Campaigns for ${getClientName(filterClientId)}`
-                  : 'Manage all your marketing campaigns'}
+                  ? `Showing active campaigns for ${getClientName(filterClientId)}`
+                  : 'Manage and monitor all active agency advertising channels'}
               </p>
             </div>
-            <Button
-              onClick={() => {
-                if (showForm) {
-                  resetForm();
-                }
-                setShowForm(!showForm);
-              }}
-              className="bg-indigo-600 hover:bg-indigo-700 text-white"
-            >
-              {showForm ? 'Cancel' : '+ Add Campaign'}
-            </Button>
+            <div className="flex items-center gap-2">
+              {filterClientId && (
+                <Link
+                  href="/campaigns"
+                  className="px-3 py-2 bg-white border border-slate-200 hover:bg-slate-50 text-slate-600 rounded-lg text-xs font-semibold transition-colors"
+                >
+                  View All Clients
+                </Link>
+              )}
+              <Button
+                onClick={() => {
+                  if (showForm) {
+                    resetForm();
+                  }
+                  setShowForm(!showForm);
+                }}
+                className="bg-indigo-600 hover:bg-indigo-700 text-white self-start sm:self-auto"
+              >
+                {showForm ? 'Cancel' : '+ Add Campaign'}
+              </Button>
+            </div>
           </div>
 
           {/* Error Message */}
           {error && (
-            <div className="rounded-lg bg-red-50 border border-red-200 p-4">
-              <p className="text-red-700">{error}</p>
+            <div className="rounded-xl bg-rose-50 border border-rose-200/80 p-4">
+              <p className="text-sm text-rose-700 font-medium">{error}</p>
             </div>
           )}
 
           {/* Create / Edit Form */}
           {showForm && (
-            <div className="bg-white rounded-lg border border-slate-200 p-6">
-              <h2 className="text-lg font-semibold text-slate-900 mb-4">
-                {editingCampaignId ? 'Edit Campaign' : 'Create New Campaign'}
-              </h2>
+            <div className="bg-white rounded-xl border border-slate-200/80 p-6 shadow-xs">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-base font-semibold text-slate-900">
+                  {editingCampaignId ? 'Edit Campaign Details' : 'Launch New Campaign'}
+                </h2>
+                <span className="text-xs text-slate-400">
+                  {editingCampaignId ? 'Updating existing record' : 'Agency campaign setup'}
+                </span>
+              </div>
 
               <form onSubmit={handleSubmit} className="space-y-4">
                 {/* Client Selector */}
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-2">
-                    Client
+                <div className="space-y-1.5">
+                  <label className="block text-xs font-semibold text-slate-700 tracking-wide">
+                    Client Account
                   </label>
                   <select
                     value={formData.client_id}
@@ -310,7 +351,7 @@ export default function CampaignsPage() {
                       setFormData({ ...formData, client_id: e.target.value })
                     }
                     disabled={editingCampaignId !== null}
-                    className="block w-full rounded-lg border border-slate-300 px-3.5 py-2.5 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-600 focus:border-indigo-600 disabled:bg-slate-100 disabled:text-slate-500"
+                    className="block w-full rounded-lg border border-slate-200 bg-white px-3.5 py-2 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-600/20 focus:border-indigo-600 disabled:bg-slate-50 disabled:text-slate-500 shadow-2xs"
                     required
                   >
                     <option value="">Select a client...</option>
@@ -321,14 +362,14 @@ export default function CampaignsPage() {
                     ))}
                   </select>
                   {editingCampaignId && (
-                    <p className="text-xs text-slate-400 mt-1">Client cannot be changed once created.</p>
+                    <p className="text-[11px] text-slate-400 mt-1">Client cannot be changed once created.</p>
                   )}
                 </div>
 
                 <Input
                   label="Campaign Name"
                   type="text"
-                  placeholder="Summer Sale - Google Ads"
+                  placeholder="e.g. Q4 Brand Awareness - Search"
                   value={formData.name}
                   onChange={(e) =>
                     setFormData({ ...formData, name: e.target.value })
@@ -337,9 +378,9 @@ export default function CampaignsPage() {
                 />
 
                 {/* Platform Selector */}
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-2">
-                    Platform
+                <div className="space-y-1.5">
+                  <label className="block text-xs font-semibold text-slate-700 tracking-wide">
+                    Platform Channel
                   </label>
                   <select
                     value={formData.platform}
@@ -349,20 +390,20 @@ export default function CampaignsPage() {
                         platform: e.target.value,
                       })
                     }
-                    className="block w-full rounded-lg border border-slate-300 px-3.5 py-2.5 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-600 focus:border-indigo-600"
+                    className="block w-full rounded-lg border border-slate-200 bg-white px-3.5 py-2 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-600/20 focus:border-indigo-600 shadow-2xs"
                   >
                     <option value="google_ads">Google Ads</option>
                     <option value="meta_ads">Meta Ads</option>
-                    <option value="other">Other</option>
+                    <option value="other">Other (Custom platform)</option>
                   </select>
                 </div>
 
                 {/* Custom Platform Input when 'other' is selected */}
                 {formData.platform === 'other' && (
                   <Input
-                    label="Specify Platform"
+                    label="Specify Platform Name"
                     type="text"
-                    placeholder="e.g. LinkedIn, TikTok, Twitter/X, Pinterest"
+                    placeholder="e.g. LinkedIn, TikTok, X, Pinterest"
                     value={formData.custom_platform}
                     onChange={(e) =>
                       setFormData({ ...formData, custom_platform: e.target.value })
@@ -372,12 +413,12 @@ export default function CampaignsPage() {
                 )}
 
                 {formError && (
-                  <p className="text-sm text-red-600 bg-red-50 rounded px-3 py-2">
+                  <p className="text-xs text-rose-700 bg-rose-50 border border-rose-200/80 rounded-lg p-2.5">
                     {formError}
                   </p>
                 )}
 
-                <div className="flex gap-3 pt-2">
+                <div className="flex gap-2.5 pt-2">
                   <Button
                     type="submit"
                     isLoading={isSubmitting}
@@ -402,121 +443,151 @@ export default function CampaignsPage() {
 
           {/* Campaigns List */}
           {filteredCampaigns.length === 0 ? (
-            <div className="rounded-lg border-2 border-dashed border-slate-300 p-12 text-center">
-              <p className="text-slate-600 mb-4">
-                {filterClientId ? 'No campaigns for this client' : 'No campaigns yet'}
-              </p>
+            <div className="rounded-2xl border-2 border-dashed border-slate-200 p-12 text-center space-y-4 bg-white/60">
+              <div className="w-12 h-12 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center mx-auto">
+                <IconCampaigns className="w-6 h-6" />
+              </div>
+              <div>
+                <p className="text-base font-semibold text-slate-800">
+                  {filterClientId ? 'No campaigns found for this client' : 'No campaigns yet'}
+                </p>
+                <p className="text-xs text-slate-500 mt-1">
+                  Create your first marketing campaign to start logging impressions, leads, and spend.
+                </p>
+              </div>
               <Button
                 onClick={() => {
                   resetForm();
                   setShowForm(true);
                 }}
-                className="bg-indigo-600 hover:bg-indigo-700 text-white"
+                className="bg-indigo-600 hover:bg-indigo-700 text-white shadow-xs"
               >
                 Create Your First Campaign
               </Button>
             </div>
           ) : (
-            <div className="space-y-4">
-              {filteredCampaigns.map((campaign) => (
-                <div
-                  key={campaign.id}
-                  className="bg-white rounded-lg border border-slate-200 p-6 hover:shadow-lg transition-shadow"
-                >
-                  <div className="flex items-start justify-between">
-                    {/* Campaign Info */}
-                    <div className="flex-1">
-                      <div className="flex items-center gap-3">
-                        <h3 className="text-lg font-semibold text-slate-900">
-                          {campaign.name}
-                        </h3>
-                        {/* Status Badge */}
-                        <span
-                          className={`px-3 py-1 rounded-full text-xs font-medium ${
-                            campaign.status === 'active'
-                              ? 'bg-green-100 text-green-800'
-                              : campaign.status === 'paused'
-                              ? 'bg-yellow-100 text-yellow-800'
-                              : 'bg-slate-100 text-slate-800'
-                          }`}
-                        >
-                          {campaign.status}
-                        </span>
-                      </div>
+            <div className="space-y-3">
+              {filteredCampaigns.map((campaign) => {
+                const isGoogle = campaign.platform === 'google_ads';
+                const isMeta = campaign.platform === 'meta_ads';
+                const platformLabel = isGoogle
+                  ? 'Google Ads'
+                  : isMeta
+                  ? 'Meta Ads'
+                  : campaign.platform.replace('_', ' ');
 
-                      <div className="mt-3 space-y-1">
-                        <p className="text-sm text-slate-600">
-                          Client: <span className="font-medium text-slate-900">{getClientName(campaign.client_id)}</span>
-                        </p>
-                        <p className="text-sm text-slate-600">
-                          Platform:{' '}
-                          <span className="font-medium text-slate-900 capitalize">
-                            {campaign.platform === 'google_ads'
-                              ? 'Google Ads'
-                              : campaign.platform === 'meta_ads'
-                              ? 'Meta Ads'
-                              : campaign.platform.replace('_', ' ')}
+                return (
+                  <div
+                    key={campaign.id}
+                    className="bg-white rounded-xl border border-slate-200/80 p-5 shadow-xs hover:border-slate-300 hover:shadow-sm transition-all"
+                  >
+                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                      {/* Campaign Info */}
+                      <div className="space-y-2 flex-1 min-w-0">
+                        <div className="flex items-center gap-2.5 flex-wrap">
+                          <h3 className="text-base font-bold text-slate-900 tracking-tight">
+                            {campaign.name}
+                          </h3>
+
+                          {/* Status Pill Badge with Dot */}
+                          <span
+                            className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold ${
+                              campaign.status === 'active'
+                                ? 'bg-emerald-50 text-emerald-700 border border-emerald-200/80'
+                                : campaign.status === 'paused'
+                                ? 'bg-amber-50 text-amber-700 border border-amber-200/80'
+                                : 'bg-slate-100 text-slate-700 border border-slate-200'
+                            }`}
+                          >
+                            <span
+                              className={`w-1.5 h-1.5 rounded-full ${
+                                campaign.status === 'active'
+                                  ? 'bg-emerald-500'
+                                  : campaign.status === 'paused'
+                                  ? 'bg-amber-500'
+                                  : 'bg-slate-400'
+                              }`}
+                            />
+                            <span className="capitalize">{campaign.status}</span>
                           </span>
-                        </p>
-                        <p className="text-xs text-slate-500">
-                          Created {new Date(campaign.created_at).toLocaleDateString()}
-                        </p>
+
+                          {/* Platform Badge */}
+                          <span className="text-[11px] font-semibold text-slate-600 bg-slate-100 px-2.5 py-0.5 rounded-md">
+                            {platformLabel}
+                          </span>
+                        </div>
+
+                        <div className="flex flex-wrap items-center gap-3 text-xs text-slate-500">
+                          <p>
+                            Client:{' '}
+                            <span className="font-semibold text-slate-800">
+                              {getClientName(campaign.client_id)}
+                            </span>
+                          </p>
+                          <span>•</span>
+                          <p>
+                            Created {new Date(campaign.created_at).toLocaleDateString()}
+                          </p>
+                        </div>
                       </div>
-                    </div>
 
-                    {/* Actions */}
-                    <div className="flex flex-col gap-2 ml-4 min-w-[140px]">
-                      {/* Status Dropdown */}
-                      <select
-                        value={campaign.status}
-                        onChange={(e) =>
-                          handleStatusChange(
-                            campaign.id,
-                            e.target.value as 'active' | 'paused' | 'completed'
-                          )
-                        }
-                        className="px-3 py-2 text-sm bg-white text-slate-800 border border-slate-300 rounded hover:border-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-600 font-medium cursor-pointer"
-                      >
-                        <option value="active">Active</option>
-                        <option value="paused">Paused</option>
-                        <option value="completed">Completed</option>
-                      </select>
+                      {/* Actions Toolbar */}
+                      <div className="flex items-center gap-2 self-start md:self-auto flex-wrap">
+                        {/* Status Select */}
+                        <select
+                          value={campaign.status}
+                          onChange={(e) =>
+                            handleStatusChange(
+                              campaign.id,
+                              e.target.value as 'active' | 'paused' | 'completed'
+                            )
+                          }
+                          className="px-2.5 py-1.5 text-xs bg-white text-slate-800 border border-slate-200 rounded-lg hover:border-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-600/20 font-medium cursor-pointer shadow-2xs"
+                        >
+                          <option value="active">Active</option>
+                          <option value="paused">Paused</option>
+                          <option value="completed">Completed</option>
+                        </select>
 
-                      {/* Edit Button */}
-                      <button
-                        type="button"
-                        onClick={() => handleEdit(campaign)}
-                        className="px-3 py-2 bg-indigo-50 text-indigo-600 hover:bg-indigo-100 rounded text-sm font-medium text-center transition-colors cursor-pointer"
-                      >
-                        Edit
-                      </button>
-
-                      {/* View Metrics Button */}
-                      <a
-                        href={`/metrics?campaign_id=${campaign.id}`}
-                        className="px-3 py-2 bg-slate-100 text-slate-700 hover:bg-slate-200 rounded text-sm font-medium text-center transition-colors"
-                      >
-                        View Metrics
-                      </a>
-
-                      {/* Delete Button — owner only */}
-                      {user?.role === 'owner' && (
+                        {/* Edit Button */}
                         <button
                           type="button"
-                          onClick={() => handleDelete(campaign.id)}
-                          className="px-3 py-2 bg-red-50 text-red-600 hover:bg-red-100 rounded text-sm font-medium transition-colors cursor-pointer"
+                          onClick={() => handleEdit(campaign)}
+                          className="inline-flex items-center gap-1 px-3 py-1.5 bg-slate-50 hover:bg-slate-100 text-slate-700 border border-slate-200/80 rounded-lg text-xs font-semibold transition-colors cursor-pointer"
                         >
-                          Delete
+                          <IconEdit className="w-3.5 h-3.5 text-slate-500" />
+                          <span>Edit</span>
                         </button>
-                      )}
+
+                        {/* View Metrics Link */}
+                        <Link
+                          href={`/metrics?campaign_id=${campaign.id}`}
+                          className="inline-flex items-center gap-1 px-3 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded-lg text-xs font-semibold transition-colors"
+                        >
+                          <IconMetrics className="w-3.5 h-3.5" />
+                          <span>Metrics</span>
+                        </Link>
+
+                        {/* Delete Button — owner only */}
+                        {user?.role === 'owner' && (
+                          <button
+                            type="button"
+                            onClick={() => handleDelete(campaign.id)}
+                            className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors border border-transparent hover:border-rose-100 cursor-pointer"
+                            title="Delete Campaign"
+                          >
+                            <IconTrash className="w-4 h-4" />
+                          </button>
+                        )}
+                      </div>
                     </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </div>
       </DashboardLayout>
     </ProtectedRoute>
   );
-}
+}
