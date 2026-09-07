@@ -85,25 +85,23 @@ export default function DashboardPage() {
     value,
     subtext,
     icon: Icon,
-    iconColor = 'text-indigo-600 bg-indigo-50',
   }: {
     label: string;
     value: string | number;
     subtext?: string;
     icon: React.ComponentType<{ className?: string }>;
-    iconColor?: string;
   }) => (
-    <div className="bg-white rounded-xl border border-slate-200/80 p-5 shadow-xs hover:border-slate-300 transition-all">
+    <div className="bg-[#111113] rounded-2xl border border-zinc-800/80 p-6 hover:border-zinc-700 transition-all duration-200 hover:-translate-y-0.5">
       <div className="flex items-start justify-between">
         <div>
-          <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">{label}</p>
-          <p className="text-2xl font-bold text-slate-900 mt-2 tracking-tight tabular-nums">{value}</p>
+          <p className="text-xs font-semibold text-zinc-500 uppercase tracking-wider">{label}</p>
+          <p className="text-3xl font-semibold text-zinc-100 mt-2 tracking-tight tabular-nums">{value}</p>
           {subtext && (
-            <p className="text-xs text-slate-400 mt-1 font-medium">{subtext}</p>
+            <p className="text-xs text-zinc-500 mt-1 font-medium">{subtext}</p>
           )}
         </div>
-        <div className={`w-9 h-9 rounded-lg flex items-center justify-center ${iconColor}`}>
-          <Icon className="w-5 h-5" />
+        <div className="w-8 h-8 rounded-lg bg-zinc-950 border border-zinc-800/60 flex items-center justify-center text-zinc-400 shrink-0">
+          <Icon className="w-4 h-4" />
         </div>
       </div>
     </div>
@@ -115,26 +113,8 @@ export default function DashboardPage() {
         <DashboardLayout>
           <div className="flex items-center justify-center min-h-[60vh]">
             <div className="text-center space-y-3">
-              <svg
-                className="w-10 h-10 text-indigo-600 animate-spin mx-auto"
-                fill="none"
-                viewBox="0 0 24 24"
-              >
-                <circle
-                  className="opacity-25"
-                  cx="12"
-                  cy="12"
-                  r="10"
-                  stroke="currentColor"
-                  strokeWidth="3.5"
-                />
-                <path
-                  className="opacity-90"
-                  fill="currentColor"
-                  d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
-                />
-              </svg>
-              <p className="text-sm font-medium text-slate-500">Loading agency dashboard...</p>
+              <div className="w-10 h-10 rounded-full border-2 border-zinc-800 border-t-lime-400 animate-spin mx-auto" />
+              <p className="text-sm font-medium text-zinc-500">Loading agency dashboard...</p>
             </div>
           </div>
         </DashboardLayout>
@@ -146,8 +126,8 @@ export default function DashboardPage() {
     return (
       <ProtectedRoute>
         <DashboardLayout>
-          <div className="rounded-xl bg-rose-50 border border-rose-200/80 p-4">
-            <p className="text-sm text-rose-700 font-medium">{error}</p>
+          <div className="rounded-2xl bg-rose-950/40 border border-rose-800/60 p-5">
+            <p className="text-sm text-rose-300 font-medium">{error}</p>
           </div>
         </DashboardLayout>
       </ProtectedRoute>
@@ -157,37 +137,37 @@ export default function DashboardPage() {
   return (
     <ProtectedRoute>
       <DashboardLayout>
-        <div className="space-y-6">
+        <div className="space-y-8">
           {/* Header */}
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>
-              <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 tracking-tight">Agency Overview</h1>
-              <p className="text-xs sm:text-sm text-slate-500 mt-0.5">
+              <h1 className="text-2xl sm:text-3xl font-bold text-zinc-100 tracking-tight">Agency Overview</h1>
+              <p className="text-xs sm:text-sm text-zinc-500 mt-1">
                 Aggregated cross-client performance and reporting intelligence.
               </p>
             </div>
 
             {/* Quick Action Buttons */}
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-3">
               <Link
                 href="/clients"
-                className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold shadow-xs transition-colors cursor-pointer"
+                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-lime-400 hover:bg-lime-300 text-black text-xs font-semibold transition-all active:scale-98 cursor-pointer shadow-xs"
               >
-                <IconPlus className="w-3.5 h-3.5" />
+                <IconPlus className="w-3.5 h-3.5 stroke-[2.5]" />
                 <span>Add Client</span>
               </Link>
               <Link
                 href="/metrics"
-                className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 text-xs font-semibold shadow-2xs transition-colors cursor-pointer"
+                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-transparent border border-zinc-700 hover:border-zinc-600 hover:bg-zinc-900 text-zinc-300 hover:text-zinc-100 text-xs font-medium transition-all active:scale-98 cursor-pointer"
               >
-                <IconMetrics className="w-3.5 h-3.5 text-slate-500" />
+                <IconMetrics className="w-3.5 h-3.5 text-zinc-400" />
                 <span>Enter Metrics</span>
               </Link>
             </div>
           </div>
 
           {/* Date Range Filter Bar */}
-          <div className="bg-white rounded-xl border border-slate-200/80 p-3.5 sm:p-4 shadow-xs">
+          <div className="bg-[#111113] rounded-2xl border border-zinc-800/80 p-3.5 sm:p-4">
             <DateRangeFilter
               selectedRange={dateRange}
               onRangeChange={(range, start, end) => {
@@ -206,82 +186,76 @@ export default function DashboardPage() {
               label="Active Clients"
               value={summary?.total_clients ?? 0}
               icon={IconClients}
-              iconColor="text-indigo-600 bg-indigo-50"
             />
             <StatCard
               label="Active Campaigns"
               value={summary?.total_campaigns ?? 0}
               icon={IconCampaigns}
-              iconColor="text-purple-600 bg-purple-50"
             />
             <StatCard
               label="Total Ad Spend"
               value={`$${(summary?.total_ad_spend ?? 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
               icon={IconSpend}
-              iconColor="text-emerald-600 bg-emerald-50"
             />
             <StatCard
               label="Total Leads"
               value={(summary?.total_leads ?? 0).toLocaleString()}
               icon={IconLeads}
-              iconColor="text-blue-600 bg-blue-50"
             />
             <StatCard
               label="Total Conversions"
               value={(summary?.total_conversions ?? 0).toLocaleString()}
               icon={IconConversions}
-              iconColor="text-amber-600 bg-amber-50"
             />
             <StatCard
               label="Average CPL"
               value={`$${(summary?.average_cpl ?? 0).toFixed(2)}`}
               subtext="Cost per qualified lead"
               icon={IconMetrics}
-              iconColor="text-teal-600 bg-teal-50"
             />
           </div>
 
           {/* Key Performance Benchmarks Card */}
-          <div className="bg-white rounded-xl border border-slate-200/80 p-6 shadow-xs">
+          <div className="bg-zinc-900/60 rounded-2xl border border-zinc-800 p-6">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-sm font-semibold text-slate-900 tracking-tight">
+              <h2 className="text-sm font-semibold text-zinc-100 tracking-tight">
                 Conversion & Performance Health
               </h2>
-              <span className="text-xs font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200/80 px-2 py-0.5 rounded-full">
+              <span className="text-[11px] font-medium text-lime-400 bg-lime-400/10 border border-lime-400/20 px-2.5 py-0.5 rounded-full">
                 Active Benchmark
               </span>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-2">
-              <div className="space-y-3 p-4 rounded-xl bg-slate-50/80 border border-slate-200/60">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
+              <div className="space-y-3 p-5 rounded-xl bg-zinc-950/60 border border-zinc-800/70">
                 <div className="flex items-center justify-between">
-                  <span className="text-xs font-semibold text-slate-600">Average Conversion Rate</span>
-                  <span className="text-2xl font-bold text-indigo-600 tabular-nums">
+                  <span className="text-xs font-semibold text-zinc-400">Average Conversion Rate</span>
+                  <span className="text-2xl font-bold text-zinc-100 tabular-nums">
                     {(summary?.average_conversion_rate ?? 0).toFixed(1)}%
                   </span>
                 </div>
-                <div className="w-full bg-slate-200/80 rounded-full h-2 overflow-hidden">
+                <div className="w-full bg-zinc-800 rounded-full h-1.5 overflow-hidden">
                   <div
-                    className="bg-indigo-600 h-2 rounded-full transition-all duration-500"
+                    className="bg-lime-400 h-1.5 rounded-full transition-all duration-500"
                     style={{
                       width: `${Math.min(summary?.average_conversion_rate ?? 0, 100)}%`,
                     }}
                   />
                 </div>
-                <p className="text-[11px] text-slate-500">
+                <p className="text-xs text-zinc-500">
                   Calculated across all active client campaign records in selected timeframe.
                 </p>
               </div>
 
-              <div className="space-y-2 p-4 rounded-xl bg-slate-50/80 border border-slate-200/60 flex flex-col justify-between">
+              <div className="space-y-2 p-5 rounded-xl bg-zinc-950/60 border border-zinc-800/70 flex flex-col justify-between">
                 <div>
-                  <span className="text-xs font-semibold text-slate-600">Portfolio Return Index</span>
+                  <span className="text-xs font-semibold text-zinc-400">Portfolio Return Index</span>
                   <div className="flex items-baseline gap-2 mt-1">
-                    <span className="text-2xl font-bold text-emerald-600">Optimal</span>
-                    <span className="text-xs text-emerald-700 font-medium">Healthy ROI trajectory</span>
+                    <span className="text-2xl font-semibold text-lime-400">Optimal</span>
+                    <span className="text-xs text-zinc-400 font-medium">Healthy ROI trajectory</span>
                   </div>
                 </div>
-                <p className="text-[11px] text-slate-500 pt-2 border-t border-slate-200/60">
+                <p className="text-xs text-zinc-500 pt-3 border-t border-zinc-800/60">
                   Campaign metrics are performing efficiently. Keep monitoring individual client velocity below.
                 </p>
               </div>
@@ -291,7 +265,7 @@ export default function DashboardPage() {
           {/* KPI Summary Tiles */}
           <div>
             <div className="flex items-center justify-between mb-3">
-              <h2 className="text-sm font-semibold text-slate-900 tracking-tight">
+              <h2 className="text-sm font-semibold text-zinc-100 tracking-tight">
                 Key Performance Indicators
               </h2>
             </div>
@@ -310,19 +284,19 @@ export default function DashboardPage() {
 
           {/* Empty Data State */}
           {metrics.length === 0 && (
-            <div className="bg-slate-50 border border-dashed border-slate-300 rounded-xl p-8 text-center space-y-3">
-              <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center mx-auto text-slate-400">
+            <div className="bg-zinc-900/40 border border-dashed border-zinc-800 rounded-2xl p-8 text-center space-y-3">
+              <div className="w-10 h-10 rounded-full bg-zinc-900 border border-zinc-800 flex items-center justify-center mx-auto text-zinc-500">
                 <IconMetrics className="w-5 h-5" />
               </div>
               <div>
-                <p className="text-sm font-semibold text-slate-700">No metric entries for this period</p>
-                <p className="text-xs text-slate-500 mt-0.5">
+                <p className="text-sm font-semibold text-zinc-300">No metric entries for this period</p>
+                <p className="text-xs text-zinc-500 mt-1">
                   Enter your monthly numbers in the Metrics tab to visualize trends.
                 </p>
               </div>
               <Link
                 href="/metrics"
-                className="inline-flex items-center gap-1.5 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-semibold transition-colors shadow-xs"
+                className="inline-flex items-center gap-1.5 px-4 py-2 bg-lime-400 hover:bg-lime-300 text-black rounded-full text-xs font-semibold transition-colors shadow-xs"
               >
                 <span>Enter Metrics</span>
                 <IconArrowUpRight className="w-3.5 h-3.5" />
@@ -333,4 +307,4 @@ export default function DashboardPage() {
       </DashboardLayout>
     </ProtectedRoute>
   );
-}
+}

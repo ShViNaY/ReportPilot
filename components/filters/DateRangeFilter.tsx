@@ -72,24 +72,24 @@ export function DateRangeFilter({ selectedRange, onRangeChange }: DateRangeFilte
 
   return (
     <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between flex-wrap">
-      <div className="flex items-center gap-2 flex-wrap">
-        <div className="flex items-center gap-1.5 text-xs font-semibold text-slate-500 uppercase tracking-wider mr-1">
-          <IconCalendar className="w-3.5 h-3.5 text-slate-400" />
+      <div className="flex items-center gap-2 flex-wrap max-w-full">
+        <div className="flex items-center gap-1.5 text-xs font-semibold text-zinc-500 uppercase tracking-wider mr-1 shrink-0">
+          <IconCalendar className="w-3.5 h-3.5 text-zinc-500" />
           <span>Period:</span>
         </div>
 
         {/* Preset Segmented Group */}
-        <div className="inline-flex items-center p-1 bg-slate-100/90 rounded-lg border border-slate-200/80 gap-1">
+        <div className="inline-flex items-center p-1 bg-zinc-900/90 rounded-xl border border-zinc-800 gap-1 overflow-x-auto max-w-full">
           {presets.map((preset) => {
             const isSelected = selectedRange === preset.id;
             return (
               <button
                 key={preset.id}
                 onClick={() => handlePresetClick(preset.id as DateRange)}
-                className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all duration-150 cursor-pointer ${
+                className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-150 cursor-pointer whitespace-nowrap ${
                   isSelected
-                    ? 'bg-white text-indigo-700 shadow-2xs font-semibold'
-                    : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/50'
+                    ? 'bg-zinc-800 text-lime-400 shadow-2xs font-semibold border border-zinc-700/60'
+                    : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/40'
                 }`}
               >
                 {preset.label}
@@ -99,10 +99,10 @@ export function DateRangeFilter({ selectedRange, onRangeChange }: DateRangeFilte
 
           <button
             onClick={() => setShowCustom(!showCustom)}
-            className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all duration-150 cursor-pointer ${
+            className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-150 cursor-pointer whitespace-nowrap ${
               selectedRange === 'custom'
-                ? 'bg-indigo-600 text-white shadow-2xs font-semibold'
-                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/50'
+                ? 'bg-zinc-800 text-lime-400 shadow-2xs font-semibold border border-zinc-700/60'
+                : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/40'
             }`}
           >
             Custom
@@ -112,32 +112,32 @@ export function DateRangeFilter({ selectedRange, onRangeChange }: DateRangeFilte
 
       {/* Custom Date Range Popout / Drawer */}
       {showCustom && (
-        <div className="flex items-end gap-2 p-3 bg-slate-50 border border-slate-200 rounded-lg shadow-xs w-full sm:w-auto">
+        <div className="flex items-end gap-2 p-3 bg-zinc-900 border border-zinc-800 rounded-xl shadow-xl w-full sm:w-auto">
           <div>
-            <label className="block text-[11px] font-semibold text-slate-600 mb-1">
+            <label className="block text-[11px] font-semibold text-zinc-400 mb-1">
               Start Date
             </label>
             <input
               type="date"
               value={customStart}
               onChange={(e) => setCustomStart(e.target.value)}
-              className="px-2.5 py-1.5 bg-white border border-slate-200 rounded-md text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-600/20 focus:border-indigo-600"
+              className="px-2.5 py-1.5 bg-zinc-950 border border-zinc-800 rounded-lg text-xs text-zinc-100 focus:outline-none focus:ring-1 focus:ring-lime-400/50 focus:border-lime-400 scheme-dark"
             />
           </div>
           <div>
-            <label className="block text-[11px] font-semibold text-slate-600 mb-1">
+            <label className="block text-[11px] font-semibold text-zinc-400 mb-1">
               End Date
             </label>
             <input
               type="date"
               value={customEnd}
               onChange={(e) => setCustomEnd(e.target.value)}
-              className="px-2.5 py-1.5 bg-white border border-slate-200 rounded-md text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-600/20 focus:border-indigo-600"
+              className="px-2.5 py-1.5 bg-zinc-950 border border-zinc-800 rounded-lg text-xs text-zinc-100 focus:outline-none focus:ring-1 focus:ring-lime-400/50 focus:border-lime-400 scheme-dark"
             />
           </div>
           <button
             onClick={handleCustomApply}
-            className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-md text-xs font-medium transition-colors shadow-2xs cursor-pointer"
+            className="px-3.5 py-1.5 bg-lime-400 hover:bg-lime-300 text-black rounded-lg text-xs font-semibold transition-colors shadow-2xs cursor-pointer"
           >
             Apply
           </button>
@@ -145,4 +145,4 @@ export function DateRangeFilter({ selectedRange, onRangeChange }: DateRangeFilte
       )}
     </div>
   );
-}
+}

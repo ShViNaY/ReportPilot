@@ -25,67 +25,67 @@ export function KPISummary({ metrics }: KPISummaryProps) {
   return (
     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
       {/* Average CPL Card */}
-      <div className="bg-white rounded-xl p-5 border border-slate-200/80 shadow-xs hover:border-slate-300 transition-colors">
+      <div className="bg-[#111113] rounded-2xl p-5 border border-zinc-800/80 hover:border-zinc-700 transition-all duration-200 hover:-translate-y-0.5">
         <div className="flex items-center justify-between">
-          <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Average CPL</p>
-          <div className="w-8 h-8 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center">
+          <p className="text-xs font-semibold text-zinc-500 uppercase tracking-wider">Average CPL</p>
+          <div className="w-8 h-8 rounded-lg bg-zinc-950 border border-zinc-800/60 text-zinc-400 flex items-center justify-center">
             <IconSpend className="w-4 h-4" />
           </div>
         </div>
-        <div className="flex items-baseline gap-1.5 mt-3">
-          <span className="text-xs text-slate-400 font-medium">$</span>
-          <span className="text-2xl font-bold text-slate-900 tracking-tight tabular-nums">
+        <div className="flex items-baseline gap-1 mt-3">
+          <span className="text-xs text-zinc-500 font-medium">$</span>
+          <span className="text-2xl font-bold text-zinc-100 tracking-tight tabular-nums">
             {avgCPL.toFixed(2)}
           </span>
         </div>
-        <div className="flex items-center gap-1.5 mt-2">
-          <span className="inline-flex items-center gap-1 text-[11px] font-medium text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded-full">
+        <div className="flex items-center gap-1.5 mt-3">
+          <span className="inline-flex items-center text-[11px] font-medium text-zinc-400 bg-zinc-900 border border-zinc-800 px-2.5 py-0.5 rounded-full">
             Cost per acquisition
           </span>
         </div>
       </div>
 
       {/* Conversion Rate Card */}
-      <div className="bg-white rounded-xl p-5 border border-slate-200/80 shadow-xs hover:border-slate-300 transition-colors">
+      <div className="bg-[#111113] rounded-2xl p-5 border border-zinc-800/80 hover:border-zinc-700 transition-all duration-200 hover:-translate-y-0.5">
         <div className="flex items-center justify-between">
-          <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Avg Conversion Rate</p>
-          <div className="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center">
+          <p className="text-xs font-semibold text-zinc-500 uppercase tracking-wider">Avg Conversion Rate</p>
+          <div className="w-8 h-8 rounded-lg bg-zinc-950 border border-zinc-800/60 text-zinc-400 flex items-center justify-center">
             <IconConversions className="w-4 h-4" />
           </div>
         </div>
         <div className="flex items-baseline gap-1 mt-3">
-          <span className="text-2xl font-bold text-slate-900 tracking-tight tabular-nums">
+          <span className="text-2xl font-bold text-zinc-100 tracking-tight tabular-nums">
             {avgConvRate.toFixed(1)}
           </span>
-          <span className="text-sm font-semibold text-slate-500">%</span>
+          <span className="text-sm font-semibold text-zinc-500">%</span>
         </div>
-        <div className="flex items-center gap-1.5 mt-2">
-          <span className="inline-flex items-center gap-1 text-[11px] font-medium text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full">
+        <div className="flex items-center gap-1.5 mt-3">
+          <span className="inline-flex items-center text-[11px] font-medium text-zinc-400 bg-zinc-900 border border-zinc-800 px-2.5 py-0.5 rounded-full">
             Leads → Conversions
           </span>
         </div>
       </div>
 
       {/* Est. Campaign Efficiency / ROI Card */}
-      <div className="bg-white rounded-xl p-5 border border-slate-200/80 shadow-xs hover:border-slate-300 transition-colors">
+      <div className="bg-[#111113] rounded-2xl p-5 border border-zinc-800/80 hover:border-zinc-700 transition-all duration-200 hover:-translate-y-0.5">
         <div className="flex items-center justify-between">
-          <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Est. Return Index</p>
-          <div className="w-8 h-8 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center">
+          <p className="text-xs font-semibold text-zinc-500 uppercase tracking-wider">Est. Return Index</p>
+          <div className="w-8 h-8 rounded-lg bg-zinc-950 border border-zinc-800/60 text-zinc-400 flex items-center justify-center">
             <IconMetrics className="w-4 h-4" />
           </div>
         </div>
         <div className="flex items-baseline gap-1 mt-3">
-          <span className="text-2xl font-bold text-slate-900 tracking-tight tabular-nums">
+          <span className="text-2xl font-bold text-zinc-100 tracking-tight tabular-nums">
             {roi.toFixed(0)}
           </span>
-          <span className="text-sm font-semibold text-slate-500">%</span>
+          <span className="text-sm font-semibold text-zinc-500">%</span>
         </div>
-        <div className="flex items-center gap-1.5 mt-2">
-          <span className="inline-flex items-center gap-1 text-[11px] font-medium text-blue-700 bg-blue-50 px-2 py-0.5 rounded-full">
+        <div className="flex items-center gap-1.5 mt-3">
+          <span className="inline-flex items-center text-[11px] font-medium text-zinc-400 bg-zinc-900 border border-zinc-800 px-2.5 py-0.5 rounded-full">
             Performance ratio
           </span>
         </div>
       </div>
     </div>
   );
-}
+}

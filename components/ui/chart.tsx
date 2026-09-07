@@ -57,7 +57,7 @@ const ChartContainer = React.forwardRef<
         data-chart={chartId}
         ref={ref}
         className={cn(
-          "w-full h-[320px] min-h-[300px] text-xs [&_.recharts-cartesian-axis-tick_text]:fill-slate-500 [&_.recharts-cartesian-grid_line[stroke='#ccc']]:stroke-slate-200/70 [&_.recharts-curve.recharts-tooltip-cursor]:stroke-slate-200 [&_.recharts-dot[stroke='#fff']]:stroke-transparent [&_.recharts-layer]:outline-none [&_.recharts-polar-grid_[stroke='#ccc']]:stroke-slate-200 [&_.recharts-radial-bar-background-sector]:fill-slate-100 [&_.recharts-rectangle.recharts-tooltip-cursor]:fill-slate-100/60 [&_.recharts-reference-line_[stroke='#ccc']]:stroke-slate-200 [&_.recharts-sector[stroke='#fff']]:stroke-transparent [&_.recharts-sector]:outline-none [&_.recharts-surface]:outline-none",
+          "w-full h-[320px] min-h-[300px] text-xs [&_.recharts-cartesian-axis-tick_text]:fill-zinc-500 [&_.recharts-cartesian-grid_line]:stroke-zinc-800/60 [&_.recharts-curve.recharts-tooltip-cursor]:stroke-zinc-700 [&_.recharts-dot[stroke='#fff']]:stroke-transparent [&_.recharts-layer]:outline-none [&_.recharts-polar-grid]:stroke-zinc-800 [&_.recharts-radial-bar-background-sector]:fill-zinc-900 [&_.recharts-rectangle.recharts-tooltip-cursor]:fill-zinc-800/40 [&_.recharts-reference-line]:stroke-zinc-800 [&_.recharts-sector[stroke='#fff']]:stroke-transparent [&_.recharts-sector]:outline-none [&_.recharts-surface]:outline-none",
           className
         )}
         {...props}
@@ -68,7 +68,7 @@ const ChartContainer = React.forwardRef<
             {children}
           </RechartsPrimitive.ResponsiveContainer>
         ) : (
-          <div className="w-full h-[320px] min-h-[300px] animate-pulse bg-slate-100/10 rounded-xl" />
+          <div className="w-full h-[320px] min-h-[300px] animate-pulse bg-zinc-900/50 rounded-xl" />
         )}
       </div>
     </ChartContext.Provider>
@@ -171,7 +171,7 @@ const ChartTooltipContent = React.forwardRef<
 
       if (labelFormatter) {
         return (
-          <div className={cn('font-semibold text-slate-800', labelClassName)}>
+          <div className={cn('font-semibold text-zinc-200', labelClassName)}>
             {labelFormatter(value, payload)}
           </div>
         );
@@ -182,7 +182,7 @@ const ChartTooltipContent = React.forwardRef<
       }
 
       return (
-        <div className={cn('font-semibold text-slate-800', labelClassName)}>
+        <div className={cn('font-semibold text-zinc-200', labelClassName)}>
           {value}
         </div>
       );
@@ -206,7 +206,7 @@ const ChartTooltipContent = React.forwardRef<
       <div
         ref={ref}
         className={cn(
-          'grid min-w-[8.5rem] items-start gap-1.5 rounded-xl border border-slate-200/90 bg-white/95 backdrop-blur-md px-3 py-2 text-xs shadow-lg text-slate-900',
+          'grid min-w-[8.5rem] items-start gap-1.5 rounded-xl border border-zinc-800 bg-[#18181b] px-3.5 py-2.5 text-xs shadow-xl text-zinc-100',
           className
         )}
       >
@@ -223,7 +223,7 @@ const ChartTooltipContent = React.forwardRef<
                 <div
                   key={item.dataKey || index}
                   className={cn(
-                    'flex w-full flex-wrap items-stretch gap-2 [&>svg]:h-2.5 [&>svg]:w-2.5 [&>svg]:text-slate-400',
+                    'flex w-full flex-wrap items-stretch gap-2 [&>svg]:h-2.5 [&>svg]:w-2.5 [&>svg]:text-zinc-500',
                     indicator === 'dot' && 'items-center'
                   )}
                 >
@@ -243,7 +243,7 @@ const ChartTooltipContent = React.forwardRef<
                                 'h-2.5 w-2.5 rounded-full': indicator === 'dot',
                                 'w-1 rounded-sm': indicator === 'line',
                                 'w-0 border-[1.5px] border-dashed bg-transparent':
-                                  indicator === 'dashed',
+                                   indicator === 'dashed',
                                 'my-0.5': nestLabel && indicator === 'dashed',
                               }
                             )}
@@ -262,12 +262,12 @@ const ChartTooltipContent = React.forwardRef<
                       >
                         <div className="grid gap-1">
                           {nestLabel ? tooltipLabel : null}
-                          <span className="text-slate-500 font-medium">
+                          <span className="text-zinc-400 font-medium">
                             {itemConfig?.label || item.name}
                           </span>
                         </div>
                         {item.value !== undefined && (
-                          <span className="font-mono font-semibold tabular-nums text-slate-900">
+                          <span className="font-mono font-semibold tabular-nums text-zinc-100">
                             {typeof item.value === 'number'
                               ? item.value.toLocaleString()
                               : item.value}
@@ -330,7 +330,7 @@ const ChartLegendContent = React.forwardRef<
               <div
                 key={item.value}
                 className={cn(
-                  'flex items-center gap-1.5 font-medium text-slate-600 [&>svg]:h-3 [&>svg]:w-3 [&>svg]:text-slate-400'
+                  'flex items-center gap-1.5 font-medium text-zinc-400 [&>svg]:h-3 [&>svg]:w-3 [&>svg]:text-zinc-500'
                 )}
               >
                 {itemConfig?.icon && !hideIcon ? (

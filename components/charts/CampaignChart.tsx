@@ -28,15 +28,15 @@ interface CampaignChartProps {
 const chartConfig = {
   spend: {
     label: 'Ad Spend ($)',
-    color: '#059669',
+    color: '#a3e635',
   },
   leads: {
     label: 'Leads',
-    color: '#0d9488',
+    color: '#a1a1aa',
   },
   conversions: {
     label: 'Conversions',
-    color: '#f59e0b',
+    color: '#71717a',
   },
 } satisfies ChartConfig;
 
@@ -71,19 +71,19 @@ export function CampaignChart({
 
   if (campaignData.length === 0) {
     return (
-      <div className="bg-white rounded-xl border border-slate-200/80 p-8 text-center text-slate-400 text-sm">
+      <div className="bg-[#111113] rounded-2xl border border-zinc-800 p-8 text-center text-zinc-500 text-sm">
         No active campaigns found to graph
       </div>
     );
   }
 
   return (
-    <div className="bg-white rounded-xl border border-slate-200/80 p-6 shadow-xs">
+    <div className="bg-[#111113] rounded-2xl border border-zinc-800/80 p-6">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-6">
         <div>
-          <h3 className="text-sm font-semibold text-slate-900 tracking-tight">{title}</h3>
-          <p className="text-xs text-slate-500 mt-0.5">Comparative spend, leads, and conversions by campaign</p>
+          <h3 className="text-sm font-semibold text-zinc-100 tracking-tight">{title}</h3>
+          <p className="text-xs text-zinc-500 mt-0.5">Comparative spend, leads, and conversions by campaign</p>
         </div>
       </div>
 
@@ -94,21 +94,21 @@ export function CampaignChart({
           data={campaignData}
           margin={{ top: 10, right: 10, left: -10, bottom: 0 }}
         >
-          <CartesianGrid vertical={false} strokeDasharray="3 3" className="stroke-slate-100" />
+          <CartesianGrid vertical={false} strokeDasharray="3 3" className="stroke-zinc-800/60" />
 
           <XAxis
             dataKey="name"
             tickLine={false}
-            axisLine={{ stroke: '#e2e8f0' }}
+            axisLine={{ stroke: '#27272a' }}
             tickMargin={8}
-            className="text-[11px] font-medium text-slate-500"
+            className="text-[11px] font-medium text-zinc-500"
           />
 
           <YAxis
             tickLine={false}
             axisLine={false}
             tickMargin={8}
-            className="text-[11px] font-medium text-slate-500"
+            className="text-[11px] font-medium text-zinc-500"
             tickFormatter={(value) =>
               value >= 1000 ? `${(value / 1000).toFixed(0)}k` : `${value}`
             }
@@ -127,21 +127,21 @@ export function CampaignChart({
 
           <Bar
             dataKey="spend"
-            fill="var(--color-spend, #059669)"
+            fill="#a3e635"
             radius={[4, 4, 0, 0]}
             maxBarSize={36}
             isAnimationActive={false}
           />
           <Bar
             dataKey="leads"
-            fill="var(--color-leads, #0d9488)"
+            fill="#a1a1aa"
             radius={[4, 4, 0, 0]}
             maxBarSize={36}
             isAnimationActive={false}
           />
           <Bar
             dataKey="conversions"
-            fill="var(--color-conversions, #f59e0b)"
+            fill="#71717a"
             radius={[4, 4, 0, 0]}
             maxBarSize={36}
             isAnimationActive={false}

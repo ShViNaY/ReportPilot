@@ -27,15 +27,15 @@ interface TrendChartProps {
 const chartConfig = {
   adSpend: {
     label: 'Ad Spend ($)',
-    color: '#059669',
+    color: '#a3e635',
   },
   leads: {
     label: 'Leads',
-    color: '#0d9488',
+    color: '#a1a1aa',
   },
   conversions: {
     label: 'Conversions',
-    color: '#f59e0b',
+    color: '#71717a',
   },
 } satisfies ChartConfig;
 
@@ -86,19 +86,19 @@ export function TrendChart({ metrics, title }: TrendChartProps) {
 
   if (data.length === 0) {
     return (
-      <div className="bg-white rounded-xl border border-slate-200/80 p-8 text-center text-slate-400 text-sm">
+      <div className="bg-[#111113] rounded-2xl border border-zinc-800 p-8 text-center text-zinc-500 text-sm">
         No performance data available for this range
       </div>
     );
   }
 
   return (
-    <div className="bg-white rounded-xl border border-slate-200/80 p-6 shadow-xs">
+    <div className="bg-[#111113] rounded-2xl border border-zinc-800/80 p-6">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-6">
         <div>
-          <h3 className="text-sm font-semibold text-slate-900 tracking-tight">{title}</h3>
-          <p className="text-xs text-slate-500 mt-0.5">Continuous trajectory over reporting periods</p>
+          <h3 className="text-sm font-semibold text-zinc-100 tracking-tight">{title}</h3>
+          <p className="text-xs text-zinc-500 mt-0.5">Continuous trajectory over reporting periods</p>
         </div>
       </div>
 
@@ -111,34 +111,34 @@ export function TrendChart({ metrics, title }: TrendChartProps) {
         >
           <defs>
             <linearGradient id="fillAdSpend" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="5%" stopColor="#059669" stopOpacity={0.25} />
-              <stop offset="95%" stopColor="#059669" stopOpacity={0.02} />
+              <stop offset="5%" stopColor="#a3e635" stopOpacity={0.2} />
+              <stop offset="95%" stopColor="#a3e635" stopOpacity={0.0} />
             </linearGradient>
             <linearGradient id="fillLeads" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="5%" stopColor="#0d9488" stopOpacity={0.25} />
-              <stop offset="95%" stopColor="#0d9488" stopOpacity={0.02} />
+              <stop offset="5%" stopColor="#a1a1aa" stopOpacity={0.12} />
+              <stop offset="95%" stopColor="#a1a1aa" stopOpacity={0.0} />
             </linearGradient>
             <linearGradient id="fillConversions" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="5%" stopColor="#f59e0b" stopOpacity={0.25} />
-              <stop offset="95%" stopColor="#f59e0b" stopOpacity={0.02} />
+              <stop offset="5%" stopColor="#71717a" stopOpacity={0.08} />
+              <stop offset="95%" stopColor="#71717a" stopOpacity={0.0} />
             </linearGradient>
           </defs>
 
-          <CartesianGrid vertical={false} strokeDasharray="3 3" className="stroke-slate-100" />
+          <CartesianGrid vertical={false} strokeDasharray="3 3" className="stroke-zinc-800/60" />
 
           <XAxis
             dataKey="date"
             tickLine={false}
-            axisLine={{ stroke: '#e2e8f0' }}
+            axisLine={{ stroke: '#27272a' }}
             tickMargin={8}
-            className="text-[11px] font-medium text-slate-500"
+            className="text-[11px] font-medium text-zinc-500"
           />
 
           <YAxis
             tickLine={false}
             axisLine={false}
             tickMargin={8}
-            className="text-[11px] font-medium text-slate-500"
+            className="text-[11px] font-medium text-zinc-500"
             tickFormatter={(value) =>
               value >= 1000 ? `${(value / 1000).toFixed(0)}k` : `${value}`
             }
@@ -158,7 +158,7 @@ export function TrendChart({ metrics, title }: TrendChartProps) {
           <Area
             type="monotone"
             dataKey="adSpend"
-            stroke="var(--color-adSpend, #059669)"
+            stroke="#a3e635"
             fill="url(#fillAdSpend)"
             strokeWidth={2}
             isAnimationActive={false}
@@ -166,17 +166,17 @@ export function TrendChart({ metrics, title }: TrendChartProps) {
           <Area
             type="monotone"
             dataKey="leads"
-            stroke="var(--color-leads, #0d9488)"
+            stroke="#a1a1aa"
             fill="url(#fillLeads)"
-            strokeWidth={2}
+            strokeWidth={1.75}
             isAnimationActive={false}
           />
           <Area
             type="monotone"
             dataKey="conversions"
-            stroke="var(--color-conversions, #f59e0b)"
+            stroke="#71717a"
             fill="url(#fillConversions)"
-            strokeWidth={2}
+            strokeWidth={1.75}
             isAnimationActive={false}
           />
         </AreaChart>
