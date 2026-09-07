@@ -1,7 +1,7 @@
 // app/(dashboard)/clients/page.tsx
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import Link from 'next/link';
 import { ProtectedRoute } from '@/lib/context/ProtectedRoute';
 import { DashboardLayout } from '@/components/layouts/DashboardLayout';
@@ -53,6 +53,110 @@ function defaultPortalState(): PortalTokenState {
     expirationDays: '30',
     error: '',
   };
+}
+
+function DarkSelect({
+  value,
+  onChange,
+  options,
+  disabled = false,
+  className = '',
+}: {
+  value: string;
+  onChange: (value: string) => void;
+  options: { value: string; label: string }[];
+  disabled?: boolean;
+  className?: string;
+}) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (ref.current && !ref.current.contains(event.target as Node)) {
+        setOpen(false);
+      }
+    }
+    if (open) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [open]);
+
+  const selected = options.find((o) => o.value === value);
+  const displayLabel = selected?.label || options[0]?.label || '';
+
+  return (
+    <div ref={ref} className={`relative ${open ? 'z-30' : ''} ${className}`}>
+      <button
+        type="button"
+        disabled={disabled}
+        onClick={() => !disabled && setOpen(!open)}
+        className={`w-full flex items-center justify-between gap-2 border rounded-lg px-3 py-2 text-xs font-medium transition-all shadow-2xs ${
+          disabled
+            ? 'opacity-50 cursor-not-allowed bg-zinc-900/60 border-zinc-800 text-zinc-500'
+            : open
+            ? 'border-zinc-700 bg-zinc-900 text-zinc-100 ring-1 ring-zinc-700/50 cursor-pointer'
+            : 'border-zinc-800 hover:border-zinc-700 bg-zinc-900 text-zinc-200 hover:text-zinc-100 cursor-pointer'
+        }`}
+      >
+        <span className="truncate">{displayLabel}</span>
+        <svg
+          className={`w-3.5 h-3.5 text-zinc-400 shrink-0 transition-transform duration-200 ${
+            open ? 'rotate-180 text-zinc-200' : ''
+          }`}
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        >
+          <polyline points="6 9 12 15 18 9" />
+        </svg>
+      </button>
+
+      {open && !disabled && (
+        <div className="absolute top-full left-0 right-0 mt-1.5 z-50 max-h-56 overflow-y-auto bg-[#141416] border border-zinc-800 rounded-xl p-1 shadow-2xl shadow-black/90 space-y-0.5 animate-in fade-in zoom-in-95 duration-100">
+          {options.map((option) => {
+            const isSelected = option.value === value;
+            return (
+              <button
+                key={option.value}
+                type="button"
+                onClick={() => {
+                  onChange(option.value);
+                  setOpen(false);
+                }}
+                className={`w-full flex items-center justify-between gap-2 px-2.5 py-1.5 rounded-lg text-xs font-medium text-left transition-colors cursor-pointer ${
+                  isSelected
+                    ? 'bg-zinc-800/80 text-zinc-100 font-semibold'
+                    : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-850/60'
+                }`}
+              >
+                <span className="truncate">{option.label}</span>
+                {isSelected && (
+                  <svg
+                    className="w-3.5 h-3.5 text-lime-400 shrink-0"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2.5"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <polyline points="20 6 9 17 4 12" />
+                  </svg>
+                )}
+              </button>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
 }
 
 // ---------------------------------------------------------------------------
@@ -517,21 +621,18 @@ export default function ClientsPage() {
                             Assigned Manager
                           </p>
                           {isOwner ? (
-                            <select
+                            <DarkSelect
                               value={client.assigned_manager?.id || ''}
-                              onChange={(e) => handleAssign(client.id, e.target.value)}
+                              onChange={(val) => handleAssign(client.id, val)}
                               disabled={assigningClientId === client.id}
-                              className="w-full text-xs border border-zinc-800 rounded-lg px-3 py-2 bg-zinc-900 text-zinc-200 focus:outline-none focus:ring-1 focus:ring-lime-400/50 focus:border-lime-400 disabled:opacity-50 cursor-pointer"
-                            >
-                              <option value="" className="bg-zinc-900 text-zinc-300">
-                                Unassigned (Owner only)
-                              </option>
-                              {managers.map((m) => (
-                                <option key={m.id} value={m.id} className="bg-zinc-900 text-zinc-200">
-                                  {m.email}
-                                </option>
-                              ))}
-                            </select>
+                              options={[
+                                { value: '', label: 'Unassigned (Owner only)' },
+                                ...managers.map((m) => ({
+                                  value: m.id,
+                                  label: m.email,
+                                })),
+                              ]}
+                            />
                           ) : (
                             <p className="text-xs font-medium text-zinc-300 py-1">
                               {client.assigned_manager?.email || 'Unassigned'}
@@ -632,28 +733,20 @@ export default function ClientsPage() {
                             {pt.showGeneratePanel && (
                               <div className="mt-2 rounded-xl border border-zinc-800 bg-zinc-900 p-3.5 space-y-3">
                                 <label className="block text-[11px] font-semibold text-zinc-400">Link Expiration</label>
-                                <select
+                                <DarkSelect
                                   value={pt.expirationDays}
-                                  onChange={(e) =>
+                                  onChange={(val) =>
                                     patchPortal(client.id, {
-                                      expirationDays: e.target.value as PortalTokenState['expirationDays'],
+                                      expirationDays: val as PortalTokenState['expirationDays'],
                                     })
                                   }
-                                  className="w-full text-xs border border-zinc-800 rounded-lg px-2.5 py-1.5 bg-zinc-950 text-zinc-200 focus:outline-none focus:border-lime-400 cursor-pointer"
-                                >
-                                  <option value="" className="bg-zinc-950 text-zinc-200">
-                                    No expiration (Permanent)
-                                  </option>
-                                  <option value="7" className="bg-zinc-950 text-zinc-200">
-                                    7 days
-                                  </option>
-                                  <option value="30" className="bg-zinc-950 text-zinc-200">
-                                    30 days
-                                  </option>
-                                  <option value="90" className="bg-zinc-950 text-zinc-200">
-                                    90 days
-                                  </option>
-                                </select>
+                                  options={[
+                                    { value: '', label: 'No expiration (Permanent)' },
+                                    { value: '7', label: '7 days' },
+                                    { value: '30', label: '30 days' },
+                                    { value: '90', label: '90 days' },
+                                  ]}
+                                />
                                 <div className="flex gap-2">
                                   <button
                                     type="button"

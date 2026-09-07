@@ -510,6 +510,7 @@ export default function MetricsPage() {
                   value={selectedPeriod}
                   onChange={(val) => setSelectedPeriod(val)}
                   align="right"
+                  triggerClassName="px-3 py-2 bg-zinc-900 hover:bg-zinc-850"
                   options={[
                     { value: 'all', label: 'All reporting periods' },
                     ...availablePeriods.map((period) => ({
