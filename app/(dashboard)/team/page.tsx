@@ -6,8 +6,6 @@ import { useState, useEffect } from 'react';
 import { ProtectedRoute } from '@/lib/context/ProtectedRoute';
 import { DashboardLayout } from '@/components/layouts/DashboardLayout';
 import { useAuth } from '@/lib/context/AuthContext';
-import { Button } from '@/components/common/Button';
-import { Input } from '@/components/common/Input';
 import { Icons } from '@/components/common/Icons';
 import { apiFetch } from '@/lib/utils/apiClient';
 import { TeamMember } from '@/types';
@@ -114,7 +112,7 @@ export default function TeamPage() {
         return;
       }
 
-      setMembers(members.filter(m => m.id !== memberId));
+      setMembers(members.filter((m) => m.id !== memberId));
     } catch (err) {
       setError('Failed to remove team member');
       console.error(err);
@@ -127,11 +125,11 @@ export default function TeamPage() {
       <ProtectedRoute requiredRole="owner">
         <DashboardLayout>
           <div className="flex flex-col items-center justify-center min-h-[60vh] text-center px-4">
-            <div className="w-12 h-12 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center mb-4 ring-1 ring-amber-200">
+            <div className="w-12 h-12 rounded-2xl bg-zinc-900 text-zinc-400 flex items-center justify-center mb-4 border border-zinc-800">
               <Icons.X className="w-6 h-6" />
             </div>
-            <h1 className="text-xl font-bold tracking-tight text-slate-900">Access Restricted</h1>
-            <p className="text-sm text-slate-500 mt-1.5 max-w-sm">
+            <h1 className="text-xl font-bold tracking-tight text-zinc-100">Access Restricted</h1>
+            <p className="text-sm text-zinc-500 mt-1.5 max-w-sm">
               Only agency owners have permissions to manage team members and their account roles.
             </p>
           </div>
@@ -145,8 +143,8 @@ export default function TeamPage() {
       <ProtectedRoute requiredRole="owner">
         <DashboardLayout>
           <div className="flex flex-col items-center justify-center min-h-[60vh] space-y-3">
-            <div className="w-8 h-8 rounded-full border-2 border-indigo-600 border-t-transparent animate-spin" />
-            <p className="text-xs font-medium text-slate-500 tracking-wide uppercase">Loading team members...</p>
+            <div className="w-10 h-10 rounded-full border-2 border-zinc-800 border-t-lime-400 animate-spin mx-auto" />
+            <p className="text-sm font-medium text-zinc-500">Loading team members...</p>
           </div>
         </DashboardLayout>
       </ProtectedRoute>
@@ -160,118 +158,128 @@ export default function TeamPage() {
           {/* Header */}
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>
-              <div className="flex items-center gap-2">
-                <h1 className="text-2xl font-bold tracking-tight text-slate-900">Team Management</h1>
-                <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-slate-100 text-slate-700">
+              <div className="flex items-center gap-2.5 flex-wrap">
+                <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-zinc-100">Team Management</h1>
+                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-zinc-900 border border-zinc-800 text-zinc-300">
                   {members.length} {members.length === 1 ? 'member' : 'members'}
                 </span>
               </div>
-              <p className="text-sm text-slate-500 mt-1">
+              <p className="text-xs sm:text-sm text-zinc-500 mt-1">
                 Manage your agency team members, credentials, and client assignment capabilities.
               </p>
             </div>
-            <Button
+            <button
+              type="button"
               onClick={() => setShowForm(!showForm)}
-              className="inline-flex items-center gap-2 self-start sm:self-auto shadow-sm"
-              variant={showForm ? 'outline' : 'primary'}
+              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-lime-400 hover:bg-lime-300 text-black text-xs font-semibold shadow-xs transition-all active:scale-98 cursor-pointer self-start sm:self-auto"
             >
               {showForm ? (
                 <>
-                  <Icons.X className="w-4 h-4" />
-                  Cancel
+                  <Icons.X className="w-3.5 h-3.5 stroke-[2.5]" />
+                  <span>Cancel</span>
                 </>
               ) : (
                 <>
-                  <Icons.Plus className="w-4 h-4" />
-                  Add Team Member
+                  <Icons.Plus className="w-3.5 h-3.5 stroke-[2.5]" />
+                  <span>Add Team Member</span>
                 </>
               )}
-            </Button>
+            </button>
           </div>
 
           {/* Error Message */}
           {error && (
-            <div className="rounded-xl bg-red-50 border border-red-200/80 p-4 text-sm text-red-700 flex items-start gap-3 shadow-xs">
-              <Icons.X className="w-5 h-5 text-red-500 shrink-0 mt-0.5" />
+            <div className="rounded-xl bg-rose-950/40 border border-rose-900/60 p-4 text-xs sm:text-sm text-rose-400 flex items-start gap-3">
+              <Icons.X className="w-4 h-4 text-rose-400 shrink-0 mt-0.5" />
               <div className="flex-1">
-                <p className="font-semibold">Error</p>
-                <p className="mt-0.5 text-red-600">{error}</p>
+                <p className="font-semibold text-rose-300">Error</p>
+                <p className="mt-0.5 text-rose-400">{error}</p>
               </div>
             </div>
           )}
 
           {/* Add Member Form Drawer / Panel */}
           {showForm && (
-            <div className="bg-white rounded-2xl border border-indigo-100 shadow-lg shadow-indigo-500/5 p-6 sm:p-7 relative overflow-hidden transition-all">
-              <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-indigo-500 via-indigo-600 to-indigo-400" />
-              <div className="flex items-center justify-between mb-5">
+            <div className="bg-[#111113] rounded-2xl border border-zinc-800/80 p-6 sm:p-7 shadow-xl space-y-4">
+              <div className="flex items-center justify-between">
                 <div>
-                  <h2 className="text-base font-bold text-slate-900">
+                  <h2 className="text-base font-semibold text-zinc-100">
                     Invite New Team Member
                   </h2>
-                  <p className="text-xs text-slate-500 mt-0.5">
+                  <p className="text-xs text-zinc-500 mt-0.5">
                     Account Managers will have access to assigned clients and reporting capabilities.
                   </p>
                 </div>
                 <button
+                  type="button"
                   onClick={() => setShowForm(false)}
-                  className="text-slate-400 hover:text-slate-600 p-1.5 rounded-lg hover:bg-slate-100 transition-colors"
+                  className="text-zinc-500 hover:text-zinc-300 p-1.5 rounded-lg hover:bg-zinc-900 transition-colors"
                 >
                   <Icons.X className="w-4 h-4" />
                 </button>
               </div>
 
               <form onSubmit={handleAddMember} className="space-y-4 max-w-xl">
-                <Input
-                  label="Member Email Address"
-                  type="email"
-                  placeholder="manager@agency.com"
-                  value={formData.email}
-                  onChange={(e) =>
-                    setFormData({ ...formData, email: e.target.value })
-                  }
-                  required
-                />
+                <div className="space-y-1.5">
+                  <label className="block text-xs font-medium text-zinc-300">
+                    Member Email Address <span className="text-lime-400">*</span>
+                  </label>
+                  <input
+                    type="email"
+                    required
+                    placeholder="manager@agency.com"
+                    value={formData.email}
+                    onChange={(e) =>
+                      setFormData({ ...formData, email: e.target.value })
+                    }
+                    className="w-full h-11 bg-zinc-950 border border-zinc-800 rounded-xl px-4 text-sm text-zinc-100 placeholder:text-zinc-600 focus:outline-none focus:border-lime-400 focus:ring-1 focus:ring-lime-400/30 transition-colors"
+                  />
+                </div>
 
-                <Input
-                  label="Temporary Password"
-                  type="password"
-                  placeholder="At least 8 characters"
-                  value={formData.password}
-                  onChange={(e) =>
-                    setFormData({ ...formData, password: e.target.value })
-                  }
-                  required
-                />
+                <div className="space-y-1.5">
+                  <label className="block text-xs font-medium text-zinc-300">
+                    Temporary Password <span className="text-lime-400">*</span>
+                  </label>
+                  <input
+                    type="password"
+                    required
+                    placeholder="At least 8 characters"
+                    value={formData.password}
+                    onChange={(e) =>
+                      setFormData({ ...formData, password: e.target.value })
+                    }
+                    className="w-full h-11 bg-zinc-950 border border-zinc-800 rounded-xl px-4 text-sm text-zinc-100 placeholder:text-zinc-600 focus:outline-none focus:border-lime-400 focus:ring-1 focus:ring-lime-400/30 transition-colors"
+                  />
+                </div>
 
-                <div className="flex items-start gap-3 rounded-xl bg-indigo-50/60 border border-indigo-100 p-3.5 text-xs text-indigo-900 leading-relaxed">
-                  <Icons.Team className="w-4 h-4 text-indigo-600 shrink-0 mt-0.5" />
+                <div className="flex items-start gap-3 rounded-xl bg-zinc-950 border border-zinc-800 p-3.5 text-xs text-zinc-400 leading-relaxed">
+                  <Icons.Team className="w-4 h-4 text-lime-400 shrink-0 mt-0.5" />
                   <span>
-                    New members are automatically assigned the <strong>Account Manager</strong> role with permissions to enter ad metrics and manage assigned client workspaces.
+                    New members are automatically assigned the <strong className="text-zinc-200 font-semibold">Account Manager</strong> role with permissions to enter ad metrics and manage assigned client workspaces.
                   </span>
                 </div>
 
                 {formError && (
-                  <div className="text-xs text-red-600 bg-red-50 border border-red-200 rounded-lg px-3.5 py-2.5 font-medium">
+                  <div className="text-xs text-rose-400 bg-rose-950/40 border border-rose-900/60 rounded-xl p-3 font-medium">
                     {formError}
                   </div>
                 )}
 
                 <div className="flex items-center gap-3 pt-2">
-                  <Button
+                  <button
                     type="submit"
-                    isLoading={isSubmitting}
-                    className="shadow-sm"
+                    disabled={isSubmitting}
+                    className="inline-flex items-center justify-center px-5 py-2.5 rounded-full bg-lime-400 hover:bg-lime-300 text-black text-xs font-semibold transition-all active:scale-98 disabled:opacity-60 cursor-pointer shadow-xs"
                   >
-                    Create Account
-                  </Button>
-                  <Button
+                    {isSubmitting ? 'Creating Account...' : 'Create Account'}
+                  </button>
+                  <button
                     type="button"
                     onClick={() => setShowForm(false)}
-                    variant="outline"
+                    className="inline-flex items-center justify-center px-4 py-2.5 rounded-full bg-zinc-900 hover:bg-zinc-850 border border-zinc-800 text-zinc-300 text-xs font-medium transition-colors cursor-pointer"
                   >
                     Cancel
-                  </Button>
+                  </button>
                 </div>
               </form>
             </div>
@@ -279,25 +287,26 @@ export default function TeamPage() {
 
           {/* Team Members List */}
           {members.length === 0 ? (
-            <div className="rounded-2xl border border-dashed border-slate-300 bg-white/50 p-12 text-center">
-              <div className="w-12 h-12 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center mx-auto mb-3">
+            <div className="rounded-2xl border border-dashed border-zinc-800/90 bg-[#111113]/50 p-12 text-center space-y-4">
+              <div className="w-12 h-12 rounded-2xl bg-zinc-900 border border-zinc-800 text-lime-400 flex items-center justify-center mx-auto mb-3">
                 <Icons.Team className="w-6 h-6" />
               </div>
-              <h3 className="text-base font-semibold text-slate-900">No team members added</h3>
-              <p className="text-xs text-slate-500 mt-1 max-w-sm mx-auto mb-5">
+              <h3 className="text-base font-semibold text-zinc-200">No team members added</h3>
+              <p className="text-xs text-zinc-500 mt-1 max-w-sm mx-auto mb-5">
                 Scale your agency by inviting account managers to oversee client accounts and enter performance data.
               </p>
-              <Button
+              <button
+                type="button"
                 onClick={() => setShowForm(true)}
-                className="inline-flex items-center gap-2"
+                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-lime-400 hover:bg-lime-300 text-black text-xs font-semibold shadow-xs transition-all active:scale-98 cursor-pointer"
               >
-                <Icons.Plus className="w-4 h-4" />
-                Add First Team Member
-              </Button>
+                <Icons.Plus className="w-3.5 h-3.5 stroke-[2.5]" />
+                <span>Add First Team Member</span>
+              </button>
             </div>
           ) : (
             <div className="grid grid-cols-1 gap-3.5">
-              {members.map(member => {
+              {members.map((member) => {
                 const isOwner = member.role === 'owner';
                 const initials = member.email.substring(0, 2).toUpperCase();
                 const isCurrentUser = user.id === member.id;
@@ -305,24 +314,26 @@ export default function TeamPage() {
                 return (
                   <div
                     key={member.id}
-                    className="bg-white rounded-xl border border-slate-200/80 p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 hover:border-slate-300 hover:shadow-xs transition-all"
+                    className="bg-[#111113] rounded-2xl border border-zinc-800/80 p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 hover:border-zinc-700 transition-all duration-200 shadow-xs"
                   >
                     <div className="flex items-start sm:items-center gap-3.5 min-w-0">
-                      <div className={`w-11 h-11 rounded-xl flex items-center justify-center font-bold text-sm shrink-0 ${
-                        isOwner
-                          ? 'bg-gradient-to-br from-indigo-500 to-indigo-700 text-white shadow-xs'
-                          : 'bg-slate-100 text-slate-700 border border-slate-200'
-                      }`}>
+                      <div
+                        className={`w-11 h-11 rounded-xl flex items-center justify-center font-bold font-mono text-xs shrink-0 border ${
+                          isOwner
+                            ? 'bg-zinc-900 border-zinc-800 text-lime-400'
+                            : 'bg-zinc-900 border-zinc-800 text-zinc-300'
+                        }`}
+                      >
                         {initials}
                       </div>
 
                       <div className="min-w-0 flex-1">
                         <div className="flex flex-wrap items-center gap-2">
-                          <h3 className="text-sm font-bold text-slate-900 truncate">
+                          <h3 className="text-sm font-bold text-zinc-100 truncate">
                             {member.email}
                           </h3>
                           {isCurrentUser && (
-                            <span className="text-[11px] font-semibold text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded-md border border-indigo-200/60">
+                            <span className="text-[10px] font-semibold text-lime-400 bg-lime-400/10 px-2 py-0.5 rounded-md border border-lime-400/20 font-mono">
                               You
                             </span>
                           )}
@@ -332,23 +343,28 @@ export default function TeamPage() {
                           <span
                             className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold ${
                               isOwner
-                                ? 'bg-indigo-50 text-indigo-700 border border-indigo-200/60'
-                                : 'bg-sky-50 text-sky-700 border border-sky-200/60'
+                                ? 'bg-lime-400/10 text-lime-400 border border-lime-400/20'
+                                : 'bg-zinc-900 text-zinc-300 border border-zinc-800'
                             }`}
                           >
-                            <span className={`w-1.5 h-1.5 rounded-full ${isOwner ? 'bg-indigo-600' : 'bg-sky-600'}`} />
+                            <span
+                              className={`w-1.5 h-1.5 rounded-full ${
+                                isOwner ? 'bg-lime-400' : 'bg-zinc-500'
+                              }`}
+                            />
                             {isOwner ? 'Agency Owner' : 'Account Manager'}
                           </span>
 
                           {member.assigned_client_count !== undefined && !isOwner && (
-                            <span className="inline-flex items-center gap-1 text-xs text-slate-500 font-medium bg-slate-50 px-2 py-0.5 rounded-md border border-slate-200">
-                              <Icons.Clients className="w-3.5 h-3.5 text-slate-400" />
-                              {member.assigned_client_count} {member.assigned_client_count === 1 ? 'client' : 'clients'} assigned
+                            <span className="inline-flex items-center gap-1 text-xs text-zinc-400 font-medium bg-zinc-950 px-2.5 py-0.5 rounded-md border border-zinc-800">
+                              <Icons.Clients className="w-3.5 h-3.5 text-zinc-500" />
+                              {member.assigned_client_count}{' '}
+                              {member.assigned_client_count === 1 ? 'client' : 'clients'} assigned
                             </span>
                           )}
 
-                          <span className="inline-flex items-center gap-1 text-xs text-slate-400">
-                            <Icons.Calendar className="w-3.5 h-3.5 text-slate-300" />
+                          <span className="inline-flex items-center gap-1 text-xs text-zinc-500">
+                            <Icons.Calendar className="w-3.5 h-3.5 text-zinc-600" />
                             Added {new Date(member.created_at).toLocaleDateString()}
                           </span>
                         </div>
@@ -358,19 +374,19 @@ export default function TeamPage() {
                     {/* Actions */}
                     <div className="flex items-center gap-2 self-end sm:self-center shrink-0">
                       {isOwner ? (
-                        <span className="text-xs text-slate-400 font-medium px-3 py-1.5 rounded-lg bg-slate-50 border border-slate-100">
+                        <span className="text-xs text-zinc-500 font-medium px-3 py-1.5 rounded-xl bg-zinc-950 border border-zinc-800/80">
                           Primary Admin
                         </span>
                       ) : (
-                        <Button
+                        <button
+                          type="button"
                           onClick={() => handleRemoveMember(member.id)}
-                          variant="ghost"
-                          size="sm"
-                          className="text-red-600 hover:text-red-700 hover:bg-red-50 inline-flex items-center gap-1.5 text-xs"
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-zinc-900 hover:bg-zinc-850 text-zinc-400 hover:text-rose-400 border border-zinc-800 hover:border-rose-900/60 rounded-xl text-xs font-medium transition-colors cursor-pointer"
+                          title="Remove Team Member"
                         >
                           <Icons.Trash className="w-3.5 h-3.5" />
-                          Remove
-                        </Button>
+                          <span>Remove</span>
+                        </button>
                       )}
                     </div>
                   </div>
@@ -380,41 +396,41 @@ export default function TeamPage() {
           )}
 
           {/* Role Explainer Card */}
-          <div className="bg-slate-900 text-white rounded-2xl p-6 sm:p-7 shadow-xs">
+          <div className="bg-[#111113] rounded-2xl border border-zinc-800/80 p-6 sm:p-7 shadow-xs">
             <div className="flex items-center gap-2.5 mb-4">
-              <div className="w-7 h-7 rounded-lg bg-indigo-500/20 text-indigo-400 flex items-center justify-center">
+              <div className="w-7 h-7 rounded-lg bg-zinc-900 border border-zinc-800 text-lime-400 flex items-center justify-center">
                 <Icons.Team className="w-4 h-4" />
               </div>
-              <h3 className="text-sm font-bold tracking-tight text-white">Agency Role Architecture</h3>
+              <h3 className="text-sm font-bold tracking-tight text-zinc-100">Agency Role Architecture</h3>
             </div>
-            
+
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
-              <div className="bg-slate-800/60 border border-slate-700/60 rounded-xl p-4 space-y-1.5">
-                <div className="font-semibold text-indigo-400 flex items-center gap-1.5">
-                  <span className="w-1.5 h-1.5 rounded-full bg-indigo-400" />
-                  Agency Owner
+              <div className="bg-zinc-950/60 border border-zinc-800/70 rounded-xl p-4 space-y-1.5">
+                <div className="font-semibold text-zinc-200 flex items-center gap-1.5">
+                  <span className="w-1.5 h-1.5 rounded-full bg-lime-400" />
+                  <span>Agency Owner</span>
                 </div>
-                <p className="text-slate-300 leading-relaxed">
+                <p className="text-zinc-400 leading-relaxed">
                   Full administrative control. Can create/delete clients, manage team accounts, edit any campaign, and view all agency analytics.
                 </p>
               </div>
 
-              <div className="bg-slate-800/60 border border-slate-700/60 rounded-xl p-4 space-y-1.5">
-                <div className="font-semibold text-sky-400 flex items-center gap-1.5">
+              <div className="bg-zinc-950/60 border border-zinc-800/70 rounded-xl p-4 space-y-1.5">
+                <div className="font-semibold text-zinc-200 flex items-center gap-1.5">
                   <span className="w-1.5 h-1.5 rounded-full bg-sky-400" />
-                  Account Manager
+                  <span>Account Manager</span>
                 </div>
-                <p className="text-slate-300 leading-relaxed">
+                <p className="text-zinc-400 leading-relaxed">
                   Operational access. Can create and edit campaigns and input daily ad metrics strictly for their assigned clients.
                 </p>
               </div>
 
-              <div className="bg-slate-800/60 border border-slate-700/60 rounded-xl p-4 space-y-1.5">
-                <div className="font-semibold text-emerald-400 flex items-center gap-1.5">
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-                  Client Guest
+              <div className="bg-zinc-950/60 border border-zinc-800/70 rounded-xl p-4 space-y-1.5">
+                <div className="font-semibold text-zinc-200 flex items-center gap-1.5">
+                  <span className="w-1.5 h-1.5 rounded-full bg-amber-400" />
+                  <span>Client Guest</span>
                 </div>
-                <p className="text-slate-300 leading-relaxed">
+                <p className="text-zinc-400 leading-relaxed">
                   Zero friction. Accesses live, read-only performance dashboards securely via tokenized shareable portal links without passwords.
                 </p>
               </div>
@@ -424,4 +440,4 @@ export default function TeamPage() {
       </DashboardLayout>
     </ProtectedRoute>
   );
-}
+}
