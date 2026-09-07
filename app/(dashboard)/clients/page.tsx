@@ -6,8 +6,6 @@ import Link from 'next/link';
 import { ProtectedRoute } from '@/lib/context/ProtectedRoute';
 import { DashboardLayout } from '@/components/layouts/DashboardLayout';
 import { useAuth } from '@/lib/context/AuthContext';
-import { Button } from '@/components/common/Button';
-import { Input } from '@/components/common/Input';
 import { apiFetch } from '@/lib/utils/apiClient';
 import { Client, TeamMember } from '@/types';
 import {
@@ -17,8 +15,8 @@ import {
   IconCheck,
   IconRefresh,
   IconTrash,
-  IconPlus,
   IconArrowUpRight,
+  IconPlus,
 } from '@/components/common/Icons';
 
 // ---------------------------------------------------------------------------
@@ -303,10 +301,13 @@ export default function ClientsPage() {
 
   const handleCopyLink = (clientId: string, token: string) => {
     const link = `${window.location.origin}/portal/${token}`;
-    navigator.clipboard.writeText(link).then(() => {
-      setCopiedId(clientId);
-      setTimeout(() => setCopiedId(null), 2000);
-    }).catch(() => {});
+    navigator.clipboard
+      .writeText(link)
+      .then(() => {
+        setCopiedId(clientId);
+        setTimeout(() => setCopiedId(null), 2000);
+      })
+      .catch(() => {});
   };
 
   // ---------------------------------------------------------------------------
@@ -319,26 +320,8 @@ export default function ClientsPage() {
         <DashboardLayout>
           <div className="flex items-center justify-center min-h-[60vh]">
             <div className="text-center space-y-3">
-              <svg
-                className="w-10 h-10 text-indigo-600 animate-spin mx-auto"
-                fill="none"
-                viewBox="0 0 24 24"
-              >
-                <circle
-                  className="opacity-25"
-                  cx="12"
-                  cy="12"
-                  r="10"
-                  stroke="currentColor"
-                  strokeWidth="3.5"
-                />
-                <path
-                  className="opacity-90"
-                  fill="currentColor"
-                  d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
-                />
-              </svg>
-              <p className="text-sm font-medium text-slate-500">Loading agency clients...</p>
+              <div className="w-10 h-10 rounded-full border-2 border-zinc-800 border-t-lime-400 animate-spin mx-auto" />
+              <p className="text-sm font-medium text-zinc-500">Loading agency clients...</p>
             </div>
           </div>
         </DashboardLayout>
@@ -353,71 +336,90 @@ export default function ClientsPage() {
   return (
     <ProtectedRoute>
       <DashboardLayout>
-        <div className="space-y-6">
+        <div className="space-y-6 max-w-7xl mx-auto">
           {/* Header */}
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>
-              <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 tracking-tight">Client Directory</h1>
-              <p className="text-xs sm:text-sm text-slate-500 mt-0.5">
+              <h1 className="text-2xl sm:text-3xl font-bold text-zinc-100 tracking-tight">Client Directory</h1>
+              <p className="text-xs sm:text-sm text-zinc-500 mt-1">
                 Manage accounts, assign team managers, and provision secure portal links.
               </p>
             </div>
             {isOwner && (
-              <Button
+              <button
+                type="button"
                 onClick={() => setShowForm(!showForm)}
-                className="bg-indigo-600 hover:bg-indigo-700 text-white self-start sm:self-auto"
+                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-lime-400 hover:bg-lime-300 text-black text-xs font-semibold shadow-xs transition-all active:scale-98 cursor-pointer self-start sm:self-auto"
               >
-                {showForm ? 'Cancel' : '+ Add Client'}
-              </Button>
+                <IconPlus className="w-3.5 h-3.5 stroke-[2.5]" />
+                <span>{showForm ? 'Cancel' : 'Add Client'}</span>
+              </button>
             )}
           </div>
 
           {/* Error Message */}
           {error && (
-            <div className="rounded-xl bg-rose-50 border border-rose-200/80 p-4">
-              <p className="text-sm text-rose-700 font-medium">{error}</p>
+            <div className="rounded-xl bg-rose-950/40 border border-rose-900/60 p-4">
+              <p className="text-xs sm:text-sm text-rose-400 font-medium">{error}</p>
             </div>
           )}
 
           {/* Create Form */}
           {showForm && (
-            <div className="bg-white rounded-xl border border-slate-200/80 p-6 shadow-xs">
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="text-base font-semibold text-slate-900">Add New Client Account</h2>
-                <span className="text-xs text-slate-400">Owner action</span>
+            <div className="bg-[#111113] rounded-2xl border border-zinc-800/80 p-6 shadow-xl space-y-4">
+              <div className="flex items-center justify-between">
+                <h2 className="text-base font-semibold text-zinc-100">Add New Client Account</h2>
+                <span className="text-xs text-zinc-500 font-mono">Owner action</span>
               </div>
               <form onSubmit={handleSubmit} className="space-y-4">
-                <Input
-                  label="Client Organization Name"
-                  type="text"
-                  placeholder="e.g. Acme Corporation"
-                  value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  required
-                />
-                <Input
-                  label="Primary Contact Email (Optional)"
-                  type="email"
-                  placeholder="client@acmecorp.com"
-                  value={formData.contact_email}
-                  onChange={(e) => setFormData({ ...formData, contact_email: e.target.value })}
-                />
+                <div className="space-y-1.5">
+                  <label className="block text-xs font-medium text-zinc-300">
+                    Client Organization Name <span className="text-lime-400">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="e.g. Acme Corporation"
+                    value={formData.name}
+                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                    className="w-full h-11 bg-zinc-950 border border-zinc-800 rounded-xl px-4 text-sm text-zinc-100 placeholder:text-zinc-600 focus:outline-none focus:border-lime-400 focus:ring-1 focus:ring-lime-400/30 transition-colors"
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="block text-xs font-medium text-zinc-300">
+                    Primary Contact Email (Optional)
+                  </label>
+                  <input
+                    type="email"
+                    placeholder="client@acmecorp.com"
+                    value={formData.contact_email}
+                    onChange={(e) => setFormData({ ...formData, contact_email: e.target.value })}
+                    className="w-full h-11 bg-zinc-950 border border-zinc-800 rounded-xl px-4 text-sm text-zinc-100 placeholder:text-zinc-600 focus:outline-none focus:border-lime-400 focus:ring-1 focus:ring-lime-400/30 transition-colors"
+                  />
+                </div>
+
                 {formError && (
-                  <p className="text-xs text-rose-700 bg-rose-50 border border-rose-200/80 rounded-lg p-2.5">
+                  <p className="text-xs text-rose-400 bg-rose-950/40 border border-rose-900/60 rounded-xl p-3">
                     {formError}
                   </p>
                 )}
-                <div className="flex gap-2.5 pt-2">
-                  <Button
+
+                <div className="flex items-center gap-3 pt-2">
+                  <button
                     type="submit"
-                    isLoading={isSubmitting}
-                    className="bg-indigo-600 hover:bg-indigo-700 text-white"
+                    disabled={isSubmitting}
+                    className="inline-flex items-center justify-center px-5 py-2.5 rounded-full bg-lime-400 hover:bg-lime-300 text-black text-xs font-semibold transition-all active:scale-98 disabled:opacity-60 cursor-pointer shadow-xs"
                   >
-                    Save Client
-                  </Button>
-                  <Button type="button" onClick={() => setShowForm(false)} variant="secondary">
+                    {isSubmitting ? 'Saving...' : 'Save Client'}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setShowForm(false)}
+                    className="inline-flex items-center justify-center px-4 py-2.5 rounded-full bg-zinc-900 hover:bg-zinc-850 border border-zinc-800 text-zinc-300 text-xs font-medium transition-colors cursor-pointer"
+                  >
                     Cancel
-                  </Button>
+                  </button>
                 </div>
               </form>
             </div>
@@ -425,39 +427,45 @@ export default function ClientsPage() {
 
           {/* Clients List */}
           {clients.length === 0 ? (
-            <div className="rounded-2xl border-2 border-dashed border-slate-200 p-12 text-center space-y-4 bg-white/60">
-              <div className="w-12 h-12 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center mx-auto">
+            <div className="rounded-2xl border border-dashed border-zinc-800/90 p-12 text-center space-y-4 bg-[#111113]/50">
+              <div className="w-12 h-12 rounded-2xl bg-zinc-900 border border-zinc-800 text-lime-400 flex items-center justify-center mx-auto">
                 <IconClients className="w-6 h-6" />
               </div>
               <div>
-                <p className="text-base font-semibold text-slate-800">No client accounts yet</p>
-                <p className="text-xs text-slate-500 mt-1">
+                <p className="text-base font-semibold text-zinc-200">No client accounts yet</p>
+                <p className="text-xs text-zinc-500 mt-1">
                   Add your first client to start organizing campaigns and sharing live performance reports.
                 </p>
               </div>
               {isOwner && (
-                <Button
+                <button
+                  type="button"
                   onClick={() => setShowForm(true)}
-                  className="bg-indigo-600 hover:bg-indigo-700 text-white shadow-xs"
+                  className="inline-flex items-center justify-center px-4 py-2 rounded-full bg-lime-400 hover:bg-lime-300 text-black text-xs font-semibold shadow-xs transition-all active:scale-98 cursor-pointer"
                 >
                   Create Your First Client
-                </Button>
+                </button>
               )}
             </div>
           ) : (
             <>
-              {/* Pagination indicator */}
-              <div className="flex items-center justify-between text-xs text-slate-500 bg-white p-3 rounded-lg border border-slate-200/80 shadow-2xs">
+              {/* Client Count / Pagination Bar */}
+              <div className="flex items-center justify-between text-xs text-zinc-500 bg-[#111113] px-4 py-3 rounded-2xl border border-zinc-800/80">
                 <p>
-                  Showing <span className="font-semibold text-slate-800">{Math.min((currentPage - 1) * PAGE_SIZE + 1, clients.length)}–{Math.min(currentPage * PAGE_SIZE, clients.length)}</span> of{' '}
-                  <span className="font-semibold text-slate-800">{clients.length}</span> {clients.length === 1 ? 'client' : 'clients'}
+                  Showing{' '}
+                  <span className="font-semibold text-zinc-200">
+                    {Math.min((currentPage - 1) * PAGE_SIZE + 1, clients.length)}–
+                    {Math.min(currentPage * PAGE_SIZE, clients.length)}
+                  </span>{' '}
+                  of <span className="font-semibold text-zinc-200">{clients.length}</span>{' '}
+                  {clients.length === 1 ? 'client' : 'clients'}
                 </p>
                 {clients.length > PAGE_SIZE && (
                   <div className="flex items-center gap-2">
                     <button
                       onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
                       disabled={currentPage === 1}
-                      className="px-2.5 py-1 text-xs border border-slate-200 rounded-md hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                      className="px-2.5 py-1 text-xs border border-zinc-800 rounded-lg bg-zinc-900 text-zinc-300 hover:bg-zinc-800 disabled:opacity-30 disabled:cursor-not-allowed transition-colors cursor-pointer"
                     >
                       Previous
                     </button>
@@ -467,7 +475,7 @@ export default function ClientsPage() {
                     <button
                       onClick={() => setCurrentPage((p) => Math.min(Math.ceil(clients.length / PAGE_SIZE), p + 1))}
                       disabled={currentPage >= Math.ceil(clients.length / PAGE_SIZE)}
-                      className="px-2.5 py-1 text-xs border border-slate-200 rounded-md hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                      className="px-2.5 py-1 text-xs border border-zinc-800 rounded-lg bg-zinc-900 text-zinc-300 hover:bg-zinc-800 disabled:opacity-30 disabled:cursor-not-allowed transition-colors cursor-pointer"
                     >
                       Next
                     </button>
@@ -475,35 +483,37 @@ export default function ClientsPage() {
                 )}
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {/* Client Cards Grid */}
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 items-stretch">
                 {clients.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE).map((client) => {
                   const pt = portalState[client.id] ?? defaultPortalState();
                   return (
                     <div
                       key={client.id}
-                      className="bg-white rounded-xl border border-slate-200/80 p-5 shadow-xs hover:border-slate-300 hover:shadow-sm transition-all flex flex-col justify-between"
+                      className="bg-[#111113] rounded-2xl border border-zinc-800/80 p-5 sm:p-6 hover:border-zinc-700 transition-all duration-200 flex flex-col justify-between h-full"
                     >
-                      <div className="space-y-4">
-                        {/* Client Name & Contact */}
+                      {/* Top Content */}
+                      <div className="space-y-4 flex-1">
+                        {/* Client Header: Name, Contact & Initials */}
                         <div className="flex items-start justify-between gap-2">
-                          <div>
-                            <h3 className="text-base font-semibold text-slate-900 tracking-tight">
+                          <div className="min-w-0 flex-1">
+                            <h3 className="text-lg font-bold text-zinc-100 tracking-tight truncate">
                               {client.name}
                             </h3>
                             {client.contact_email ? (
-                              <p className="text-xs text-slate-500 mt-0.5 truncate">{client.contact_email}</p>
+                              <p className="text-xs text-zinc-500 mt-0.5 truncate">{client.contact_email}</p>
                             ) : (
-                              <p className="text-xs text-slate-400 mt-0.5 italic">No email on file</p>
+                              <p className="text-xs text-zinc-600 mt-0.5 italic">No email on file</p>
                             )}
                           </div>
-                          <span className="w-8 h-8 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center font-bold text-xs shrink-0">
+                          <span className="w-8 h-8 rounded-lg bg-zinc-900 border border-zinc-800 text-lime-400 font-mono font-bold text-xs flex items-center justify-center shrink-0">
                             {client.name.slice(0, 2).toUpperCase()}
                           </span>
                         </div>
 
-                        {/* Manager Assignment */}
-                        <div className="bg-slate-50/80 rounded-lg p-3 border border-slate-200/60">
-                          <p className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider mb-1.5">
+                        {/* Assigned Manager Section */}
+                        <div className="bg-zinc-950/60 rounded-xl p-3.5 border border-zinc-800/70">
+                          <p className="text-[10px] font-semibold text-zinc-500 uppercase tracking-wider mb-1.5">
                             Assigned Manager
                           </p>
                           {isOwner ? (
@@ -511,78 +521,82 @@ export default function ClientsPage() {
                               value={client.assigned_manager?.id || ''}
                               onChange={(e) => handleAssign(client.id, e.target.value)}
                               disabled={assigningClientId === client.id}
-                              className="w-full text-xs border border-slate-200 rounded-md px-2.5 py-1.5 bg-white text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-600/20 focus:border-indigo-600 disabled:opacity-50"
+                              className="w-full text-xs border border-zinc-800 rounded-lg px-3 py-2 bg-zinc-900 text-zinc-200 focus:outline-none focus:ring-1 focus:ring-lime-400/50 focus:border-lime-400 disabled:opacity-50 cursor-pointer"
                             >
-                              <option value="">Unassigned (Owner only)</option>
+                              <option value="" className="bg-zinc-900 text-zinc-300">
+                                Unassigned (Owner only)
+                              </option>
                               {managers.map((m) => (
-                                <option key={m.id} value={m.id}>
+                                <option key={m.id} value={m.id} className="bg-zinc-900 text-zinc-200">
                                   {m.email}
                                 </option>
                               ))}
                             </select>
                           ) : (
-                            <p className="text-xs font-medium text-slate-700">
+                            <p className="text-xs font-medium text-zinc-300 py-1">
                               {client.assigned_manager?.email || 'Unassigned'}
                             </p>
                           )}
                         </div>
 
-                        {/* Portal Link (Owner Only) */}
+                        {/* Client Portal Link Section (Owner Only) */}
                         {isOwner && (
-                          <div className="bg-slate-50/80 rounded-lg p-3 border border-slate-200/60 space-y-2">
+                          <div className="bg-zinc-950/60 rounded-xl p-3.5 border border-zinc-800/70 space-y-2.5">
+                            {/* Title & Status Row */}
                             <div className="flex items-center justify-between">
-                              <div className="flex items-center gap-1.5 text-xs font-semibold text-slate-700">
-                                <IconLink className="w-3.5 h-3.5 text-slate-500" />
+                              <div className="flex items-center gap-1.5 text-xs font-semibold text-zinc-200">
+                                <IconLink className="w-3.5 h-3.5 text-zinc-400" />
                                 <span>Client Portal Link</span>
                               </div>
                               {pt.loading && (
-                                <span className="text-[11px] text-slate-400 animate-pulse">checking…</span>
+                                <span className="text-[11px] text-zinc-500 font-medium animate-pulse">checking…</span>
                               )}
                               {!pt.loading && pt.hasToken && (
-                                <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200/80 rounded-full px-2 py-0.5">
-                                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block" />
+                                <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-lime-400 bg-lime-400/10 border border-lime-400/20 rounded-full px-2.5 py-0.5">
+                                  <span className="w-1.5 h-1.5 rounded-full bg-lime-400 inline-block" />
                                   Active
                                 </span>
                               )}
                               {!pt.loading && !pt.hasToken && (
-                                <span className="text-[11px] text-slate-400">No active link</span>
+                                <span className="text-[11px] text-zinc-500 font-medium">No active link</span>
                               )}
                             </div>
 
                             {/* Expiry info */}
                             {pt.hasToken && pt.expiresAt && (
-                              <p className="text-[11px] text-slate-500">
+                              <p className="text-[11px] text-zinc-500">
                                 Expires{' '}
                                 {new Date(pt.expiresAt) < new Date() ? (
-                                  <span className="text-rose-600 font-semibold">
+                                  <span className="text-rose-400 font-semibold">
                                     {new Date(pt.expiresAt).toLocaleDateString()} (Expired)
                                   </span>
                                 ) : (
-                                  <span className="font-medium text-slate-700">
+                                  <span className="font-medium text-zinc-300">
                                     {new Date(pt.expiresAt).toLocaleDateString()}
                                   </span>
                                 )}
                               </p>
                             )}
                             {pt.hasToken && !pt.expiresAt && (
-                              <p className="text-[11px] text-slate-400">Permanent link (no expiry)</p>
+                              <p className="text-[11px] text-zinc-500">Permanent link (no expiry)</p>
                             )}
 
                             {/* One-time token copy dialog */}
                             {pt.generatedToken && (
-                              <div className="mt-1 rounded-lg border border-indigo-200 bg-indigo-50/80 p-3 space-y-2 shadow-2xs">
-                                <p className="text-xs font-semibold text-indigo-900 flex items-center gap-1">
+                              <div className="mt-2 rounded-xl border border-zinc-800 bg-zinc-900/90 p-3.5 space-y-2.5">
+                                <p className="text-xs font-semibold text-zinc-200 flex items-center gap-1.5">
                                   <span>🔑 Generated Portal Link</span>
                                 </p>
-                                <p className="text-[11px] font-mono text-indigo-800 break-all bg-white rounded-md p-2 border border-indigo-200">
+                                <p className="text-[11px] font-mono text-zinc-300 break-all select-all leading-relaxed bg-zinc-950 rounded-lg p-2.5 border border-zinc-800">
                                   {typeof window !== 'undefined'
                                     ? `${window.location.origin}/portal/${pt.generatedToken}`
                                     : `/portal/${pt.generatedToken}`}
                                 </p>
                                 <div className="flex gap-2">
                                   <button
+                                    type="button"
                                     onClick={() => handleCopyLink(client.id, pt.generatedToken!)}
-                                    className="flex-1 inline-flex items-center justify-center gap-1.5 px-2.5 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-md text-xs font-semibold transition-colors shadow-2xs cursor-pointer"
+                                    className="flex-1 inline-flex items-center justify-center gap-1.5 px-3.5 py-2 bg-lime-400 hover:bg-lime-300 text-black rounded-lg text-xs font-semibold transition-all active:scale-98 cursor-pointer shadow-xs"
                                   >
                                     {copiedId === client.id ? (
                                       <>
@@ -597,8 +611,9 @@ export default function ClientsPage() {
                                     )}
                                   </button>
                                   <button
+                                    type="button"
                                     onClick={() => patchPortal(client.id, { generatedToken: null })}
-                                    className="px-2.5 py-1.5 bg-white border border-slate-200 hover:bg-slate-50 text-slate-600 rounded-md text-xs font-medium transition-colors cursor-pointer"
+                                    className="px-3.5 py-2 bg-zinc-900 border border-zinc-800 hover:bg-zinc-850 text-zinc-400 hover:text-zinc-200 rounded-lg text-xs font-medium transition-colors cursor-pointer"
                                   >
                                     Dismiss
                                   </button>
@@ -608,15 +623,15 @@ export default function ClientsPage() {
 
                             {/* Error */}
                             {pt.error && (
-                              <p className="text-xs text-rose-600 bg-rose-50 rounded-md p-2">
+                              <p className="text-xs text-rose-400 bg-rose-950/40 border border-rose-900/60 rounded-lg p-2.5">
                                 {pt.error}
                               </p>
                             )}
 
                             {/* Generate / Expiry panel */}
                             {pt.showGeneratePanel && (
-                              <div className="mt-1 rounded-lg border border-slate-200 bg-white p-3 space-y-2.5 shadow-xs">
-                                <label className="block text-[11px] font-semibold text-slate-600">Link Expiration</label>
+                              <div className="mt-2 rounded-xl border border-zinc-800 bg-zinc-900 p-3.5 space-y-3">
+                                <label className="block text-[11px] font-semibold text-zinc-400">Link Expiration</label>
                                 <select
                                   value={pt.expirationDays}
                                   onChange={(e) =>
@@ -624,24 +639,34 @@ export default function ClientsPage() {
                                       expirationDays: e.target.value as PortalTokenState['expirationDays'],
                                     })
                                   }
-                                  className="w-full text-xs border border-slate-200 rounded-md px-2.5 py-1.5 bg-white text-slate-800"
+                                  className="w-full text-xs border border-zinc-800 rounded-lg px-2.5 py-1.5 bg-zinc-950 text-zinc-200 focus:outline-none focus:border-lime-400 cursor-pointer"
                                 >
-                                  <option value="">No expiration</option>
-                                  <option value="7">7 days</option>
-                                  <option value="30">30 days</option>
-                                  <option value="90">90 days</option>
+                                  <option value="" className="bg-zinc-950 text-zinc-200">
+                                    No expiration (Permanent)
+                                  </option>
+                                  <option value="7" className="bg-zinc-950 text-zinc-200">
+                                    7 days
+                                  </option>
+                                  <option value="30" className="bg-zinc-950 text-zinc-200">
+                                    30 days
+                                  </option>
+                                  <option value="90" className="bg-zinc-950 text-zinc-200">
+                                    90 days
+                                  </option>
                                 </select>
                                 <div className="flex gap-2">
                                   <button
+                                    type="button"
                                     disabled={pt.generating}
                                     onClick={() => handleGenerateToken(client.id)}
-                                    className="flex-1 px-2.5 py-1.5 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white rounded-md text-xs font-semibold transition-colors cursor-pointer"
+                                    className="flex-1 px-3 py-1.5 bg-lime-400 hover:bg-lime-300 disabled:opacity-50 text-black rounded-lg text-xs font-semibold transition-all cursor-pointer shadow-xs"
                                   >
                                     {pt.generating ? 'Generating…' : pt.hasToken ? 'Regenerate' : 'Generate'}
                                   </button>
                                   <button
+                                    type="button"
                                     onClick={() => patchPortal(client.id, { showGeneratePanel: false })}
-                                    className="px-2.5 py-1.5 border border-slate-200 hover:bg-slate-50 text-slate-600 rounded-md text-xs font-medium transition-colors cursor-pointer"
+                                    className="px-3 py-1.5 bg-zinc-950 border border-zinc-800 hover:bg-zinc-900 text-zinc-400 rounded-lg text-xs font-medium transition-colors cursor-pointer"
                                   >
                                     Cancel
                                   </button>
@@ -651,22 +676,34 @@ export default function ClientsPage() {
 
                             {/* Action buttons */}
                             {!pt.showGeneratePanel && !pt.generatedToken && (
-                              <div className="flex gap-2 pt-0.5">
-                                <button
-                                  disabled={pt.loading}
-                                  onClick={() => patchPortal(client.id, { showGeneratePanel: true, error: '' })}
-                                  className="flex-1 inline-flex items-center justify-center gap-1 px-2.5 py-1.5 bg-white border border-slate-200 hover:bg-slate-50 disabled:opacity-50 text-slate-700 rounded-md text-xs font-medium transition-colors cursor-pointer"
-                                >
-                                  <IconRefresh className="w-3.5 h-3.5 text-slate-400" />
-                                  <span>{pt.hasToken ? 'Regenerate' : 'Generate Link'}</span>
-                                </button>
-                                {pt.hasToken && (
+                              <div className="flex gap-2 pt-1">
+                                {pt.hasToken ? (
+                                  <>
+                                    <button
+                                      type="button"
+                                      onClick={() => patchPortal(client.id, { showGeneratePanel: true, error: '' })}
+                                      className="flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-2 bg-zinc-900 border border-zinc-800 hover:border-zinc-700 hover:bg-zinc-850 text-zinc-200 font-medium rounded-xl text-xs transition-all cursor-pointer focus:outline-none"
+                                    >
+                                      <IconRefresh className="w-3.5 h-3.5 text-zinc-400" />
+                                      <span>Regenerate</span>
+                                    </button>
+                                    <button
+                                      type="button"
+                                      disabled={pt.revoking}
+                                      onClick={() => handleRevokeToken(client.id)}
+                                      className="inline-flex items-center justify-center px-3.5 py-2 bg-zinc-900 border border-rose-900/60 hover:border-rose-800 hover:bg-rose-950/40 text-rose-400 font-medium rounded-xl text-xs transition-all cursor-pointer disabled:opacity-50"
+                                    >
+                                      {pt.revoking ? '…' : 'Revoke'}
+                                    </button>
+                                  </>
+                                ) : (
                                   <button
-                                    disabled={pt.revoking}
-                                    onClick={() => handleRevokeToken(client.id)}
-                                    className="px-2.5 py-1.5 bg-white border border-rose-200 hover:bg-rose-50 text-rose-600 disabled:opacity-50 rounded-md text-xs font-medium transition-colors cursor-pointer"
+                                    type="button"
+                                    onClick={() => patchPortal(client.id, { showGeneratePanel: true, error: '' })}
+                                    className="w-full inline-flex items-center justify-center gap-1.5 px-3 py-2 bg-zinc-900 border border-zinc-800 hover:border-zinc-700 hover:bg-zinc-850 text-zinc-200 font-medium rounded-xl text-xs transition-all cursor-pointer focus:outline-none"
                                   >
-                                    {pt.revoking ? '…' : 'Revoke'}
+                                    <IconRefresh className="w-3.5 h-3.5 text-zinc-400" />
+                                    <span>Generate Link</span>
                                   </button>
                                 )}
                               </div>
@@ -675,20 +712,22 @@ export default function ClientsPage() {
                         )}
                       </div>
 
-                      {/* Card Footer Actions */}
-                      <div className="pt-4 mt-4 border-t border-slate-100 flex items-center justify-between gap-2">
+                      {/* Card Footer Actions (Anchored at the bottom) */}
+                      <div className="pt-4 mt-auto border-t border-zinc-800/80 flex items-center justify-between gap-2.5">
                         <Link
                           href={`/campaigns?client_id=${client.id}`}
-                          className="flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-xs font-semibold transition-colors"
+                          className="flex-1 inline-flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-xl bg-zinc-900 hover:bg-zinc-850 border border-zinc-800 hover:border-zinc-700 text-zinc-200 hover:text-zinc-100 text-xs font-medium transition-all active:scale-[0.99] cursor-pointer"
                         >
                           <span>Campaigns</span>
-                          <IconArrowUpRight className="w-3.5 h-3.5" />
+                          <IconArrowUpRight className="w-3.5 h-3.5 text-zinc-400" />
                         </Link>
                         {isOwner && (
                           <button
+                            type="button"
                             onClick={() => handleDelete(client.id)}
-                            className="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors border border-transparent hover:border-rose-100 cursor-pointer"
+                            className="p-2 text-zinc-500 hover:text-rose-400 hover:bg-zinc-900 rounded-xl transition-colors border border-transparent hover:border-zinc-800 cursor-pointer"
                             title="Delete Client"
+                            aria-label="Delete Client"
                           >
                             <IconTrash className="w-4 h-4" />
                           </button>

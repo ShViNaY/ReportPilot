@@ -18,9 +18,10 @@ import {
 
 interface DashboardLayoutProps {
   children: React.ReactNode;
+  contentBg?: string;
 }
 
-export function DashboardLayout({ children }: DashboardLayoutProps) {
+export function DashboardLayout({ children, contentBg }: DashboardLayoutProps) {
   const { user, logout } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
@@ -154,7 +155,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
       </aside>
 
       {/* Main Content Area */}
-      <div className="flex-1 flex flex-col min-w-0 lg:ml-64">
+      <div className={`flex-1 flex flex-col min-w-0 lg:ml-64 ${contentBg || 'bg-zinc-950'}`}>
         {/* Mobile Navbar */}
         <header className="lg:hidden bg-zinc-950 text-zinc-100 border-b border-zinc-800 px-4 py-3.5 flex items-center justify-between sticky top-0 z-30">
           <div className="flex items-center gap-2.5">
@@ -175,8 +176,8 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
         </header>
 
         {/* Page Content */}
-        <main className="flex-1 overflow-y-auto">
-          <div className="p-4 sm:p-6 lg:p-8 xl:px-10 max-w-7xl mx-auto space-y-8">
+        <main className={`flex-1 overflow-y-auto ${contentBg || 'bg-zinc-950'}`}>
+          <div className="p-4 sm:p-6 lg:p-8 xl:px-10 max-w-7xl mx-auto space-y-6">
             {children}
           </div>
         </main>
