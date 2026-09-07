@@ -6,8 +6,32 @@
 }
 
 :root {
-  --background: #f8fafc;
+  --background: #fafbfc;
   --foreground: #0f172a;
+  --brand-primary: #059669;
+  --brand-primary-hover: #047857;
+  --brand-accent: #10b981;
+  --brand-mint: #ecfdf5;
+  --brand-mint-border: #a7f3d0;
+
+  /* ReportPilot Chart Tokens */
+  --chart-1: #059669;
+  --chart-2: #0d9488;
+  --chart-3: #f59e0b;
+  --chart-4: #6366f1;
+  --chart-5: #0284c7;
+}
+
+.dark {
+  --chart-1: #10b981;
+  --chart-2: #14b8a6;
+  --chart-3: #fbbf24;
+  --chart-4: #818cf8;
+  --chart-5: #38bdf8;
+}
+
+html {
+  scroll-behavior: smooth;
 }
 
 body {

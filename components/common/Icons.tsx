@@ -414,27 +414,174 @@ export const IconArrowUpRight: React.FC<IconProps> = ({ className = 'w-4 h-4', s
   </svg>
 );
 
-export const IconLogo: React.FC<IconProps> = ({ className = 'w-7 h-7', size, ...props }) => (
+export const IconArrowRight: React.FC<IconProps> = ({ className = 'w-4 h-4', size, ...props }) => (
   <svg
     width={size}
     height={size}
-    viewBox="0 0 28 28"
+    viewBox="0 0 24 24"
     fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
     className={className}
     {...props}
   >
-    <rect width="28" height="28" rx="7" className="fill-indigo-600" />
-    <path
-      d="M7 19.5L12 13.5L16 16.5L21 8.5"
-      stroke="white"
-      strokeWidth="2.25"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    />
-    <circle cx="21" cy="8.5" r="2" fill="white" />
-    <circle cx="12" cy="13.5" r="1.5" fill="white" fillOpacity="0.8" />
+    <path d="M5 12h14" />
+    <path d="m12 5 7 7-7 7" />
   </svg>
 );
+
+export const IconZap: React.FC<IconProps> = ({ className = 'w-4 h-4', size, ...props }) => (
+  <svg
+    width={size}
+    height={size}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    className={className}
+    {...props}
+  >
+    <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
+  </svg>
+);
+
+export const IconLock: React.FC<IconProps> = ({ className = 'w-4 h-4', size, ...props }) => (
+  <svg
+    width={size}
+    height={size}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    className={className}
+    {...props}
+  >
+    <rect width="18" height="11" x="3" y="11" rx="2" ry="2" />
+    <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+  </svg>
+);
+
+export const IconFileText: React.FC<IconProps> = ({ className = 'w-4 h-4', size, ...props }) => (
+  <svg
+    width={size}
+    height={size}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    className={className}
+    {...props}
+  >
+    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+    <polyline points="14 2 14 8 20 8" />
+    <line x1="16" x2="8" y1="13" y2="13" />
+    <line x1="16" x2="8" y1="17" y2="17" />
+    <polyline points="10 9 9 9 8 9" />
+  </svg>
+);
+
+export const IconLayoutGrid: React.FC<IconProps> = ({ className = 'w-5 h-5', size, ...props }) => (
+  <svg
+    width={size}
+    height={size}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="1.75"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    className={className}
+    {...props}
+  >
+    <rect width="7" height="7" x="3" y="3" rx="1" />
+    <rect width="7" height="7" x="14" y="3" rx="1" />
+    <rect width="7" height="7" x="14" y="14" rx="1" />
+    <rect width="7" height="7" x="3" y="14" rx="1" />
+  </svg>
+);
+
+export const IconBarChart3: React.FC<IconProps> = ({ className = 'w-5 h-5', size, ...props }) => (
+  <svg
+    width={size}
+    height={size}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="1.75"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    className={className}
+    {...props}
+  >
+    <path d="M3 3v18h18" />
+    <path d="M18 17V9" />
+    <path d="M13 17V5" />
+    <path d="M8 17v-3" />
+  </svg>
+);
+
+export const IconUserCheck: React.FC<IconProps> = ({ className = 'w-5 h-5', size, ...props }) => (
+  <svg
+    width={size}
+    height={size}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="1.75"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    className={className}
+    {...props}
+  >
+    <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+    <circle cx="9" cy="7" r="4" />
+    <polyline points="16 11 18 13 22 9" />
+  </svg>
+);
+
+export interface IconLogoProps extends IconProps {
+  bgClassName?: string;
+  variant?: 'indigo' | 'emerald';
+}
+
+export const IconLogo: React.FC<IconLogoProps> = ({
+  className = 'w-7 h-7',
+  size,
+  bgClassName,
+  variant = 'emerald',
+  ...props
+}) => {
+  const bg = bgClassName || (variant === 'emerald' ? 'fill-emerald-600' : 'fill-indigo-600');
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 28 28"
+      fill="none"
+      className={className}
+      {...props}
+    >
+      <rect width="28" height="28" rx="7" className={bg} />
+      <path
+        d="M7 19.5L12 13.5L16 16.5L21 8.5"
+        stroke="white"
+        strokeWidth="2.25"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <circle cx="21" cy="8.5" r="2" fill="white" />
+      <circle cx="12" cy="13.5" r="1.5" fill="white" fillOpacity="0.8" />
+    </svg>
+  );
+};
 
 export const Icons = {
   Dashboard: IconDashboard,
@@ -459,6 +606,13 @@ export const Icons = {
   Menu: IconMenu,
   X: IconX,
   ArrowUpRight: IconArrowUpRight,
+  ArrowRight: IconArrowRight,
+  Zap: IconZap,
+  Lock: IconLock,
+  FileText: IconFileText,
+  LayoutGrid: IconLayoutGrid,
+  BarChart3: IconBarChart3,
+  UserCheck: IconUserCheck,
   Logo: IconLogo,
 };
 

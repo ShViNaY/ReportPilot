@@ -1,16 +1,22 @@
 // components/charts/TrendChart.tsx
 'use client';
 
+import * as React from 'react';
 import {
-  LineChart,
-  Line,
+  Area,
+  AreaChart,
+  CartesianGrid,
   XAxis,
   YAxis,
-  CartesianGrid,
-  Tooltip,
-  Legend,
-  ResponsiveContainer,
 } from 'recharts';
+import {
+  ChartContainer,
+  ChartTooltip,
+  ChartTooltipContent,
+  ChartLegend,
+  ChartLegendContent,
+  type ChartConfig,
+} from '@/components/ui/chart';
 import { MetricEntry } from '@/types';
 
 interface TrendChartProps {
@@ -18,25 +24,65 @@ interface TrendChartProps {
   title: string;
 }
 
-export function TrendChart({ metrics, title }: TrendChartProps) {
-  // Sort by date
-  const sorted = [...metrics].sort(
-    (a, b) =>
-      new Date(a.reporting_period).getTime() -
-      new Date(b.reporting_period).getTime()
-  );
+const chartConfig = {
+  adSpend: {
+    label: 'Ad Spend ($)',
+    color: 'var(--chart-1)',
+  },
+  leads: {
+    label: 'Leads',
+    color: 'var(--chart-2)',
+  },
+  conversions: {
+    label: 'Conversions',
+    color: 'var(--chart-3)',
+  },
+} satisfies ChartConfig;
 
-  // Format data for chart
-  const data = sorted.map(m => ({
-    date: new Date(m.reporting_period).toLocaleDateString('en-US', {
-      month: 'short',
-      day: 'numeric',
-    }),
-    adSpend: m.ad_spend,
-    leads: m.leads,
-    conversions: m.conversions,
-    cpl: m.cost_per_lead || 0,
-  }));
+export function TrendChart({ metrics, title }: TrendChartProps) {
+  // Sort by date ascending
+  const sorted = React.useMemo(() => {
+    return [...metrics].sort(
+      (a, b) =>
+        new Date(a.reporting_period).getTime() -
+        new Date(b.reporting_period).getTime()
+    );
+  }, [metrics]);
+
+  // Aggregate or format data by date for chart
+  const data = React.useMemo(() => {
+    const map = new Map<string, {
+      date: string;
+      adSpend: number;
+      leads: number;
+      conversions: number;
+    }>();
+
+    sorted.forEach((m) => {
+      const d = new Date(m.reporting_period);
+      const key = d.toISOString().split('T')[0];
+      const displayDate = d.toLocaleDateString('en-US', {
+        month: 'short',
+        day: 'numeric',
+      });
+
+      if (!map.has(key)) {
+        map.set(key, {
+          date: displayDate,
+          adSpend: m.ad_spend,
+          leads: m.leads,
+          conversions: m.conversions,
+        });
+      } else {
+        const entry = map.get(key)!;
+        entry.adSpend += m.ad_spend;
+        entry.leads += m.leads;
+        entry.conversions += m.conversions;
+      }
+    });
+
+    return Array.from(map.values());
+  }, [sorted]);
 
   if (data.length === 0) {
     return (
@@ -48,86 +94,90 @@ export function TrendChart({ metrics, title }: TrendChartProps) {
 
   return (
     <div className="bg-white rounded-xl border border-slate-200/80 p-6 shadow-xs">
-      <div className="flex items-center justify-between mb-6">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-6">
         <div>
           <h3 className="text-sm font-semibold text-slate-900 tracking-tight">{title}</h3>
-          <p className="text-xs text-slate-500 mt-0.5">Continuous trajectory over reporting dates</p>
+          <p className="text-xs text-slate-500 mt-0.5">Continuous trajectory over reporting periods</p>
         </div>
       </div>
 
-      <div className="w-full h-[320px]">
-        <ResponsiveContainer width="100%" height="100%">
-          <LineChart data={data} margin={{ top: 10, right: 20, left: -10, bottom: 5 }}>
-            <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
-            <XAxis
-              dataKey="date"
-              stroke="#94a3b8"
-              tickLine={false}
-              axisLine={{ stroke: '#e2e8f0' }}
-              style={{ fontSize: '11px', fontWeight: 500 }}
-              dy={6}
-            />
-            <YAxis
-              stroke="#94a3b8"
-              tickLine={false}
-              axisLine={false}
-              style={{ fontSize: '11px', fontWeight: 500 }}
-              tickFormatter={(v) => (v >= 1000 ? `${(v / 1000).toFixed(0)}k` : v)}
-            />
-            <Tooltip
-              contentStyle={{
-                backgroundColor: 'rgba(15, 23, 42, 0.95)',
-                backdropFilter: 'blur(8px)',
-                border: '1px solid rgba(51, 65, 85, 0.8)',
-                borderRadius: '10px',
-                boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.3)',
-                color: '#fff',
-                fontSize: '12px',
-                padding: '10px 14px',
-              }}
-              labelStyle={{ color: '#94a3b8', fontWeight: 600, marginBottom: '6px' }}
-              formatter={(value: any, name: any) => {
-                if (typeof value === 'number') {
-                  return [value.toLocaleString(), name];
-                }
-                return [value, name];
-              }}
-            />
-            <Legend
-              iconType="circle"
-              iconSize={8}
-              wrapperStyle={{ fontSize: '12px', paddingTop: '16px' }}
-            />
-            <Line
-              type="monotone"
-              dataKey="adSpend"
-              stroke="#6366f1"
-              name="Ad Spend ($)"
-              strokeWidth={2.5}
-              dot={{ fill: '#6366f1', r: 3.5, strokeWidth: 2, stroke: '#fff' }}
-              activeDot={{ r: 6, stroke: '#6366f1', strokeWidth: 3, fill: '#fff' }}
-            />
-            <Line
-              type="monotone"
-              dataKey="leads"
-              stroke="#10b981"
-              name="Leads"
-              strokeWidth={2.5}
-              dot={{ fill: '#10b981', r: 3.5, strokeWidth: 2, stroke: '#fff' }}
-              activeDot={{ r: 6, stroke: '#10b981', strokeWidth: 3, fill: '#fff' }}
-            />
-            <Line
-              type="monotone"
-              dataKey="conversions"
-              stroke="#f59e0b"
-              name="Conversions"
-              strokeWidth={2.5}
-              dot={{ fill: '#f59e0b', r: 3.5, strokeWidth: 2, stroke: '#fff' }}
-              activeDot={{ r: 6, stroke: '#f59e0b', strokeWidth: 3, fill: '#fff' }}
-            />
-          </LineChart>
-        </ResponsiveContainer>
-      </div>
+      {/* shadcn Chart Container */}
+      <ChartContainer config={chartConfig} className="min-h-[320px] w-full aspect-auto">
+        <AreaChart
+          accessibilityLayer
+          data={data}
+          margin={{ top: 10, right: 10, left: -10, bottom: 0 }}
+        >
+          <defs>
+            <linearGradient id="fillAdSpend" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="5%" stopColor="var(--color-adSpend)" stopOpacity={0.25} />
+              <stop offset="95%" stopColor="var(--color-adSpend)" stopOpacity={0.02} />
+            </linearGradient>
+            <linearGradient id="fillLeads" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="5%" stopColor="var(--color-leads)" stopOpacity={0.25} />
+              <stop offset="95%" stopColor="var(--color-leads)" stopOpacity={0.02} />
+            </linearGradient>
+            <linearGradient id="fillConversions" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="5%" stopColor="var(--color-conversions)" stopOpacity={0.25} />
+              <stop offset="95%" stopColor="var(--color-conversions)" stopOpacity={0.02} />
+            </linearGradient>
+          </defs>
+
+          <CartesianGrid vertical={false} strokeDasharray="3 3" className="stroke-slate-100" />
+
+          <XAxis
+            dataKey="date"
+            tickLine={false}
+            axisLine={{ stroke: '#e2e8f0' }}
+            tickMargin={8}
+            className="text-[11px] font-medium text-slate-500"
+          />
+
+          <YAxis
+            tickLine={false}
+            axisLine={false}
+            tickMargin={8}
+            className="text-[11px] font-medium text-slate-500"
+            tickFormatter={(value) =>
+              value >= 1000 ? `${(value / 1000).toFixed(0)}k` : `${value}`
+            }
+          />
+
+          <ChartTooltip
+            content={
+              <ChartTooltipContent
+                indicator="line"
+                labelFormatter={(label) => `Date: ${label}`}
+              />
+            }
+          />
+
+          <ChartLegend content={<ChartLegendContent />} />
+
+          <Area
+            type="monotone"
+            dataKey="adSpend"
+            stroke="var(--color-adSpend)"
+            fill="url(#fillAdSpend)"
+            strokeWidth={2}
+          />
+          <Area
+            type="monotone"
+            dataKey="leads"
+            stroke="var(--color-leads)"
+            fill="url(#fillLeads)"
+            strokeWidth={2}
+          />
+          <Area
+            type="monotone"
+            dataKey="conversions"
+            stroke="var(--color-conversions)"
+            fill="url(#fillConversions)"
+            strokeWidth={2}
+          />
+        </AreaChart>
+      </ChartContainer>
     </div>
   );
-}
+}
