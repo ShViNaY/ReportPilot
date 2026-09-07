@@ -34,7 +34,7 @@ export default function HomePage() {
       transition: {
         duration: shouldReduceMotion ? 0.3 : 0.6,
         delay: custom * 0.15,
-        ease: [0.21, 0.47, 0.32, 0.98],
+        ease: [0.21, 0.47, 0.32, 0.98] as const,
       },
     }),
   };
@@ -135,7 +135,7 @@ export default function HomePage() {
             initial={{ opacity: 0, scale: shouldReduceMotion ? 1 : 0.96 }}
             whileInView={{ opacity: 1, scale: 1 }}
             viewport={{ once: true, margin: '-50px' }}
-            transition={{ duration: shouldReduceMotion ? 0.3 : 0.7, ease: [0.21, 0.47, 0.32, 0.98] }}
+            transition={{ duration: shouldReduceMotion ? 0.3 : 0.7, ease: [0.21, 0.47, 0.32, 0.98] as const }}
             className="bg-zinc-900 border border-zinc-800 rounded-2xl overflow-hidden shadow-2xl"
           >
             {/* Browser chrome */}
