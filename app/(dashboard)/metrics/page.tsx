@@ -6,8 +6,6 @@ import { useSearchParams } from 'next/navigation';
 import { ProtectedRoute } from '@/lib/context/ProtectedRoute';
 import { DashboardLayout } from '@/components/layouts/DashboardLayout';
 import { useAuth } from '@/lib/context/AuthContext';
-import { Button } from '@/components/common/Button';
-import { Input } from '@/components/common/Input';
 import { DateRangeFilter, DateRange } from '@/components/filters/DateRangeFilter';
 import { TrendChart } from '@/components/charts/TrendChart';
 import { CampaignChart } from '@/components/charts/CampaignChart';
@@ -20,9 +18,6 @@ import {
   IconTrash,
   IconPlus,
   IconX,
-  IconSpend,
-  IconLeads,
-  IconConversions,
 } from '@/components/common/Icons';
 
 export default function MetricsPage() {
@@ -173,7 +168,7 @@ export default function MetricsPage() {
 
         // Update local state
         setMetrics(
-          metrics.map(m => (m.id === editingId ? data.metric : m))
+          metrics.map((m) => (m.id === editingId ? data.metric : m))
         );
         setEditingId(null);
       } else {
@@ -243,7 +238,7 @@ export default function MetricsPage() {
         return;
       }
 
-      setMetrics(metrics.filter(m => m.id !== metricId));
+      setMetrics(metrics.filter((m) => m.id !== metricId));
     } catch (err) {
       setError('Failed to delete metric');
       console.error(err);
@@ -265,18 +260,18 @@ export default function MetricsPage() {
   };
 
   const getCampaignName = (campaignId: string) => {
-    return campaigns.find(c => c.id === campaignId)?.name || 'Unknown Campaign';
+    return campaigns.find((c) => c.id === campaignId)?.name || 'Unknown Campaign';
   };
 
   const getClientName = (clientId: string) => {
-    return clients.find(c => c.id === clientId)?.name || 'Unknown Client';
+    return clients.find((c) => c.id === clientId)?.name || 'Unknown Client';
   };
 
   const exportToCSV = () => {
     if (!selectedClientId) return;
 
     const clientMetrics = metrics
-      .filter(m => m.client_id === selectedClientId)
+      .filter((m) => m.client_id === selectedClientId)
       .sort((a, b) => new Date(a.reporting_period).getTime() - new Date(b.reporting_period).getTime());
 
     if (clientMetrics.length === 0) {
@@ -285,11 +280,18 @@ export default function MetricsPage() {
     }
 
     const headers = [
-      'Date', 'Campaign', 'Ad Spend', 'Impressions', 'Clicks',
-      'Leads', 'Conversions', 'CPL', 'Conversion Rate',
+      'Date',
+      'Campaign',
+      'Ad Spend',
+      'Impressions',
+      'Clicks',
+      'Leads',
+      'Conversions',
+      'CPL',
+      'Conversion Rate',
     ];
 
-    const rows = clientMetrics.map(m => [
+    const rows = clientMetrics.map((m) => [
       m.reporting_period,
       getCampaignName(m.campaign_id).replace(/,/g, ''),
       m.ad_spend,
@@ -301,9 +303,9 @@ export default function MetricsPage() {
       m.conversion_rate ?? '',
     ]);
 
-    const csvContent = [headers, ...rows].map(row => row.join(',')).join('\n');
+    const csvContent = [headers, ...rows].map((row) => row.join(',')).join('\n');
 
-    const clientName = clients.find(c => c.id === selectedClientId)?.name || 'client';
+    const clientName = clients.find((c) => c.id === selectedClientId)?.name || 'client';
     const rangeStart = startDate?.toISOString().split('T')[0] || 'start';
     const rangeEnd = endDate?.toISOString().split('T')[0] || 'end';
     const fileName = `${clientName.replace(/\s+/g, '_')}_metrics_${rangeStart}_to_${rangeEnd}.csv`;
@@ -321,17 +323,18 @@ export default function MetricsPage() {
 
   // Step 1: Filter by selected client (if any)
   const clientFilteredMetrics = selectedClientId
-    ? metrics.filter(m => m.client_id === selectedClientId)
+    ? metrics.filter((m) => m.client_id === selectedClientId)
     : metrics;
 
   // Step 2: Filter by selected campaign (clicked in table or selector)
   const campaignFilteredMetrics = selectedCampaignId
-    ? clientFilteredMetrics.filter(m => m.campaign_id === selectedCampaignId)
+    ? clientFilteredMetrics.filter((m) => m.campaign_id === selectedCampaignId)
     : clientFilteredMetrics;
 
   // Unique reporting periods available in the current view, newest first
-  const availablePeriods = [...new Set(campaignFilteredMetrics.map(m => m.reporting_period))]
-    .sort((a, b) => new Date(b).getTime() - new Date(a).getTime());
+  const availablePeriods = [...new Set(campaignFilteredMetrics.map((m) => m.reporting_period))].sort(
+    (a, b) => new Date(b).getTime() - new Date(a).getTime()
+  );
 
   const formatPeriod = (period: string) =>
     new Date(period).toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
@@ -340,7 +343,7 @@ export default function MetricsPage() {
   const periodFilteredMetrics =
     selectedPeriod === 'all'
       ? campaignFilteredMetrics
-      : campaignFilteredMetrics.filter(m => m.reporting_period === selectedPeriod);
+      : campaignFilteredMetrics.filter((m) => m.reporting_period === selectedPeriod);
 
   // Sort by reporting period (newest first)
   const sortedMetrics = [...periodFilteredMetrics].sort(
@@ -348,11 +351,11 @@ export default function MetricsPage() {
   );
 
   // Selected campaign object for info display
-  const selectedCampaign = campaigns.find(c => c.id === selectedCampaignId);
+  const selectedCampaign = campaigns.find((c) => c.id === selectedCampaignId);
 
   // Filter campaigns list for campaign dropdown
   const availableCampaigns = selectedClientId
-    ? campaigns.filter(c => c.client_id === selectedClientId)
+    ? campaigns.filter((c) => c.client_id === selectedClientId)
     : campaigns;
 
   if (isLoading) {
@@ -361,26 +364,8 @@ export default function MetricsPage() {
         <DashboardLayout>
           <div className="flex items-center justify-center min-h-[60vh]">
             <div className="text-center space-y-3">
-              <svg
-                className="w-10 h-10 text-indigo-600 animate-spin mx-auto"
-                fill="none"
-                viewBox="0 0 24 24"
-              >
-                <circle
-                  className="opacity-25"
-                  cx="12"
-                  cy="12"
-                  r="10"
-                  stroke="currentColor"
-                  strokeWidth="3.5"
-                />
-                <path
-                  className="opacity-90"
-                  fill="currentColor"
-                  d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
-                />
-              </svg>
-              <p className="text-sm font-medium text-slate-500">Loading campaign metrics...</p>
+              <div className="w-10 h-10 rounded-full border-2 border-zinc-800 border-t-lime-400 animate-spin mx-auto" />
+              <p className="text-sm font-medium text-zinc-500">Loading campaign metrics...</p>
             </div>
           </div>
         </DashboardLayout>
@@ -391,60 +376,64 @@ export default function MetricsPage() {
   return (
     <ProtectedRoute>
       <DashboardLayout>
-        <div className="space-y-6">
+        <div className="space-y-6 max-w-7xl mx-auto">
           {/* Header */}
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>
-              <div className="flex items-center gap-2">
-                <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 tracking-tight">Campaign Metrics</h1>
+              <div className="flex items-center gap-2.5 flex-wrap">
+                <h1 className="text-2xl sm:text-3xl font-bold text-zinc-100 tracking-tight">Campaign Metrics</h1>
                 {filterCampaignId && (
-                  <span className="text-xs font-semibold text-indigo-700 bg-indigo-50 border border-indigo-200/80 px-2.5 py-0.5 rounded-full">
+                  <span className="text-xs font-semibold text-lime-400 bg-lime-400/10 border border-lime-400/20 px-2.5 py-0.5 rounded-full">
                     {getCampaignName(filterCampaignId)}
                   </span>
                 )}
               </div>
-              <p className="text-xs sm:text-sm text-slate-500 mt-0.5">
+              <p className="text-xs sm:text-sm text-zinc-500 mt-1">
                 {filterCampaignId
                   ? `Performance records for ${getCampaignName(filterCampaignId)}`
                   : 'Track and analyze cross-platform marketing performance records'}
               </p>
             </div>
 
-            <div className="flex items-center gap-2.5 flex-wrap">
+            <div className="flex items-center gap-2.5 flex-wrap self-start sm:self-auto">
               {availablePeriods.length > 1 && (
                 <select
                   value={selectedPeriod}
                   onChange={(e) => setSelectedPeriod(e.target.value)}
-                  className="px-3 py-2 text-xs font-medium border border-slate-200 rounded-lg bg-white text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-600/20 shadow-2xs cursor-pointer"
+                  className="px-3 py-2 text-xs font-medium border border-zinc-800 rounded-xl bg-zinc-900 text-zinc-200 focus:outline-none focus:border-lime-400 cursor-pointer"
                 >
-                  <option value="all">All reporting periods</option>
+                  <option value="all" className="bg-zinc-900 text-zinc-200">
+                    All reporting periods
+                  </option>
                   {availablePeriods.map((period) => (
-                    <option key={period} value={period}>
+                    <option key={period} value={period} className="bg-zinc-900 text-zinc-200">
                       {formatPeriod(period)}
                     </option>
                   ))}
                 </select>
               )}
-              <Button
+              <button
+                type="button"
                 onClick={() => {
                   if (showForm) {
                     resetForm();
                   }
                   setShowForm(!showForm);
                 }}
-                className="bg-indigo-600 hover:bg-indigo-700 text-white self-start sm:self-auto"
+                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-lime-400 hover:bg-lime-300 text-black text-xs font-semibold shadow-xs transition-all active:scale-98 cursor-pointer"
               >
-                {showForm ? 'Cancel' : '+ Enter Metrics'}
-              </Button>
+                <IconPlus className="w-3.5 h-3.5 stroke-[2.5]" />
+                <span>{showForm ? 'Cancel' : 'Enter Metrics'}</span>
+              </button>
             </div>
           </div>
 
           {/* Filter Bar */}
-          <div className="bg-white rounded-xl border border-slate-200/80 p-4 shadow-xs flex flex-wrap items-center justify-between gap-4">
+          <div className="bg-[#111113] rounded-2xl border border-zinc-800/80 p-4 flex flex-wrap items-center justify-between gap-4">
             <div className="flex flex-wrap items-center gap-4">
               {/* Client Selector */}
               <div className="flex items-center gap-2">
-                <span className="text-xs font-semibold text-slate-600">Client:</span>
+                <span className="text-xs font-semibold text-zinc-400">Client:</span>
                 <select
                   value={selectedClientId}
                   onChange={(e) => {
@@ -452,11 +441,15 @@ export default function MetricsPage() {
                     setSelectedCampaignId('');
                     setSelectedPeriod('all');
                   }}
-                  className="px-3 py-1.5 text-xs font-medium border border-slate-200 rounded-lg bg-white text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-600/20 shadow-2xs"
+                  className="px-3 py-1.5 text-xs font-medium border border-zinc-800 rounded-xl bg-zinc-950 text-zinc-200 focus:outline-none focus:border-lime-400 focus:ring-1 focus:ring-lime-400/30 transition-colors cursor-pointer"
                 >
-                  {clients.length > 1 && <option value="">All client accounts</option>}
+                  {clients.length > 1 && (
+                    <option value="" className="bg-zinc-900 text-zinc-300">
+                      All client accounts
+                    </option>
+                  )}
                   {clients.map((client) => (
-                    <option key={client.id} value={client.id}>
+                    <option key={client.id} value={client.id} className="bg-zinc-900 text-zinc-200">
                       {client.name}
                     </option>
                   ))}
@@ -465,18 +458,20 @@ export default function MetricsPage() {
 
               {/* Campaign Selector */}
               <div className="flex items-center gap-2">
-                <span className="text-xs font-semibold text-slate-600">Campaign:</span>
+                <span className="text-xs font-semibold text-zinc-400">Campaign:</span>
                 <select
                   value={selectedCampaignId}
                   onChange={(e) => {
                     setSelectedCampaignId(e.target.value);
                     setSelectedPeriod('all');
                   }}
-                  className="px-3 py-1.5 text-xs font-medium border border-slate-200 rounded-lg bg-white text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-600/20 shadow-2xs"
+                  className="px-3 py-1.5 text-xs font-medium border border-zinc-800 rounded-xl bg-zinc-950 text-zinc-200 focus:outline-none focus:border-lime-400 focus:ring-1 focus:ring-lime-400/30 transition-colors cursor-pointer"
                 >
-                  <option value="">All active campaigns</option>
+                  <option value="" className="bg-zinc-900 text-zinc-300">
+                    All active campaigns
+                  </option>
                   {availableCampaigns.map((campaign) => (
-                    <option key={campaign.id} value={campaign.id}>
+                    <option key={campaign.id} value={campaign.id} className="bg-zinc-900 text-zinc-200">
                       {campaign.name}
                     </option>
                   ))}
@@ -484,7 +479,7 @@ export default function MetricsPage() {
                 {selectedCampaignId && (
                   <button
                     onClick={() => setSelectedCampaignId('')}
-                    className="p-1 text-slate-400 hover:text-slate-600 rounded"
+                    className="p-1 text-zinc-500 hover:text-zinc-300 rounded transition-colors"
                     title="Clear campaign filter"
                   >
                     <IconX className="w-3.5 h-3.5" />
@@ -496,21 +491,22 @@ export default function MetricsPage() {
             {/* CSV Export */}
             <div className="flex items-center gap-2">
               <button
+                type="button"
                 onClick={exportToCSV}
                 disabled={!selectedClientId}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white border border-slate-200 hover:bg-slate-50 disabled:opacity-50 disabled:pointer-events-none text-slate-700 rounded-lg text-xs font-semibold shadow-2xs transition-colors cursor-pointer"
+                className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-zinc-900 border border-zinc-800 hover:bg-zinc-850 hover:border-zinc-700 disabled:opacity-40 disabled:pointer-events-none text-zinc-300 hover:text-zinc-100 rounded-xl text-xs font-medium transition-colors cursor-pointer"
               >
-                <IconDownload className="w-3.5 h-3.5 text-slate-500" />
+                <IconDownload className="w-3.5 h-3.5 text-zinc-400" />
                 <span>Export CSV</span>
               </button>
               {!selectedClientId && (
-                <span className="text-[11px] text-slate-400 italic">Select client to export</span>
+                <span className="text-[11px] text-zinc-500 italic">Select client to export</span>
               )}
             </div>
           </div>
 
           {/* Date Range Filter */}
-          <div className="bg-white rounded-xl border border-slate-200/80 p-3.5 sm:p-4 shadow-xs">
+          <div className="bg-[#111113] rounded-2xl border border-zinc-800/80 p-3.5 sm:p-4">
             <DateRangeFilter
               selectedRange={dateRange}
               onRangeChange={(range, start, end) => {
@@ -526,27 +522,27 @@ export default function MetricsPage() {
 
           {/* Error Message */}
           {error && (
-            <div className="rounded-xl bg-rose-50 border border-rose-200/80 p-4">
-              <p className="text-sm text-rose-700 font-medium">{error}</p>
+            <div className="rounded-xl bg-rose-950/40 border border-rose-900/60 p-4">
+              <p className="text-xs sm:text-sm text-rose-400 font-medium">{error}</p>
             </div>
           )}
 
           {/* Metric Entry Form */}
           {showForm && (
-            <div className="bg-white rounded-xl border border-slate-200/80 p-6 shadow-xs">
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="text-base font-semibold text-slate-900">
+            <div className="bg-[#111113] rounded-2xl border border-zinc-800/80 p-6 shadow-xl space-y-4">
+              <div className="flex items-center justify-between">
+                <h2 className="text-base font-semibold text-zinc-100">
                   {editingId ? 'Edit Metric Record' : 'Log New Campaign Metrics'}
                 </h2>
-                <span className="text-xs text-slate-400">Periodic reporting data</span>
+                <span className="text-xs text-zinc-500 font-mono">Periodic reporting data</span>
               </div>
 
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {/* Campaign Selector */}
                   <div className="space-y-1.5">
-                    <label className="block text-xs font-semibold text-slate-700 tracking-wide">
-                      Target Campaign
+                    <label className="block text-xs font-medium text-zinc-300">
+                      Target Campaign <span className="text-lime-400">*</span>
                     </label>
                     <select
                       value={formData.campaign_id}
@@ -554,37 +550,44 @@ export default function MetricsPage() {
                         setFormData({ ...formData, campaign_id: e.target.value })
                       }
                       disabled={editingId !== null}
-                      className="block w-full rounded-lg border border-slate-200 bg-white px-3.5 py-2 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-600/20 focus:border-indigo-600 disabled:bg-slate-50 shadow-2xs"
+                      className="w-full h-11 bg-zinc-950 border border-zinc-800 rounded-xl px-4 text-sm text-zinc-100 focus:outline-none focus:border-lime-400 focus:ring-1 focus:ring-lime-400/30 disabled:opacity-50 transition-colors cursor-pointer"
                       required
                     >
-                      <option value="">Select a campaign...</option>
+                      <option value="" className="bg-zinc-950 text-zinc-300">
+                        Select a campaign...
+                      </option>
                       {campaigns
-                        .filter(c => !selectedClientId || c.client_id === selectedClientId)
-                        .map(campaign => (
-                          <option key={campaign.id} value={campaign.id}>
+                        .filter((c) => !selectedClientId || c.client_id === selectedClientId)
+                        .map((campaign) => (
+                          <option key={campaign.id} value={campaign.id} className="bg-zinc-900 text-zinc-200">
                             {campaign.name}
                           </option>
                         ))}
                     </select>
                     {selectedClientId === '' && clients.length > 1 && (
-                      <p className="text-[11px] text-slate-400 mt-1">Tip: Select a client above to quickly filter campaigns</p>
+                      <p className="text-[11px] text-zinc-500 mt-1">
+                        Tip: Select a client above to quickly filter campaigns
+                      </p>
                     )}
                   </div>
 
                   {/* Reporting Period */}
-                  <div>
-                    <Input
-                      label="Reporting Period Date"
+                  <div className="space-y-1.5">
+                    <label className="block text-xs font-medium text-zinc-300">
+                      Reporting Period Date <span className="text-lime-400">*</span>
+                    </label>
+                    <input
                       type="date"
                       value={formData.reporting_period}
                       onChange={(e) =>
                         setFormData({ ...formData, reporting_period: e.target.value })
                       }
                       disabled={editingId !== null}
+                      className="w-full h-11 bg-zinc-950 border border-zinc-800 rounded-xl px-4 text-sm text-zinc-100 focus:outline-none focus:border-lime-400 focus:ring-1 focus:ring-lime-400/30 disabled:opacity-50 transition-colors"
                       required
                     />
                     {editingId && (
-                      <p className="text-[11px] text-slate-400 mt-1">
+                      <p className="text-[11px] text-zinc-500 mt-1">
                         Campaign and period date are locked during edit.
                       </p>
                     )}
@@ -592,88 +595,103 @@ export default function MetricsPage() {
                 </div>
 
                 {/* Metrics Grid */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 pt-4 border-t border-slate-100">
-                  <Input
-                    label="Ad Spend ($)"
-                    type="number"
-                    step="0.01"
-                    min="0"
-                    placeholder="1000.00"
-                    value={formData.ad_spend}
-                    onChange={(e) =>
-                      setFormData({ ...formData, ad_spend: e.target.value })
-                    }
-                  />
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 pt-4 border-t border-zinc-800/80">
+                  <div className="space-y-1.5">
+                    <label className="block text-xs font-medium text-zinc-300">Ad Spend ($)</label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      placeholder="1000.00"
+                      value={formData.ad_spend}
+                      onChange={(e) =>
+                        setFormData({ ...formData, ad_spend: e.target.value })
+                      }
+                      className="w-full h-11 bg-zinc-950 border border-zinc-800 rounded-xl px-4 text-sm text-zinc-100 placeholder:text-zinc-600 focus:outline-none focus:border-lime-400 focus:ring-1 focus:ring-lime-400/30 transition-colors"
+                    />
+                  </div>
 
-                  <Input
-                    label="Impressions"
-                    type="number"
-                    min="0"
-                    placeholder="50000"
-                    value={formData.impressions}
-                    onChange={(e) =>
-                      setFormData({ ...formData, impressions: e.target.value })
-                    }
-                  />
+                  <div className="space-y-1.5">
+                    <label className="block text-xs font-medium text-zinc-300">Impressions</label>
+                    <input
+                      type="number"
+                      min="0"
+                      placeholder="50000"
+                      value={formData.impressions}
+                      onChange={(e) =>
+                        setFormData({ ...formData, impressions: e.target.value })
+                      }
+                      className="w-full h-11 bg-zinc-950 border border-zinc-800 rounded-xl px-4 text-sm text-zinc-100 placeholder:text-zinc-600 focus:outline-none focus:border-lime-400 focus:ring-1 focus:ring-lime-400/30 transition-colors"
+                    />
+                  </div>
 
-                  <Input
-                    label="Clicks"
-                    type="number"
-                    min="0"
-                    placeholder="500"
-                    value={formData.clicks}
-                    onChange={(e) =>
-                      setFormData({ ...formData, clicks: e.target.value })
-                    }
-                  />
+                  <div className="space-y-1.5">
+                    <label className="block text-xs font-medium text-zinc-300">Clicks</label>
+                    <input
+                      type="number"
+                      min="0"
+                      placeholder="500"
+                      value={formData.clicks}
+                      onChange={(e) =>
+                        setFormData({ ...formData, clicks: e.target.value })
+                      }
+                      className="w-full h-11 bg-zinc-950 border border-zinc-800 rounded-xl px-4 text-sm text-zinc-100 placeholder:text-zinc-600 focus:outline-none focus:border-lime-400 focus:ring-1 focus:ring-lime-400/30 transition-colors"
+                    />
+                  </div>
 
-                  <Input
-                    label="Leads"
-                    type="number"
-                    min="0"
-                    placeholder="50"
-                    value={formData.leads}
-                    onChange={(e) =>
-                      setFormData({ ...formData, leads: e.target.value })
-                    }
-                  />
+                  <div className="space-y-1.5">
+                    <label className="block text-xs font-medium text-zinc-300">Leads</label>
+                    <input
+                      type="number"
+                      min="0"
+                      placeholder="50"
+                      value={formData.leads}
+                      onChange={(e) =>
+                        setFormData({ ...formData, leads: e.target.value })
+                      }
+                      className="w-full h-11 bg-zinc-950 border border-zinc-800 rounded-xl px-4 text-sm text-zinc-100 placeholder:text-zinc-600 focus:outline-none focus:border-lime-400 focus:ring-1 focus:ring-lime-400/30 transition-colors"
+                    />
+                  </div>
 
-                  <Input
-                    label="Conversions"
-                    type="number"
-                    min="0"
-                    placeholder="10"
-                    value={formData.conversions}
-                    onChange={(e) =>
-                      setFormData({ ...formData, conversions: e.target.value })
-                    }
-                  />
+                  <div className="space-y-1.5">
+                    <label className="block text-xs font-medium text-zinc-300">Conversions</label>
+                    <input
+                      type="number"
+                      min="0"
+                      placeholder="10"
+                      value={formData.conversions}
+                      onChange={(e) =>
+                        setFormData({ ...formData, conversions: e.target.value })
+                      }
+                      className="w-full h-11 bg-zinc-950 border border-zinc-800 rounded-xl px-4 text-sm text-zinc-100 placeholder:text-zinc-600 focus:outline-none focus:border-lime-400 focus:ring-1 focus:ring-lime-400/30 transition-colors"
+                    />
+                  </div>
                 </div>
 
                 {formError && (
-                  <p className="text-xs text-rose-700 bg-rose-50 border border-rose-200/80 rounded-lg p-2.5">
+                  <p className="text-xs text-rose-400 bg-rose-950/40 border border-rose-900/60 rounded-xl p-3">
                     {formError}
                   </p>
                 )}
 
-                <div className="flex gap-2.5 pt-2">
-                  <Button
+                <div className="flex items-center gap-3 pt-2">
+                  <button
                     type="submit"
-                    isLoading={isSubmitting}
-                    className="bg-indigo-600 hover:bg-indigo-700 text-white"
+                    disabled={isSubmitting}
+                    className="inline-flex items-center justify-center px-5 py-2.5 rounded-full bg-lime-400 hover:bg-lime-300 text-black text-xs font-semibold transition-all active:scale-98 disabled:opacity-60 cursor-pointer shadow-xs"
                   >
-                    {editingId ? 'Update Record' : 'Save Metrics'}
-                  </Button>
-                  <Button
+                    {isSubmitting ? 'Saving...' : editingId ? 'Update Record' : 'Save Metrics'}
+                  </button>
+                  <button
                     type="button"
                     onClick={() => {
                       resetForm();
                       setShowForm(false);
                     }}
-                    variant="secondary"
+                    className="inline-flex items-center justify-center px-4 py-2.5 rounded-full bg-zinc-900 hover:bg-zinc-850 border border-zinc-800 text-zinc-300 text-xs font-medium transition-colors cursor-pointer"
                   >
                     Cancel
-                  </Button>
+                  </button>
                 </div>
               </form>
             </div>
@@ -681,34 +699,54 @@ export default function MetricsPage() {
 
           {/* Focused Campaign Banner */}
           {selectedCampaign && (
-            <div className="bg-indigo-50/70 border border-indigo-200/80 rounded-xl p-4 sm:p-5 flex flex-wrap items-center justify-between gap-4 shadow-2xs">
+            <div className="bg-zinc-900/90 border border-zinc-800 rounded-2xl p-4 sm:p-5 flex flex-wrap items-center justify-between gap-4 shadow-xs">
               <div className="space-y-1">
                 <div className="flex items-center gap-2.5 flex-wrap">
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-indigo-700 bg-indigo-100/90 px-2 py-0.5 rounded">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-lime-400 bg-lime-400/10 border border-lime-400/20 px-2 py-0.5 rounded">
                     Focused Campaign
                   </span>
-                  <h2 className="text-base sm:text-lg font-bold text-slate-900">{selectedCampaign.name}</h2>
-                  <span className={`px-2 py-0.5 rounded-full text-xs font-semibold capitalize ${
-                    selectedCampaign.status === 'active'
-                      ? 'bg-emerald-100 text-emerald-800'
-                      : selectedCampaign.status === 'paused'
-                      ? 'bg-amber-100 text-amber-800'
-                      : 'bg-slate-100 text-slate-800'
-                  }`}>
-                    {selectedCampaign.status}
+                  <h2 className="text-base sm:text-lg font-bold text-zinc-100">{selectedCampaign.name}</h2>
+                  <span
+                    className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold ${
+                      selectedCampaign.status === 'active'
+                        ? 'bg-lime-400/10 text-lime-400 border border-lime-400/20'
+                        : selectedCampaign.status === 'paused'
+                        ? 'bg-amber-400/10 text-amber-400 border border-amber-400/20'
+                        : 'bg-zinc-800 text-zinc-400 border border-zinc-700'
+                    }`}
+                  >
+                    <span
+                      className={`w-1.5 h-1.5 rounded-full ${
+                        selectedCampaign.status === 'active'
+                          ? 'bg-lime-400'
+                          : selectedCampaign.status === 'paused'
+                          ? 'bg-amber-400'
+                          : 'bg-zinc-500'
+                      }`}
+                    />
+                    <span className="capitalize">{selectedCampaign.status}</span>
                   </span>
                 </div>
-                <div className="flex flex-wrap items-center gap-3 text-xs text-slate-600 pt-0.5">
-                  <p>Client: <span className="font-semibold text-slate-800">{getClientName(selectedCampaign.client_id)}</span></p>
-                  <span>•</span>
-                  <p>Platform: <span className="font-semibold text-slate-800 capitalize">
-                    {selectedCampaign.platform.replace('_', ' ')}
-                  </span></p>
+                <div className="flex flex-wrap items-center gap-3 text-xs text-zinc-400 pt-0.5">
+                  <p>
+                    Client:{' '}
+                    <span className="font-semibold text-zinc-200">
+                      {getClientName(selectedCampaign.client_id)}
+                    </span>
+                  </p>
+                  <span className="text-zinc-700">•</span>
+                  <p>
+                    Platform:{' '}
+                    <span className="font-semibold text-zinc-200 capitalize">
+                      {selectedCampaign.platform.replace('_', ' ')}
+                    </span>
+                  </p>
                 </div>
               </div>
               <button
+                type="button"
                 onClick={() => setSelectedCampaignId('')}
-                className="inline-flex items-center gap-1 px-3 py-1.5 bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 rounded-lg text-xs font-semibold transition-colors shadow-2xs cursor-pointer"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-zinc-950 hover:bg-zinc-850 text-zinc-300 hover:text-zinc-100 border border-zinc-800 rounded-xl text-xs font-medium transition-colors cursor-pointer"
               >
                 <IconX className="w-3.5 h-3.5" />
                 <span>Show All Campaigns</span>
@@ -721,14 +759,22 @@ export default function MetricsPage() {
             <div className="space-y-6">
               <TrendChart
                 metrics={sortedMetrics}
-                title={selectedCampaign ? `Metrics Over Time (${selectedCampaign.name})` : 'Cross-Campaign Performance Over Time'}
+                title={
+                  selectedCampaign
+                    ? `Metrics Over Time (${selectedCampaign.name})`
+                    : 'Cross-Campaign Performance Over Time'
+                }
               />
 
               {campaigns.length > 0 && (
                 <CampaignChart
                   metrics={sortedMetrics}
                   campaigns={selectedCampaign ? [selectedCampaign] : availableCampaigns}
-                  title={selectedCampaign ? `${selectedCampaign.name} Breakdown` : 'Spend, Leads & Conversions by Campaign'}
+                  title={
+                    selectedCampaign
+                      ? `${selectedCampaign.name} Breakdown`
+                      : 'Spend, Leads & Conversions by Campaign'
+                  }
                 />
               )}
             </div>
@@ -737,74 +783,98 @@ export default function MetricsPage() {
           {/* Metrics Table Section */}
           <div className="space-y-3">
             <div className="flex items-center justify-between">
-              <h2 className="text-sm font-semibold text-slate-900 tracking-tight">
+              <h2 className="text-sm font-semibold text-zinc-100 tracking-tight">
                 Historical Performance Log
               </h2>
-              <span className="text-xs text-slate-500 font-medium">
+              <span className="text-xs text-zinc-500 font-medium">
                 {sortedMetrics.length} {sortedMetrics.length === 1 ? 'record' : 'records'}
               </span>
             </div>
 
             {sortedMetrics.length === 0 ? (
-              <div className="rounded-2xl border-2 border-dashed border-slate-200 p-12 text-center space-y-4 bg-white/60">
-                <div className="w-12 h-12 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center mx-auto">
+              <div className="rounded-2xl border border-dashed border-zinc-800/90 p-12 text-center space-y-4 bg-[#111113]/50">
+                <div className="w-12 h-12 rounded-2xl bg-zinc-900 border border-zinc-800 text-lime-400 flex items-center justify-center mx-auto">
                   <IconMetrics className="w-6 h-6" />
                 </div>
                 <div>
-                  <p className="text-base font-semibold text-slate-800">
+                  <p className="text-base font-semibold text-zinc-200">
                     {selectedCampaignId
                       ? `No metrics logged for ${getCampaignName(selectedCampaignId)} in this date range`
                       : 'No metrics logged yet'}
                   </p>
-                  <p className="text-xs text-slate-500 mt-1">
+                  <p className="text-xs text-zinc-500 mt-1">
                     Enter your campaign spend and conversion numbers to view detailed analysis.
                   </p>
                 </div>
                 <div className="flex justify-center gap-2">
                   {selectedCampaignId && (
-                    <Button
+                    <button
+                      type="button"
                       onClick={() => setSelectedCampaignId('')}
-                      variant="secondary"
+                      className="inline-flex items-center justify-center px-4 py-2 rounded-full bg-zinc-900 hover:bg-zinc-850 border border-zinc-800 text-zinc-300 text-xs font-medium transition-colors cursor-pointer"
                     >
                       Clear Filter
-                    </Button>
+                    </button>
                   )}
-                  <Button
+                  <button
+                    type="button"
                     onClick={() => setShowForm(true)}
-                    className="bg-indigo-600 hover:bg-indigo-700 text-white shadow-xs"
+                    className="inline-flex items-center justify-center px-4 py-2 rounded-full bg-lime-400 hover:bg-lime-300 text-black text-xs font-semibold shadow-xs transition-all active:scale-98 cursor-pointer"
                   >
                     Enter Metrics
-                  </Button>
+                  </button>
                 </div>
               </div>
             ) : (
-              <div className="overflow-x-auto bg-white rounded-xl border border-slate-200/80 shadow-xs">
+              <div className="overflow-x-auto bg-[#111113] rounded-2xl border border-zinc-800/80 shadow-xs">
                 <table className="w-full text-left border-collapse">
-                  <thead className="bg-slate-50/80 border-b border-slate-200/80">
+                  <thead className="bg-zinc-950/80 border-b border-zinc-800/80">
                     <tr>
-                      <th className="px-5 py-3 text-xs font-semibold text-slate-600">Reporting Date</th>
-                      <th className="px-5 py-3 text-xs font-semibold text-slate-600">Campaign (Focus)</th>
-                      <th className="px-5 py-3 text-xs font-semibold text-slate-600 text-right">Spend</th>
-                      <th className="px-5 py-3 text-xs font-semibold text-slate-600 text-right">Impressions</th>
-                      <th className="px-5 py-3 text-xs font-semibold text-slate-600 text-right">Clicks</th>
-                      <th className="px-5 py-3 text-xs font-semibold text-slate-600 text-right">Leads</th>
-                      <th className="px-5 py-3 text-xs font-semibold text-slate-600 text-right">Conversions</th>
-                      <th className="px-5 py-3 text-xs font-semibold text-slate-600 text-right">CPL</th>
-                      <th className="px-5 py-3 text-xs font-semibold text-slate-600 text-right">Conv. Rate</th>
-                      <th className="px-5 py-3 text-xs font-semibold text-slate-600 text-center">Actions</th>
+                      <th className="px-5 py-3.5 text-[11px] font-semibold text-zinc-400 uppercase tracking-wider">
+                        Reporting Date
+                      </th>
+                      <th className="px-5 py-3.5 text-[11px] font-semibold text-zinc-400 uppercase tracking-wider">
+                        Campaign (Focus)
+                      </th>
+                      <th className="px-5 py-3.5 text-[11px] font-semibold text-zinc-400 uppercase tracking-wider text-right">
+                        Spend
+                      </th>
+                      <th className="px-5 py-3.5 text-[11px] font-semibold text-zinc-400 uppercase tracking-wider text-right">
+                        Impressions
+                      </th>
+                      <th className="px-5 py-3.5 text-[11px] font-semibold text-zinc-400 uppercase tracking-wider text-right">
+                        Clicks
+                      </th>
+                      <th className="px-5 py-3.5 text-[11px] font-semibold text-zinc-400 uppercase tracking-wider text-right">
+                        Leads
+                      </th>
+                      <th className="px-5 py-3.5 text-[11px] font-semibold text-zinc-400 uppercase tracking-wider text-right">
+                        Conversions
+                      </th>
+                      <th className="px-5 py-3.5 text-[11px] font-semibold text-zinc-400 uppercase tracking-wider text-right">
+                        CPL
+                      </th>
+                      <th className="px-5 py-3.5 text-[11px] font-semibold text-zinc-400 uppercase tracking-wider text-right">
+                        Conv. Rate
+                      </th>
+                      <th className="px-5 py-3.5 text-[11px] font-semibold text-zinc-400 uppercase tracking-wider text-center">
+                        Actions
+                      </th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-slate-100 text-xs">
+                  <tbody className="divide-y divide-zinc-800/60 text-xs">
                     {sortedMetrics.map((metric) => {
                       const isFocused = selectedCampaignId === metric.campaign_id;
                       return (
                         <tr
                           key={metric.id}
                           className={`transition-colors ${
-                            isFocused ? 'bg-indigo-50/50 hover:bg-indigo-50/80' : 'hover:bg-slate-50/70'
+                            isFocused
+                              ? 'bg-lime-400/5 hover:bg-lime-400/10'
+                              : 'hover:bg-zinc-900/50'
                           }`}
                         >
-                          <td className="px-5 py-3.5 font-medium text-slate-700 whitespace-nowrap">
+                          <td className="px-5 py-3.5 font-medium text-zinc-400 whitespace-nowrap">
                             {new Date(metric.reporting_period).toLocaleDateString()}
                           </td>
                           <td className="px-5 py-3.5">
@@ -815,50 +885,55 @@ export default function MetricsPage() {
                                   selectedCampaignId === metric.campaign_id ? '' : metric.campaign_id
                                 );
                               }}
-                              className="font-semibold text-indigo-600 hover:text-indigo-800 inline-flex items-center gap-1.5 transition-colors cursor-pointer text-left"
+                              className="font-semibold text-zinc-200 hover:text-lime-400 inline-flex items-center gap-1.5 transition-colors cursor-pointer text-left"
                             >
                               <span>{getCampaignName(metric.campaign_id)}</span>
                               {isFocused && (
-                                <span className="text-[10px] bg-indigo-100 text-indigo-700 px-1.5 py-0.2 rounded font-bold">
+                                <span className="text-[10px] bg-lime-400/15 text-lime-400 border border-lime-400/30 px-1.5 py-0.5 rounded font-mono font-bold">
                                   Focus
                                 </span>
                               )}
                             </button>
                           </td>
-                          <td className="px-5 py-3.5 text-right font-semibold text-slate-900 tabular-nums whitespace-nowrap">
-                            ${metric.ad_spend.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                          <td className="px-5 py-3.5 text-right font-semibold text-zinc-100 tabular-nums whitespace-nowrap">
+                            ${metric.ad_spend.toLocaleString('en-US', {
+                              minimumFractionDigits: 2,
+                              maximumFractionDigits: 2,
+                            })}
                           </td>
-                          <td className="px-5 py-3.5 text-right text-slate-600 tabular-nums whitespace-nowrap">
+                          <td className="px-5 py-3.5 text-right text-zinc-400 tabular-nums whitespace-nowrap">
                             {metric.impressions.toLocaleString()}
                           </td>
-                          <td className="px-5 py-3.5 text-right text-slate-600 tabular-nums whitespace-nowrap">
+                          <td className="px-5 py-3.5 text-right text-zinc-400 tabular-nums whitespace-nowrap">
                             {metric.clicks.toLocaleString()}
                           </td>
-                          <td className="px-5 py-3.5 text-right font-medium text-slate-800 tabular-nums whitespace-nowrap">
+                          <td className="px-5 py-3.5 text-right font-medium text-zinc-200 tabular-nums whitespace-nowrap">
                             {metric.leads.toLocaleString()}
                           </td>
-                          <td className="px-5 py-3.5 text-right font-medium text-slate-800 tabular-nums whitespace-nowrap">
+                          <td className="px-5 py-3.5 text-right font-medium text-zinc-200 tabular-nums whitespace-nowrap">
                             {metric.conversions.toLocaleString()}
                           </td>
-                          <td className="px-5 py-3.5 text-right font-semibold text-indigo-700 tabular-nums whitespace-nowrap">
+                          <td className="px-5 py-3.5 text-right font-semibold text-zinc-300 tabular-nums whitespace-nowrap">
                             {metric.cost_per_lead ? `$${metric.cost_per_lead.toFixed(2)}` : '—'}
                           </td>
-                          <td className="px-5 py-3.5 text-right font-semibold text-emerald-700 tabular-nums whitespace-nowrap">
+                          <td className="px-5 py-3.5 text-right font-semibold text-lime-400 tabular-nums whitespace-nowrap">
                             {metric.conversion_rate ? `${metric.conversion_rate.toFixed(1)}%` : '—'}
                           </td>
                           <td className="px-5 py-3.5 text-center whitespace-nowrap">
                             <div className="flex items-center justify-center gap-1.5">
                               <button
+                                type="button"
                                 onClick={() => handleEdit(metric)}
-                                className="p-1 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded transition-colors cursor-pointer"
+                                className="p-1.5 text-zinc-500 hover:text-zinc-200 hover:bg-zinc-850 rounded-lg transition-colors cursor-pointer"
                                 title="Edit Metric"
                               >
                                 <IconEdit className="w-3.5 h-3.5" />
                               </button>
                               {user?.role === 'owner' && (
                                 <button
+                                  type="button"
                                   onClick={() => handleDelete(metric.id)}
-                                  className="p-1 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded transition-colors cursor-pointer"
+                                  className="p-1.5 text-zinc-500 hover:text-rose-400 hover:bg-zinc-850 rounded-lg transition-colors cursor-pointer"
                                   title="Delete Metric"
                                 >
                                   <IconTrash className="w-3.5 h-3.5" />
@@ -877,36 +952,49 @@ export default function MetricsPage() {
 
           {/* Table Summary Footer Bar */}
           {sortedMetrics.length > 0 && (
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 pt-2">
-              <div className="bg-white rounded-xl border border-slate-200/80 p-4 shadow-2xs">
-                <p className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">Total Spend In View</p>
-                <p className="text-xl font-bold text-slate-900 mt-1 tabular-nums">
-                  ${sortedMetrics.reduce((sum, m) => sum + m.ad_spend, 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 pt-2">
+              <div className="bg-[#111113] rounded-2xl border border-zinc-800/80 p-5 hover:border-zinc-700 transition-all duration-200">
+                <p className="text-[10px] font-semibold text-zinc-500 uppercase tracking-wider">
+                  Total Spend In View
+                </p>
+                <p className="text-2xl font-bold text-zinc-100 mt-2 tracking-tight tabular-nums">
+                  ${sortedMetrics
+                    .reduce((sum, m) => sum + m.ad_spend, 0)
+                    .toLocaleString('en-US', {
+                      minimumFractionDigits: 2,
+                      maximumFractionDigits: 2,
+                    })}
                 </p>
               </div>
 
-              <div className="bg-white rounded-xl border border-slate-200/80 p-4 shadow-2xs">
-                <p className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">Total Leads In View</p>
-                <p className="text-xl font-bold text-slate-900 mt-1 tabular-nums">
+              <div className="bg-[#111113] rounded-2xl border border-zinc-800/80 p-5 hover:border-zinc-700 transition-all duration-200">
+                <p className="text-[10px] font-semibold text-zinc-500 uppercase tracking-wider">
+                  Total Leads In View
+                </p>
+                <p className="text-2xl font-bold text-zinc-100 mt-2 tracking-tight tabular-nums">
                   {sortedMetrics.reduce((sum, m) => sum + m.leads, 0).toLocaleString()}
                 </p>
               </div>
 
-              <div className="bg-white rounded-xl border border-slate-200/80 p-4 shadow-2xs">
-                <p className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">Total Conversions</p>
-                <p className="text-xl font-bold text-slate-900 mt-1 tabular-nums">
+              <div className="bg-[#111113] rounded-2xl border border-zinc-800/80 p-5 hover:border-zinc-700 transition-all duration-200">
+                <p className="text-[10px] font-semibold text-zinc-500 uppercase tracking-wider">
+                  Total Conversions
+                </p>
+                <p className="text-2xl font-bold text-zinc-100 mt-2 tracking-tight tabular-nums">
                   {sortedMetrics.reduce((sum, m) => sum + m.conversions, 0).toLocaleString()}
                 </p>
               </div>
 
-              <div className="bg-white rounded-xl border border-slate-200/80 p-4 shadow-2xs">
-                <p className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">Average Period CPL</p>
-                <p className="text-xl font-bold text-slate-900 mt-1 tabular-nums">
+              <div className="bg-[#111113] rounded-2xl border border-zinc-800/80 p-5 hover:border-zinc-700 transition-all duration-200">
+                <p className="text-[10px] font-semibold text-zinc-500 uppercase tracking-wider">
+                  Average Period CPL
+                </p>
+                <p className="text-2xl font-bold text-zinc-100 mt-2 tracking-tight tabular-nums">
                   ${(
                     sortedMetrics
-                      .filter(m => m.cost_per_lead)
+                      .filter((m) => m.cost_per_lead)
                       .reduce((sum, m) => sum + (m.cost_per_lead || 0), 0) /
-                    (sortedMetrics.filter(m => m.cost_per_lead).length || 1)
+                    (sortedMetrics.filter((m) => m.cost_per_lead).length || 1)
                   ).toFixed(2)}
                 </p>
               </div>

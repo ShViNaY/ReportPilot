@@ -32,11 +32,11 @@ const chartConfig = {
   },
   leads: {
     label: 'Leads',
-    color: '#a1a1aa',
+    color: '#38bdf8',
   },
   conversions: {
     label: 'Conversions',
-    color: '#71717a',
+    color: '#fbbf24',
   },
 } satisfies ChartConfig;
 
@@ -134,14 +134,14 @@ export function CampaignChart({
           />
           <Bar
             dataKey="leads"
-            fill="#a1a1aa"
+            fill="#38bdf8"
             radius={[4, 4, 0, 0]}
             maxBarSize={36}
             isAnimationActive={false}
           />
           <Bar
             dataKey="conversions"
-            fill="#71717a"
+            fill="#fbbf24"
             radius={[4, 4, 0, 0]}
             maxBarSize={36}
             isAnimationActive={false}

@@ -31,11 +31,11 @@ const chartConfig = {
   },
   leads: {
     label: 'Leads',
-    color: '#a1a1aa',
+    color: '#38bdf8',
   },
   conversions: {
     label: 'Conversions',
-    color: '#71717a',
+    color: '#fbbf24',
   },
 } satisfies ChartConfig;
 
@@ -115,12 +115,12 @@ export function TrendChart({ metrics, title }: TrendChartProps) {
               <stop offset="95%" stopColor="#a3e635" stopOpacity={0.0} />
             </linearGradient>
             <linearGradient id="fillLeads" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="5%" stopColor="#a1a1aa" stopOpacity={0.12} />
-              <stop offset="95%" stopColor="#a1a1aa" stopOpacity={0.0} />
+              <stop offset="5%" stopColor="#38bdf8" stopOpacity={0.25} />
+              <stop offset="95%" stopColor="#38bdf8" stopOpacity={0.0} />
             </linearGradient>
             <linearGradient id="fillConversions" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="5%" stopColor="#71717a" stopOpacity={0.08} />
-              <stop offset="95%" stopColor="#71717a" stopOpacity={0.0} />
+              <stop offset="5%" stopColor="#fbbf24" stopOpacity={0.25} />
+              <stop offset="95%" stopColor="#fbbf24" stopOpacity={0.0} />
             </linearGradient>
           </defs>
 
@@ -166,17 +166,17 @@ export function TrendChart({ metrics, title }: TrendChartProps) {
           <Area
             type="monotone"
             dataKey="leads"
-            stroke="#a1a1aa"
+            stroke="#38bdf8"
             fill="url(#fillLeads)"
-            strokeWidth={1.75}
+            strokeWidth={2}
             isAnimationActive={false}
           />
           <Area
             type="monotone"
             dataKey="conversions"
-            stroke="#71717a"
+            stroke="#fbbf24"
             fill="url(#fillConversions)"
-            strokeWidth={1.75}
+            strokeWidth={2}
             isAnimationActive={false}
           />
         </AreaChart>
