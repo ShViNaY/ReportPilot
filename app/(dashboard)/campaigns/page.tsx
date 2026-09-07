@@ -7,8 +7,6 @@ import Link from 'next/link';
 import { ProtectedRoute } from '@/lib/context/ProtectedRoute';
 import { useAuth } from '@/lib/context/AuthContext';
 import { DashboardLayout } from '@/components/layouts/DashboardLayout';
-import { Button } from '@/components/common/Button';
-import { Input } from '@/components/common/Input';
 import { apiFetch } from '@/lib/utils/apiClient';
 import { Campaign, Client } from '@/types';
 import {
@@ -17,7 +15,6 @@ import {
   IconTrash,
   IconMetrics,
   IconPlus,
-  IconArrowUpRight,
 } from '@/components/common/Icons';
 
 export default function CampaignsPage() {
@@ -199,7 +196,7 @@ export default function CampaignsPage() {
 
       // Update local state
       setCampaigns(
-        campaigns.map(c =>
+        campaigns.map((c) =>
           c.id === campaignId ? { ...c, status: newStatus } : c
         )
       );
@@ -226,7 +223,7 @@ export default function CampaignsPage() {
         return;
       }
 
-      setCampaigns(campaigns.filter(c => c.id !== campaignId));
+      setCampaigns(campaigns.filter((c) => c.id !== campaignId));
     } catch (err) {
       setError('Failed to delete campaign');
       console.error(err);
@@ -235,12 +232,12 @@ export default function CampaignsPage() {
 
   // Get client name by ID
   const getClientName = (clientId: string) => {
-    return clients.find(c => c.id === clientId)?.name || 'Unknown Client';
+    return clients.find((c) => c.id === clientId)?.name || 'Unknown Client';
   };
 
   // Filter campaigns if client_id is provided
   const filteredCampaigns = filterClientId
-    ? campaigns.filter(c => c.client_id === filterClientId)
+    ? campaigns.filter((c) => c.client_id === filterClientId)
     : campaigns;
 
   if (isLoading) {
@@ -249,26 +246,8 @@ export default function CampaignsPage() {
         <DashboardLayout>
           <div className="flex items-center justify-center min-h-[60vh]">
             <div className="text-center space-y-3">
-              <svg
-                className="w-10 h-10 text-indigo-600 animate-spin mx-auto"
-                fill="none"
-                viewBox="0 0 24 24"
-              >
-                <circle
-                  className="opacity-25"
-                  cx="12"
-                  cy="12"
-                  r="10"
-                  stroke="currentColor"
-                  strokeWidth="3.5"
-                />
-                <path
-                  className="opacity-90"
-                  fill="currentColor"
-                  d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
-                />
-              </svg>
-              <p className="text-sm font-medium text-slate-500">Loading campaigns...</p>
+              <div className="w-10 h-10 rounded-full border-2 border-zinc-800 border-t-lime-400 animate-spin mx-auto" />
+              <p className="text-sm font-medium text-zinc-500">Loading campaigns...</p>
             </div>
           </div>
         </DashboardLayout>
@@ -279,62 +258,64 @@ export default function CampaignsPage() {
   return (
     <ProtectedRoute>
       <DashboardLayout>
-        <div className="space-y-6">
+        <div className="space-y-6 max-w-7xl mx-auto">
           {/* Header */}
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>
-              <div className="flex items-center gap-2">
-                <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 tracking-tight">Campaigns</h1>
+              <div className="flex items-center gap-2.5 flex-wrap">
+                <h1 className="text-2xl sm:text-3xl font-bold text-zinc-100 tracking-tight">Campaigns</h1>
                 {filterClientId && (
-                  <span className="text-xs font-semibold text-indigo-700 bg-indigo-50 border border-indigo-200/80 px-2.5 py-0.5 rounded-full">
+                  <span className="text-xs font-semibold text-lime-400 bg-lime-400/10 border border-lime-400/20 px-2.5 py-0.5 rounded-full">
                     Filtered: {getClientName(filterClientId)}
                   </span>
                 )}
               </div>
-              <p className="text-xs sm:text-sm text-slate-500 mt-0.5">
+              <p className="text-xs sm:text-sm text-zinc-500 mt-1">
                 {filterClientId
                   ? `Showing active campaigns for ${getClientName(filterClientId)}`
                   : 'Manage and monitor all active agency advertising channels'}
               </p>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 self-start sm:self-auto">
               {filterClientId && (
                 <Link
                   href="/campaigns"
-                  className="px-3 py-2 bg-white border border-slate-200 hover:bg-slate-50 text-slate-600 rounded-lg text-xs font-semibold transition-colors"
+                  className="px-3.5 py-2 bg-zinc-900 border border-zinc-800 hover:bg-zinc-850 hover:border-zinc-700 text-zinc-300 hover:text-zinc-100 rounded-full text-xs font-medium transition-colors"
                 >
                   View All Clients
                 </Link>
               )}
-              <Button
+              <button
+                type="button"
                 onClick={() => {
                   if (showForm) {
                     resetForm();
                   }
                   setShowForm(!showForm);
                 }}
-                className="bg-indigo-600 hover:bg-indigo-700 text-white self-start sm:self-auto"
+                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-lime-400 hover:bg-lime-300 text-black text-xs font-semibold shadow-xs transition-all active:scale-98 cursor-pointer"
               >
-                {showForm ? 'Cancel' : '+ Add Campaign'}
-              </Button>
+                <IconPlus className="w-3.5 h-3.5 stroke-[2.5]" />
+                <span>{showForm ? 'Cancel' : 'Add Campaign'}</span>
+              </button>
             </div>
           </div>
 
           {/* Error Message */}
           {error && (
-            <div className="rounded-xl bg-rose-50 border border-rose-200/80 p-4">
-              <p className="text-sm text-rose-700 font-medium">{error}</p>
+            <div className="rounded-xl bg-rose-950/40 border border-rose-900/60 p-4">
+              <p className="text-xs sm:text-sm text-rose-400 font-medium">{error}</p>
             </div>
           )}
 
           {/* Create / Edit Form */}
           {showForm && (
-            <div className="bg-white rounded-xl border border-slate-200/80 p-6 shadow-xs">
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="text-base font-semibold text-slate-900">
+            <div className="bg-[#111113] rounded-2xl border border-zinc-800/80 p-6 shadow-xl space-y-4">
+              <div className="flex items-center justify-between">
+                <h2 className="text-base font-semibold text-zinc-100">
                   {editingCampaignId ? 'Edit Campaign Details' : 'Launch New Campaign'}
                 </h2>
-                <span className="text-xs text-slate-400">
+                <span className="text-xs text-zinc-500 font-mono">
                   {editingCampaignId ? 'Updating existing record' : 'Agency campaign setup'}
                 </span>
               </div>
@@ -342,8 +323,8 @@ export default function CampaignsPage() {
               <form onSubmit={handleSubmit} className="space-y-4">
                 {/* Client Selector */}
                 <div className="space-y-1.5">
-                  <label className="block text-xs font-semibold text-slate-700 tracking-wide">
-                    Client Account
+                  <label className="block text-xs font-medium text-zinc-300">
+                    Client Account <span className="text-lime-400">*</span>
                   </label>
                   <select
                     value={formData.client_id}
@@ -351,35 +332,43 @@ export default function CampaignsPage() {
                       setFormData({ ...formData, client_id: e.target.value })
                     }
                     disabled={editingCampaignId !== null}
-                    className="block w-full rounded-lg border border-slate-200 bg-white px-3.5 py-2 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-600/20 focus:border-indigo-600 disabled:bg-slate-50 disabled:text-slate-500 shadow-2xs"
+                    className="w-full h-11 bg-zinc-950 border border-zinc-800 rounded-xl px-4 text-sm text-zinc-100 focus:outline-none focus:border-lime-400 focus:ring-1 focus:ring-lime-400/30 disabled:opacity-50 transition-colors cursor-pointer"
                     required
                   >
-                    <option value="">Select a client...</option>
-                    {clients.map(client => (
-                      <option key={client.id} value={client.id}>
+                    <option value="" className="bg-zinc-950 text-zinc-300">
+                      Select a client...
+                    </option>
+                    {clients.map((client) => (
+                      <option key={client.id} value={client.id} className="bg-zinc-900 text-zinc-200">
                         {client.name}
                       </option>
                     ))}
                   </select>
                   {editingCampaignId && (
-                    <p className="text-[11px] text-slate-400 mt-1">Client cannot be changed once created.</p>
+                    <p className="text-[11px] text-zinc-500 mt-1">Client cannot be changed once created.</p>
                   )}
                 </div>
 
-                <Input
-                  label="Campaign Name"
-                  type="text"
-                  placeholder="e.g. Q4 Brand Awareness - Search"
-                  value={formData.name}
-                  onChange={(e) =>
-                    setFormData({ ...formData, name: e.target.value })
-                  }
-                  required
-                />
+                {/* Campaign Name */}
+                <div className="space-y-1.5">
+                  <label className="block text-xs font-medium text-zinc-300">
+                    Campaign Name <span className="text-lime-400">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="e.g. Q4 Brand Awareness - Search"
+                    value={formData.name}
+                    onChange={(e) =>
+                      setFormData({ ...formData, name: e.target.value })
+                    }
+                    className="w-full h-11 bg-zinc-950 border border-zinc-800 rounded-xl px-4 text-sm text-zinc-100 placeholder:text-zinc-600 focus:outline-none focus:border-lime-400 focus:ring-1 focus:ring-lime-400/30 transition-colors"
+                  />
+                </div>
 
                 {/* Platform Selector */}
                 <div className="space-y-1.5">
-                  <label className="block text-xs font-semibold text-slate-700 tracking-wide">
+                  <label className="block text-xs font-medium text-zinc-300">
                     Platform Channel
                   </label>
                   <select
@@ -390,52 +379,63 @@ export default function CampaignsPage() {
                         platform: e.target.value,
                       })
                     }
-                    className="block w-full rounded-lg border border-slate-200 bg-white px-3.5 py-2 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-600/20 focus:border-indigo-600 shadow-2xs"
+                    className="w-full h-11 bg-zinc-950 border border-zinc-800 rounded-xl px-4 text-sm text-zinc-100 focus:outline-none focus:border-lime-400 focus:ring-1 focus:ring-lime-400/30 transition-colors cursor-pointer"
                   >
-                    <option value="google_ads">Google Ads</option>
-                    <option value="meta_ads">Meta Ads</option>
-                    <option value="other">Other (Custom platform)</option>
+                    <option value="google_ads" className="bg-zinc-950 text-zinc-200">
+                      Google Ads
+                    </option>
+                    <option value="meta_ads" className="bg-zinc-950 text-zinc-200">
+                      Meta Ads
+                    </option>
+                    <option value="other" className="bg-zinc-950 text-zinc-200">
+                      Other (Custom platform)
+                    </option>
                   </select>
                 </div>
 
                 {/* Custom Platform Input when 'other' is selected */}
                 {formData.platform === 'other' && (
-                  <Input
-                    label="Specify Platform Name"
-                    type="text"
-                    placeholder="e.g. LinkedIn, TikTok, X, Pinterest"
-                    value={formData.custom_platform}
-                    onChange={(e) =>
-                      setFormData({ ...formData, custom_platform: e.target.value })
-                    }
-                    required
-                  />
+                  <div className="space-y-1.5">
+                    <label className="block text-xs font-medium text-zinc-300">
+                      Specify Platform Name <span className="text-lime-400">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      placeholder="e.g. LinkedIn, TikTok, X, Pinterest"
+                      value={formData.custom_platform}
+                      onChange={(e) =>
+                        setFormData({ ...formData, custom_platform: e.target.value })
+                      }
+                      className="w-full h-11 bg-zinc-950 border border-zinc-800 rounded-xl px-4 text-sm text-zinc-100 placeholder:text-zinc-600 focus:outline-none focus:border-lime-400 focus:ring-1 focus:ring-lime-400/30 transition-colors"
+                    />
+                  </div>
                 )}
 
                 {formError && (
-                  <p className="text-xs text-rose-700 bg-rose-50 border border-rose-200/80 rounded-lg p-2.5">
+                  <p className="text-xs text-rose-400 bg-rose-950/40 border border-rose-900/60 rounded-xl p-3">
                     {formError}
                   </p>
                 )}
 
-                <div className="flex gap-2.5 pt-2">
-                  <Button
+                <div className="flex items-center gap-3 pt-2">
+                  <button
                     type="submit"
-                    isLoading={isSubmitting}
-                    className="bg-indigo-600 hover:bg-indigo-700 text-white"
+                    disabled={isSubmitting}
+                    className="inline-flex items-center justify-center px-5 py-2.5 rounded-full bg-lime-400 hover:bg-lime-300 text-black text-xs font-semibold transition-all active:scale-98 disabled:opacity-60 cursor-pointer shadow-xs"
                   >
-                    {editingCampaignId ? 'Update Campaign' : 'Create Campaign'}
-                  </Button>
-                  <Button
+                    {isSubmitting ? 'Saving...' : editingCampaignId ? 'Update Campaign' : 'Create Campaign'}
+                  </button>
+                  <button
                     type="button"
                     onClick={() => {
                       resetForm();
                       setShowForm(false);
                     }}
-                    variant="secondary"
+                    className="inline-flex items-center justify-center px-4 py-2.5 rounded-full bg-zinc-900 hover:bg-zinc-850 border border-zinc-800 text-zinc-300 text-xs font-medium transition-colors cursor-pointer"
                   >
                     Cancel
-                  </Button>
+                  </button>
                 </div>
               </form>
             </div>
@@ -443,27 +443,28 @@ export default function CampaignsPage() {
 
           {/* Campaigns List */}
           {filteredCampaigns.length === 0 ? (
-            <div className="rounded-2xl border-2 border-dashed border-slate-200 p-12 text-center space-y-4 bg-white/60">
-              <div className="w-12 h-12 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center mx-auto">
+            <div className="rounded-2xl border border-dashed border-zinc-800/90 p-12 text-center space-y-4 bg-[#111113]/50">
+              <div className="w-12 h-12 rounded-2xl bg-zinc-900 border border-zinc-800 text-lime-400 flex items-center justify-center mx-auto">
                 <IconCampaigns className="w-6 h-6" />
               </div>
               <div>
-                <p className="text-base font-semibold text-slate-800">
+                <p className="text-base font-semibold text-zinc-200">
                   {filterClientId ? 'No campaigns found for this client' : 'No campaigns yet'}
                 </p>
-                <p className="text-xs text-slate-500 mt-1">
+                <p className="text-xs text-zinc-500 mt-1">
                   Create your first marketing campaign to start logging impressions, leads, and spend.
                 </p>
               </div>
-              <Button
+              <button
+                type="button"
                 onClick={() => {
                   resetForm();
                   setShowForm(true);
                 }}
-                className="bg-indigo-600 hover:bg-indigo-700 text-white shadow-xs"
+                className="inline-flex items-center justify-center px-4 py-2 rounded-full bg-lime-400 hover:bg-lime-300 text-black text-xs font-semibold shadow-xs transition-all active:scale-98 cursor-pointer"
               >
                 Create Your First Campaign
-              </Button>
+              </button>
             </div>
           ) : (
             <div className="space-y-3">
@@ -479,13 +480,13 @@ export default function CampaignsPage() {
                 return (
                   <div
                     key={campaign.id}
-                    className="bg-white rounded-xl border border-slate-200/80 p-5 shadow-xs hover:border-slate-300 hover:shadow-sm transition-all"
+                    className="bg-[#111113] rounded-2xl border border-zinc-800/80 p-5 sm:p-6 hover:border-zinc-700 transition-all duration-200 shadow-xs"
                   >
                     <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                       {/* Campaign Info */}
                       <div className="space-y-2 flex-1 min-w-0">
                         <div className="flex items-center gap-2.5 flex-wrap">
-                          <h3 className="text-base font-bold text-slate-900 tracking-tight">
+                          <h3 className="text-base font-bold text-zinc-100 tracking-tight">
                             {campaign.name}
                           </h3>
 
@@ -493,38 +494,38 @@ export default function CampaignsPage() {
                           <span
                             className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold ${
                               campaign.status === 'active'
-                                ? 'bg-emerald-50 text-emerald-700 border border-emerald-200/80'
+                                ? 'bg-lime-400/10 text-lime-400 border border-lime-400/20'
                                 : campaign.status === 'paused'
-                                ? 'bg-amber-50 text-amber-700 border border-amber-200/80'
-                                : 'bg-slate-100 text-slate-700 border border-slate-200'
+                                ? 'bg-amber-400/10 text-amber-400 border border-amber-400/20'
+                                : 'bg-zinc-800/80 text-zinc-400 border border-zinc-700/80'
                             }`}
                           >
                             <span
                               className={`w-1.5 h-1.5 rounded-full ${
                                 campaign.status === 'active'
-                                  ? 'bg-emerald-500'
+                                  ? 'bg-lime-400'
                                   : campaign.status === 'paused'
-                                  ? 'bg-amber-500'
-                                  : 'bg-slate-400'
+                                  ? 'bg-amber-400'
+                                  : 'bg-zinc-500'
                               }`}
                             />
                             <span className="capitalize">{campaign.status}</span>
                           </span>
 
                           {/* Platform Badge */}
-                          <span className="text-[11px] font-semibold text-slate-600 bg-slate-100 px-2.5 py-0.5 rounded-md">
+                          <span className="text-[11px] font-medium text-zinc-400 bg-zinc-900 border border-zinc-800 px-2.5 py-0.5 rounded-lg">
                             {platformLabel}
                           </span>
                         </div>
 
-                        <div className="flex flex-wrap items-center gap-3 text-xs text-slate-500">
+                        <div className="flex flex-wrap items-center gap-3 text-xs text-zinc-500">
                           <p>
                             Client:{' '}
-                            <span className="font-semibold text-slate-800">
+                            <span className="font-semibold text-zinc-300">
                               {getClientName(campaign.client_id)}
                             </span>
                           </p>
-                          <span>•</span>
+                          <span className="text-zinc-700">•</span>
                           <p>
                             Created {new Date(campaign.created_at).toLocaleDateString()}
                           </p>
@@ -542,29 +543,29 @@ export default function CampaignsPage() {
                               e.target.value as 'active' | 'paused' | 'completed'
                             )
                           }
-                          className="px-2.5 py-1.5 text-xs bg-white text-slate-800 border border-slate-200 rounded-lg hover:border-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-600/20 font-medium cursor-pointer shadow-2xs"
+                          className="px-3 py-1.5 text-xs bg-zinc-900 text-zinc-200 border border-zinc-800 hover:border-zinc-700 rounded-xl focus:outline-none focus:ring-1 focus:ring-lime-400/50 focus:border-lime-400 font-medium cursor-pointer transition-colors"
                         >
-                          <option value="active">Active</option>
-                          <option value="paused">Paused</option>
-                          <option value="completed">Completed</option>
+                          <option value="active" className="bg-zinc-900 text-zinc-200">Active</option>
+                          <option value="paused" className="bg-zinc-900 text-zinc-200">Paused</option>
+                          <option value="completed" className="bg-zinc-900 text-zinc-200">Completed</option>
                         </select>
 
                         {/* Edit Button */}
                         <button
                           type="button"
                           onClick={() => handleEdit(campaign)}
-                          className="inline-flex items-center gap-1 px-3 py-1.5 bg-slate-50 hover:bg-slate-100 text-slate-700 border border-slate-200/80 rounded-lg text-xs font-semibold transition-colors cursor-pointer"
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-zinc-900 hover:bg-zinc-850 text-zinc-200 hover:text-zinc-100 border border-zinc-800 hover:border-zinc-700 rounded-xl text-xs font-medium transition-all cursor-pointer"
                         >
-                          <IconEdit className="w-3.5 h-3.5 text-slate-500" />
+                          <IconEdit className="w-3.5 h-3.5 text-zinc-400" />
                           <span>Edit</span>
                         </button>
 
                         {/* View Metrics Link */}
                         <Link
                           href={`/metrics?campaign_id=${campaign.id}`}
-                          className="inline-flex items-center gap-1 px-3 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded-lg text-xs font-semibold transition-colors"
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-zinc-900 hover:bg-zinc-850 text-zinc-200 hover:text-zinc-100 border border-zinc-800 hover:border-zinc-700 rounded-xl text-xs font-medium transition-all cursor-pointer"
                         >
-                          <IconMetrics className="w-3.5 h-3.5" />
+                          <IconMetrics className="w-3.5 h-3.5 text-zinc-400" />
                           <span>Metrics</span>
                         </Link>
 
@@ -573,8 +574,9 @@ export default function CampaignsPage() {
                           <button
                             type="button"
                             onClick={() => handleDelete(campaign.id)}
-                            className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors border border-transparent hover:border-rose-100 cursor-pointer"
+                            className="p-1.5 text-zinc-500 hover:text-rose-400 hover:bg-zinc-900 rounded-xl transition-colors border border-transparent hover:border-zinc-800 cursor-pointer"
                             title="Delete Campaign"
+                            aria-label="Delete Campaign"
                           >
                             <IconTrash className="w-4 h-4" />
                           </button>
@@ -590,4 +592,4 @@ export default function CampaignsPage() {
       </DashboardLayout>
     </ProtectedRoute>
   );
-}
+}
