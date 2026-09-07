@@ -15,17 +15,6 @@ export function HeroSection() {
         <div className="relative">
           {/* Main Hero Column */}
           <div className="max-w-3xl space-y-6 sm:space-y-8">
-            {/* Announcement Badges */}
-            <div className="flex flex-wrap items-center gap-2.5">
-              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-50 border border-emerald-200/80 text-xs font-semibold text-emerald-800 shadow-2xs">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                <span>Built for High-Velocity Marketing Agencies</span>
-              </div>
-              <div className="inline-flex items-center px-3 py-1 rounded-full bg-emerald-50 border border-emerald-200/80 text-xs font-semibold text-emerald-800 shadow-2xs">
-                <span>Client Portals Included</span>
-              </div>
-            </div>
-
             {/* Headline */}
             <h1 className="text-4xl sm:text-6xl lg:text-7xl font-extrabold text-slate-900 tracking-tight leading-[1.12]">
               Campaign reporting, <br className="hidden sm:inline" />
