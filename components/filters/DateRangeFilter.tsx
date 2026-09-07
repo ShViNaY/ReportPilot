@@ -3,6 +3,7 @@
 
 import { useState } from 'react';
 import { IconCalendar } from '@/components/common/Icons';
+import { DarkDatePicker } from '@/components/common/DarkDatePicker';
 
 export type DateRange = 'thisMonth' | 'lastMonth' | 'last3Months' | 'last6Months' | 'custom';
 
@@ -112,32 +113,31 @@ export function DateRangeFilter({ selectedRange, onRangeChange }: DateRangeFilte
 
       {/* Custom Date Range Popout / Drawer */}
       {showCustom && (
-        <div className="flex items-end gap-2 p-3 bg-zinc-900 border border-zinc-800 rounded-xl shadow-xl w-full sm:w-auto">
+        <div className="flex items-end gap-2.5 p-2.5 bg-zinc-900 border border-zinc-800 rounded-xl shadow-xl w-full sm:w-auto">
           <div>
             <label className="block text-[11px] font-semibold text-zinc-400 mb-1">
               Start Date
             </label>
-            <input
-              type="date"
+            <DarkDatePicker
               value={customStart}
-              onChange={(e) => setCustomStart(e.target.value)}
-              className="px-2.5 py-1.5 bg-zinc-950 border border-zinc-800 rounded-lg text-xs text-zinc-100 focus:outline-none focus:ring-1 focus:ring-lime-400/50 focus:border-lime-400 scheme-dark"
+              onChange={(val) => setCustomStart(val)}
+              triggerClassName="w-36 h-8 px-2.5 rounded-lg text-xs"
             />
           </div>
           <div>
             <label className="block text-[11px] font-semibold text-zinc-400 mb-1">
               End Date
             </label>
-            <input
-              type="date"
+            <DarkDatePicker
               value={customEnd}
-              onChange={(e) => setCustomEnd(e.target.value)}
-              className="px-2.5 py-1.5 bg-zinc-950 border border-zinc-800 rounded-lg text-xs text-zinc-100 focus:outline-none focus:ring-1 focus:ring-lime-400/50 focus:border-lime-400 scheme-dark"
+              onChange={(val) => setCustomEnd(val)}
+              align="right"
+              triggerClassName="w-36 h-8 px-2.5 rounded-lg text-xs"
             />
           </div>
           <button
             onClick={handleCustomApply}
-            className="px-3.5 py-1.5 bg-lime-400 hover:bg-lime-300 text-black rounded-lg text-xs font-semibold transition-colors shadow-2xs cursor-pointer"
+            className="h-8 px-3.5 bg-lime-400 hover:bg-lime-300 text-black rounded-lg text-xs font-semibold transition-colors shadow-2xs cursor-pointer flex items-center justify-center shrink-0"
           >
             Apply
           </button>
