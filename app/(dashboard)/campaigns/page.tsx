@@ -1,7 +1,7 @@
 // app/(dashboard)/campaigns/page.tsx
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { ProtectedRoute } from '@/lib/context/ProtectedRoute';
@@ -16,6 +16,108 @@ import {
   IconMetrics,
   IconPlus,
 } from '@/components/common/Icons';
+
+function CampaignStatusSelect({
+  status,
+  onChange,
+}: {
+  status: 'active' | 'paused' | 'completed';
+  onChange: (status: 'active' | 'paused' | 'completed') => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setOpen(false);
+      }
+    }
+    if (open) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [open]);
+
+  const options: Array<{
+    value: 'active' | 'paused' | 'completed';
+    label: string;
+    dotColor: string;
+  }> = [
+    { value: 'active', label: 'Active', dotColor: 'bg-lime-400' },
+    { value: 'paused', label: 'Paused', dotColor: 'bg-amber-400' },
+    { value: 'completed', label: 'Completed', dotColor: 'bg-zinc-500' },
+  ];
+
+  const currentOption = options.find((opt) => opt.value === status) || options[0];
+
+  return (
+    <div ref={dropdownRef} className="relative inline-block text-left">
+      <button
+        type="button"
+        onClick={() => setOpen(!open)}
+        className="inline-flex items-center gap-2 px-3 py-1.5 bg-zinc-900 hover:bg-zinc-850 text-zinc-200 hover:text-zinc-100 border border-zinc-800 hover:border-zinc-700 rounded-xl text-xs font-medium transition-all cursor-pointer shadow-2xs focus:outline-none focus:border-zinc-700"
+      >
+        <span className={`w-1.5 h-1.5 rounded-full ${currentOption.dotColor}`} />
+        <span className="capitalize">{currentOption.label}</span>
+        <svg
+          className={`w-3.5 h-3.5 text-zinc-400 transition-transform duration-200 ${
+            open ? 'rotate-180' : ''
+          }`}
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        >
+          <polyline points="6 9 12 15 18 9" />
+        </svg>
+      </button>
+
+      {open && (
+        <div className="absolute right-0 top-full mt-1.5 z-50 w-36 bg-[#141416] border border-zinc-800 rounded-xl p-1 shadow-xl shadow-black/80 space-y-0.5">
+          {options.map((option) => {
+            const isSelected = option.value === status;
+            return (
+              <button
+                key={option.value}
+                type="button"
+                onClick={() => {
+                  onChange(option.value);
+                  setOpen(false);
+                }}
+                className={`w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-xs font-medium text-left transition-colors cursor-pointer ${
+                  isSelected
+                    ? 'bg-zinc-800/80 text-zinc-100 font-semibold'
+                    : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-850/60'
+                }`}
+              >
+                <span className={`w-1.5 h-1.5 rounded-full ${option.dotColor}`} />
+                <span className="flex-1">{option.label}</span>
+                {isSelected && (
+                  <svg
+                    className="w-3.5 h-3.5 text-lime-400"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2.5"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <polyline points="20 6 9 17 4 12" />
+                  </svg>
+                )}
+              </button>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
 
 export default function CampaignsPage() {
   const { user } = useAuth();
@@ -535,20 +637,12 @@ export default function CampaignsPage() {
                       {/* Actions Toolbar */}
                       <div className="flex items-center gap-2 self-start md:self-auto flex-wrap">
                         {/* Status Select */}
-                        <select
-                          value={campaign.status}
-                          onChange={(e) =>
-                            handleStatusChange(
-                              campaign.id,
-                              e.target.value as 'active' | 'paused' | 'completed'
-                            )
+                        <CampaignStatusSelect
+                          status={campaign.status}
+                          onChange={(newStatus) =>
+                            handleStatusChange(campaign.id, newStatus)
                           }
-                          className="px-3 py-1.5 text-xs bg-zinc-900 text-zinc-200 border border-zinc-800 hover:border-zinc-700 rounded-xl focus:outline-none focus:ring-1 focus:ring-lime-400/50 focus:border-lime-400 font-medium cursor-pointer transition-colors"
-                        >
-                          <option value="active" className="bg-zinc-900 text-zinc-200">Active</option>
-                          <option value="paused" className="bg-zinc-900 text-zinc-200">Paused</option>
-                          <option value="completed" className="bg-zinc-900 text-zinc-200">Completed</option>
-                        </select>
+                        />
 
                         {/* Edit Button */}
                         <button

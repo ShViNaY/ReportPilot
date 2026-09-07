@@ -585,7 +585,7 @@ export default function ClientsPage() {
                             {pt.generatedToken && (
                               <div className="mt-2 rounded-xl border border-zinc-800 bg-zinc-900/90 p-3.5 space-y-2.5">
                                 <p className="text-xs font-semibold text-zinc-200 flex items-center gap-1.5">
-                                  <span>🔑 Generated Portal Link</span>
+                                  <span>🔗 Generated Portal Link</span>
                                 </p>
                                 <p className="text-[11px] font-mono text-zinc-300 break-all select-all leading-relaxed bg-zinc-950 rounded-lg p-2.5 border border-zinc-800">
                                   {typeof window !== 'undefined'

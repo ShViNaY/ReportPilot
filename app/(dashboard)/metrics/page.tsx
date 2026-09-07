@@ -1,7 +1,7 @@
 // app/(dashboard)/metrics/page.tsx
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { ProtectedRoute } from '@/lib/context/ProtectedRoute';
 import { DashboardLayout } from '@/components/layouts/DashboardLayout';
@@ -19,6 +19,115 @@ import {
   IconPlus,
   IconX,
 } from '@/components/common/Icons';
+
+function DarkDropdown({
+  value,
+  onChange,
+  options,
+  placeholder,
+  align = 'left',
+  className = '',
+  triggerClassName,
+}: {
+  value: string;
+  onChange: (value: string) => void;
+  options: { value: string; label: string }[];
+  placeholder?: string;
+  align?: 'left' | 'right';
+  className?: string;
+  triggerClassName?: string;
+}) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (ref.current && !ref.current.contains(event.target as Node)) {
+        setOpen(false);
+      }
+    }
+    if (open) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [open]);
+
+  const selected = options.find((o) => o.value === value);
+  const displayLabel = selected?.label || placeholder || options[0]?.label || '';
+
+  return (
+    <div ref={ref} className={`relative inline-block text-left ${className}`}>
+      <button
+        type="button"
+        onClick={() => setOpen(!open)}
+        className={`inline-flex items-center justify-between gap-2.5 rounded-xl text-xs font-medium transition-all cursor-pointer shadow-2xs border ${
+          open
+            ? 'border-zinc-700 bg-zinc-900 text-zinc-100 ring-1 ring-zinc-700/50'
+            : 'border-zinc-800 hover:border-zinc-700 text-zinc-200 hover:text-zinc-100'
+        } ${triggerClassName || 'px-3 py-1.5 bg-zinc-950 hover:bg-zinc-900'}`}
+      >
+        <span className="truncate max-w-[200px]">{displayLabel}</span>
+        <svg
+          className={`w-3.5 h-3.5 text-zinc-400 shrink-0 transition-transform duration-200 ${
+            open ? 'rotate-180 text-zinc-200' : ''
+          }`}
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        >
+          <polyline points="6 9 12 15 18 9" />
+        </svg>
+      </button>
+
+      {open && (
+        <div
+          className={`absolute top-full mt-1.5 z-50 min-w-[210px] max-h-60 overflow-y-auto bg-[#141416] border border-zinc-800 rounded-xl p-1 shadow-xl shadow-black/80 space-y-0.5 animate-in fade-in zoom-in-95 duration-100 ${
+            align === 'right' ? 'right-0' : 'left-0'
+          }`}
+        >
+          {options.map((option) => {
+            const isSelected = option.value === value;
+            return (
+              <button
+                key={option.value}
+                type="button"
+                onClick={() => {
+                  onChange(option.value);
+                  setOpen(false);
+                }}
+                className={`w-full flex items-center justify-between gap-2 px-2.5 py-1.5 rounded-lg text-xs font-medium text-left transition-colors cursor-pointer ${
+                  isSelected
+                    ? 'bg-zinc-800/80 text-zinc-100 font-semibold'
+                    : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-850/60'
+                }`}
+              >
+                <span className="truncate">{option.label}</span>
+                {isSelected && (
+                  <svg
+                    className="w-3.5 h-3.5 text-lime-400 shrink-0"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2.5"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <polyline points="20 6 9 17 4 12" />
+                  </svg>
+                )}
+              </button>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
 
 export default function MetricsPage() {
   const { user } = useAuth();
@@ -397,20 +506,18 @@ export default function MetricsPage() {
 
             <div className="flex items-center gap-2.5 flex-wrap self-start sm:self-auto">
               {availablePeriods.length > 1 && (
-                <select
+                <DarkDropdown
                   value={selectedPeriod}
-                  onChange={(e) => setSelectedPeriod(e.target.value)}
-                  className="px-3 py-2 text-xs font-medium border border-zinc-800 rounded-xl bg-zinc-900 text-zinc-200 focus:outline-none focus:border-lime-400 cursor-pointer"
-                >
-                  <option value="all" className="bg-zinc-900 text-zinc-200">
-                    All reporting periods
-                  </option>
-                  {availablePeriods.map((period) => (
-                    <option key={period} value={period} className="bg-zinc-900 text-zinc-200">
-                      {formatPeriod(period)}
-                    </option>
-                  ))}
-                </select>
+                  onChange={(val) => setSelectedPeriod(val)}
+                  align="right"
+                  options={[
+                    { value: 'all', label: 'All reporting periods' },
+                    ...availablePeriods.map((period) => ({
+                      value: period,
+                      label: formatPeriod(period),
+                    })),
+                  ]}
+                />
               )}
               <button
                 type="button"
@@ -434,48 +541,44 @@ export default function MetricsPage() {
               {/* Client Selector */}
               <div className="flex items-center gap-2">
                 <span className="text-xs font-semibold text-zinc-400">Client:</span>
-                <select
+                <DarkDropdown
                   value={selectedClientId}
-                  onChange={(e) => {
-                    setSelectedClientId(e.target.value);
+                  onChange={(val) => {
+                    setSelectedClientId(val);
                     setSelectedCampaignId('');
                     setSelectedPeriod('all');
                   }}
-                  className="px-3 py-1.5 text-xs font-medium border border-zinc-800 rounded-xl bg-zinc-950 text-zinc-200 focus:outline-none focus:border-lime-400 focus:ring-1 focus:ring-lime-400/30 transition-colors cursor-pointer"
-                >
-                  {clients.length > 1 && (
-                    <option value="" className="bg-zinc-900 text-zinc-300">
-                      All client accounts
-                    </option>
-                  )}
-                  {clients.map((client) => (
-                    <option key={client.id} value={client.id} className="bg-zinc-900 text-zinc-200">
-                      {client.name}
-                    </option>
-                  ))}
-                </select>
+                  placeholder="All client accounts"
+                  options={[
+                    ...(clients.length > 1
+                      ? [{ value: '', label: 'All client accounts' }]
+                      : []),
+                    ...clients.map((client) => ({
+                      value: client.id,
+                      label: client.name,
+                    })),
+                  ]}
+                />
               </div>
 
               {/* Campaign Selector */}
               <div className="flex items-center gap-2">
                 <span className="text-xs font-semibold text-zinc-400">Campaign:</span>
-                <select
+                <DarkDropdown
                   value={selectedCampaignId}
-                  onChange={(e) => {
-                    setSelectedCampaignId(e.target.value);
+                  onChange={(val) => {
+                    setSelectedCampaignId(val);
                     setSelectedPeriod('all');
                   }}
-                  className="px-3 py-1.5 text-xs font-medium border border-zinc-800 rounded-xl bg-zinc-950 text-zinc-200 focus:outline-none focus:border-lime-400 focus:ring-1 focus:ring-lime-400/30 transition-colors cursor-pointer"
-                >
-                  <option value="" className="bg-zinc-900 text-zinc-300">
-                    All active campaigns
-                  </option>
-                  {availableCampaigns.map((campaign) => (
-                    <option key={campaign.id} value={campaign.id} className="bg-zinc-900 text-zinc-200">
-                      {campaign.name}
-                    </option>
-                  ))}
-                </select>
+                  placeholder="All active campaigns"
+                  options={[
+                    { value: '', label: 'All active campaigns' },
+                    ...availableCampaigns.map((campaign) => ({
+                      value: campaign.id,
+                      label: campaign.name,
+                    })),
+                  ]}
+                />
                 {selectedCampaignId && (
                   <button
                     onClick={() => setSelectedCampaignId('')}
