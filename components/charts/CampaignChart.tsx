@@ -28,15 +28,15 @@ interface CampaignChartProps {
 const chartConfig = {
   spend: {
     label: 'Ad Spend ($)',
-    color: 'var(--chart-1)',
+    color: '#059669',
   },
   leads: {
     label: 'Leads',
-    color: 'var(--chart-2)',
+    color: '#0d9488',
   },
   conversions: {
     label: 'Conversions',
-    color: 'var(--chart-3)',
+    color: '#f59e0b',
   },
 } satisfies ChartConfig;
 
@@ -88,7 +88,7 @@ export function CampaignChart({
       </div>
 
       {/* shadcn Chart Container */}
-      <ChartContainer config={chartConfig} className="min-h-[320px] w-full aspect-auto">
+      <ChartContainer config={chartConfig} className="h-[320px] w-full">
         <BarChart
           accessibilityLayer
           data={campaignData}
@@ -127,21 +127,24 @@ export function CampaignChart({
 
           <Bar
             dataKey="spend"
-            fill="var(--color-spend)"
+            fill="var(--color-spend, #059669)"
             radius={[4, 4, 0, 0]}
             maxBarSize={36}
+            isAnimationActive={false}
           />
           <Bar
             dataKey="leads"
-            fill="var(--color-leads)"
+            fill="var(--color-leads, #0d9488)"
             radius={[4, 4, 0, 0]}
             maxBarSize={36}
+            isAnimationActive={false}
           />
           <Bar
             dataKey="conversions"
-            fill="var(--color-conversions)"
+            fill="var(--color-conversions, #f59e0b)"
             radius={[4, 4, 0, 0]}
             maxBarSize={36}
+            isAnimationActive={false}
           />
         </BarChart>
       </ChartContainer>

@@ -18,9 +18,11 @@ const chartData = [
 export default function HomePage() {
   const { scrollY } = useScroll();
   const [scrolled, setScrolled] = React.useState(false);
+  const [mounted, setMounted] = React.useState(false);
   const shouldReduceMotion = useReducedMotion();
 
   React.useEffect(() => {
+    setMounted(true);
     return scrollY.on('change', (latest) => {
       setScrolled(latest > 80);
     });
@@ -171,50 +173,55 @@ export default function HomePage() {
               {/* Chart */}
               <div className="bg-zinc-950/60 border border-zinc-800/80 rounded-xl p-6">
                 <div className="text-xs text-zinc-500 font-medium mb-4">Ad Spend Trajectory</div>
-                <div className="h-64 w-full">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <AreaChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                      <defs>
-                        <linearGradient id="limeGradient" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="0%" stopColor="#a3e635" stopOpacity={0.25} />
-                          <stop offset="100%" stopColor="#a3e635" stopOpacity={0} />
-                        </linearGradient>
-                      </defs>
-                      <XAxis
-                        dataKey="name"
-                        stroke="#52525b"
-                        fontSize={11}
-                        tickLine={false}
-                        axisLine={false}
-                      />
-                      <YAxis
-                        stroke="#52525b"
-                        fontSize={11}
-                        tickLine={false}
-                        axisLine={false}
-                        tickFormatter={(v) => `$${v}`}
-                      />
-                      <Tooltip
-                        contentStyle={{
-                          backgroundColor: '#09090b',
-                          borderColor: '#27272a',
-                          borderRadius: '8px',
-                          color: '#f43f5e',
-                          fontSize: '12px',
-                        }}
-                        labelStyle={{ color: '#a1a1aa' }}
-                        itemStyle={{ color: '#a3e635' }}
-                        formatter={(value: any) => [`$${value}`, 'Spend']}
-                      />
-                      <Area
-                        type="monotone"
-                        dataKey="spend"
-                        stroke="#a3e635"
-                        strokeWidth={2}
-                        fill="url(#limeGradient)"
-                      />
-                    </AreaChart>
-                  </ResponsiveContainer>
+                <div className="h-64 w-full min-h-[256px]">
+                  {mounted ? (
+                    <ResponsiveContainer width="100%" height={240} minWidth={0} minHeight={200}>
+                      <AreaChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                        <defs>
+                          <linearGradient id="limeGradient" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="0%" stopColor="#a3e635" stopOpacity={0.3} />
+                            <stop offset="100%" stopColor="#a3e635" stopOpacity={0} />
+                          </linearGradient>
+                        </defs>
+                        <XAxis
+                          dataKey="name"
+                          stroke="#71717a"
+                          fontSize={11}
+                          tickLine={false}
+                          axisLine={false}
+                        />
+                        <YAxis
+                          stroke="#71717a"
+                          fontSize={11}
+                          tickLine={false}
+                          axisLine={false}
+                          tickFormatter={(v) => `$${v}`}
+                        />
+                        <Tooltip
+                          contentStyle={{
+                            backgroundColor: '#09090b',
+                            borderColor: '#27272a',
+                            borderRadius: '8px',
+                            color: '#f4f4f5',
+                            fontSize: '12px',
+                          }}
+                          labelStyle={{ color: '#a1a1aa' }}
+                          itemStyle={{ color: '#a3e635' }}
+                          formatter={(value: any) => [`$${value}`, 'Spend']}
+                        />
+                        <Area
+                          type="monotone"
+                          dataKey="spend"
+                          stroke="#a3e635"
+                          strokeWidth={2.5}
+                          fill="url(#limeGradient)"
+                          isAnimationActive={false}
+                        />
+                      </AreaChart>
+                    </ResponsiveContainer>
+                  ) : (
+                    <div className="h-60 w-full animate-pulse bg-zinc-900/40 rounded-lg" />
+                  )}
                 </div>
               </div>
             </div>
