@@ -8,25 +8,41 @@ import { AuthPayload } from '@/types';
  * Simple hashing for MVP - consider bcrypt in production
  */
 export function hashPassword(password: string): string {
+  const secret = process.env.JWT_SECRET;
+  if (!secret) {
+    throw new Error('JWT_SECRET is not configured');
+  }
   const hash = crypto
     .createHash('sha256')
-    .update(password + process.env.JWT_SECRET)
+    .update(password + secret)
     .digest('hex');
   return hash;
 }
 
 /**
- * Verify a password against its hash
+ * Verify a password against its hash using timing-safe comparison
  */
 export function verifyPassword(password: string, hash: string): boolean {
-  const newHash = hashPassword(password);
-  return newHash === hash;
+  try {
+    const newHash = hashPassword(password);
+    const hashBuf = Buffer.from(newHash, 'utf8');
+    const targetBuf = Buffer.from(hash, 'utf8');
+    if (hashBuf.length !== targetBuf.length) return false;
+    return crypto.timingSafeEqual(hashBuf, targetBuf);
+  } catch {
+    return false;
+  }
 }
 
 /**
  * Generate JWT token manually (no external library)
  */
 export function generateToken(payload: AuthPayload): string {
+  const secret = process.env.JWT_SECRET;
+  if (!secret) {
+    throw new Error('JWT_SECRET is not configured');
+  }
+
   const header = Buffer.from(JSON.stringify({
     alg: 'HS256',
     typ: 'JWT',
@@ -42,7 +58,7 @@ export function generateToken(payload: AuthPayload): string {
   const body = Buffer.from(JSON.stringify(tokenPayload)).toString('base64url');
 
   const signature = crypto
-    .createHmac('sha256', process.env.JWT_SECRET || 'secret')
+    .createHmac('sha256', secret)
     .update(`${header}.${body}`)
     .digest('base64url');
 
@@ -50,7 +66,7 @@ export function generateToken(payload: AuthPayload): string {
 }
 
 /**
- * Verify and decode JWT token
+ * Verify and decode JWT token with timing-safe signature comparison and algorithm validation
  */
 export function verifyToken(token: string): AuthPayload | null {
   try {
@@ -59,13 +75,33 @@ export function verifyToken(token: string): AuthPayload | null {
 
     const [headerB64, bodyB64, signatureB64] = parts;
 
-    // Verify signature
+    const secret = process.env.JWT_SECRET;
+    if (!secret) {
+      console.error('JWT_SECRET is not configured');
+      return null;
+    }
+
+    // Decode and verify header algorithm
+    const header = JSON.parse(
+      Buffer.from(headerB64, 'base64url').toString('utf-8')
+    );
+    if (header.alg !== 'HS256') {
+      return null;
+    }
+
+    // Verify signature with constant-time comparison
     const expectedSignature = crypto
-      .createHmac('sha256', process.env.JWT_SECRET || 'secret')
+      .createHmac('sha256', secret)
       .update(`${headerB64}.${bodyB64}`)
       .digest('base64url');
 
-    if (signatureB64 !== expectedSignature) {
+    const sigBuf = Buffer.from(signatureB64, 'utf8');
+    const expectedBuf = Buffer.from(expectedSignature, 'utf8');
+
+    if (
+      sigBuf.length !== expectedBuf.length ||
+      !crypto.timingSafeEqual(sigBuf, expectedBuf)
+    ) {
       return null;
     }
 
@@ -74,9 +110,14 @@ export function verifyToken(token: string): AuthPayload | null {
       Buffer.from(bodyB64, 'base64url').toString('utf-8')
     ) as AuthPayload;
 
+    // Check required claims
+    if (!payload.user_id || !payload.agency_id || !payload.role) {
+      return null;
+    }
+
     // Check expiration
     const now = Math.floor(Date.now() / 1000);
-    if (payload.exp < now) {
+    if (!payload.exp || typeof payload.exp !== 'number' || payload.exp < now) {
       return null; // Token expired
     }
 

@@ -2,7 +2,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseServer } from '@/lib/supabase/server';
-import { hashPassword, generateToken } from '@/lib/utils/auth';
+import { verifyPassword, generateToken } from '@/lib/utils/auth';
 import {
   getClientIp,
   checkRateLimit,
@@ -79,9 +79,8 @@ export async function POST(request: NextRequest): Promise<NextResponse<LoginResp
 
     const user = users[0];
 
-    // Verify password
-    const passwordHash = hashPassword(password);
-    if (passwordHash !== user.password_hash) {
+    // Verify password with timing-safe comparison
+    if (!verifyPassword(password, user.password_hash)) {
       return NextResponse.json(
         { success: false, error: 'Invalid email or password' },
         { status: 401 }
