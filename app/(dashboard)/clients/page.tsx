@@ -18,6 +18,7 @@ import {
   IconArrowUpRight,
   IconPlus,
 } from '@/components/common/Icons';
+import { ConfirmModal } from '@/components/common/ConfirmModal';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -187,6 +188,22 @@ export default function ClientsPage() {
   const PAGE_SIZE = 12;
   const [currentPage, setCurrentPage] = useState(1);
 
+  // Confirmation modal state
+  const [confirmModal, setConfirmModal] = useState<{
+    isOpen: boolean;
+    title: string;
+    message: string;
+    confirmText?: string;
+    confirmVariant?: 'danger' | 'primary';
+    onConfirm: () => Promise<void> | void;
+    isLoading?: boolean;
+  }>({
+    isOpen: false,
+    title: '',
+    message: '',
+    onConfirm: () => {},
+  });
+
   // ---------------------------------------------------------------------------
   // Helpers
   // ---------------------------------------------------------------------------
@@ -334,20 +351,32 @@ export default function ClientsPage() {
     }
   };
 
-  const handleDelete = async (clientId: string) => {
-    if (!confirm('Are you sure? This will delete all campaigns and metrics for this client.')) return;
-    try {
-      const res = await apiFetch(`/api/clients/${clientId}`, { method: 'DELETE' });
-      const data = await res.json();
-      if (!data.success) {
-        setError(data.error || 'Failed to delete client');
-        return;
-      }
-      setClients((prev) => prev.filter((c) => c.id !== clientId));
-    } catch (err) {
-      setError('Failed to delete client');
-      console.error(err);
-    }
+  const handleDelete = (clientId: string) => {
+    setConfirmModal({
+      isOpen: true,
+      title: 'Delete Client Account',
+      message: 'Are you sure? This will delete all campaigns and metrics for this client. This action cannot be undone.',
+      confirmText: 'Delete Client',
+      confirmVariant: 'danger',
+      onConfirm: async () => {
+        setConfirmModal((prev) => ({ ...prev, isLoading: true }));
+        try {
+          const res = await apiFetch(`/api/clients/${clientId}`, { method: 'DELETE' });
+          const data = await res.json();
+          if (!data.success) {
+            setError(data.error || 'Failed to delete client');
+            return;
+          }
+          setClients((prev) => prev.filter((c) => c.id !== clientId));
+          setConfirmModal((prev) => ({ ...prev, isOpen: false }));
+        } catch (err) {
+          setError('Failed to delete client');
+          console.error(err);
+        } finally {
+          setConfirmModal((prev) => ({ ...prev, isLoading: false }));
+        }
+      },
+    });
   };
 
   // ---------------------------------------------------------------------------
@@ -382,25 +411,37 @@ export default function ClientsPage() {
     }
   };
 
-  const handleRevokeToken = async (clientId: string) => {
-    if (!confirm('Revoke the portal link? The client will immediately lose access.')) return;
-    patchPortal(clientId, { revoking: true, error: '' });
-    try {
-      const res = await apiFetch(`/api/clients/${clientId}/portal-token`, { method: 'DELETE' });
-      const data = await res.json();
-      if (!data.success) {
-        patchPortal(clientId, { revoking: false, error: data.error || 'Failed to revoke token' });
-        return;
-      }
-      patchPortal(clientId, {
-        revoking: false,
-        hasToken: false,
-        expiresAt: null,
-        generatedToken: null,
-      });
-    } catch {
-      patchPortal(clientId, { revoking: false, error: 'Failed to revoke token' });
-    }
+  const handleRevokeToken = (clientId: string) => {
+    setConfirmModal({
+      isOpen: true,
+      title: 'Revoke Portal Link',
+      message: 'Revoke the portal link? The client will immediately lose access to their live performance report.',
+      confirmText: 'Revoke Link',
+      confirmVariant: 'danger',
+      onConfirm: async () => {
+        setConfirmModal((prev) => ({ ...prev, isLoading: true }));
+        patchPortal(clientId, { revoking: true, error: '' });
+        try {
+          const res = await apiFetch(`/api/clients/${clientId}/portal-token`, { method: 'DELETE' });
+          const data = await res.json();
+          if (!data.success) {
+            patchPortal(clientId, { revoking: false, error: data.error || 'Failed to revoke token' });
+            return;
+          }
+          patchPortal(clientId, {
+            revoking: false,
+            hasToken: false,
+            expiresAt: null,
+            generatedToken: null,
+          });
+          setConfirmModal((prev) => ({ ...prev, isOpen: false }));
+        } catch {
+          patchPortal(clientId, { revoking: false, error: 'Failed to revoke token' });
+        } finally {
+          setConfirmModal((prev) => ({ ...prev, isLoading: false }));
+        }
+      },
+    });
   };
 
   const handleCopyLink = (clientId: string, token: string) => {
@@ -833,6 +874,18 @@ export default function ClientsPage() {
             </>
           )}
         </div>
+
+        {/* Custom Dark Confirmation Modal */}
+        <ConfirmModal
+          isOpen={confirmModal.isOpen}
+          onClose={() => setConfirmModal((prev) => ({ ...prev, isOpen: false }))}
+          onConfirm={confirmModal.onConfirm}
+          title={confirmModal.title}
+          message={confirmModal.message}
+          confirmText={confirmModal.confirmText}
+          confirmVariant={confirmModal.confirmVariant}
+          isLoading={confirmModal.isLoading}
+        />
       </DashboardLayout>
     </ProtectedRoute>
   );

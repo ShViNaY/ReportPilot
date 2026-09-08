@@ -20,6 +20,7 @@ import {
   IconPlus,
   IconX,
 } from '@/components/common/Icons';
+import { ConfirmModal } from '@/components/common/ConfirmModal';
 
 function DarkDropdown({
   value,
@@ -175,6 +176,22 @@ export default function MetricsPage() {
     conversions: '',
   });
   const [formError, setFormError] = useState('');
+
+  // Confirmation modal state
+  const [confirmModal, setConfirmModal] = useState<{
+    isOpen: boolean;
+    title: string;
+    message: string;
+    confirmText?: string;
+    confirmVariant?: 'danger' | 'primary';
+    onConfirm: () => Promise<void> | void;
+    isLoading?: boolean;
+  }>({
+    isOpen: false,
+    title: '',
+    message: '',
+    onConfirm: () => {},
+  });
 
   // Fetch data on mount
   useEffect(() => {
@@ -338,28 +355,37 @@ export default function MetricsPage() {
     setShowForm(true);
   };
 
-  const handleDelete = async (metricId: string) => {
-    if (!confirm('Are you sure you want to delete this metric entry?')) {
-      return;
-    }
+  const handleDelete = (metricId: string) => {
+    setConfirmModal({
+      isOpen: true,
+      title: 'Delete Metric Record',
+      message: 'Are you sure you want to delete this metric entry? This action cannot be undone.',
+      confirmText: 'Delete Metric',
+      confirmVariant: 'danger',
+      onConfirm: async () => {
+        setConfirmModal((prev) => ({ ...prev, isLoading: true }));
+        try {
+          const res = await apiFetch(`/api/metrics/${metricId}`, {
+            method: 'DELETE',
+          });
 
-    try {
-      const res = await apiFetch(`/api/metrics/${metricId}`, {
-        method: 'DELETE',
-      });
+          const data = await res.json();
 
-      const data = await res.json();
+          if (!data.success) {
+            setError(data.error || 'Failed to delete metric');
+            return;
+          }
 
-      if (!data.success) {
-        setError(data.error || 'Failed to delete metric');
-        return;
-      }
-
-      setMetrics(metrics.filter((m) => m.id !== metricId));
-    } catch (err) {
-      setError('Failed to delete metric');
-      console.error(err);
-    }
+          setMetrics(metrics.filter((m) => m.id !== metricId));
+          setConfirmModal((prev) => ({ ...prev, isOpen: false }));
+        } catch (err) {
+          setError('Failed to delete metric');
+          console.error(err);
+        } finally {
+          setConfirmModal((prev) => ({ ...prev, isLoading: false }));
+        }
+      },
+    });
   };
 
   const resetForm = () => {
@@ -1110,6 +1136,18 @@ export default function MetricsPage() {
             </div>
           )}
         </div>
+
+        {/* Custom Dark Confirmation Modal */}
+        <ConfirmModal
+          isOpen={confirmModal.isOpen}
+          onClose={() => setConfirmModal((prev) => ({ ...prev, isOpen: false }))}
+          onConfirm={confirmModal.onConfirm}
+          title={confirmModal.title}
+          message={confirmModal.message}
+          confirmText={confirmModal.confirmText}
+          confirmVariant={confirmModal.confirmVariant}
+          isLoading={confirmModal.isLoading}
+        />
       </DashboardLayout>
     </ProtectedRoute>
   );

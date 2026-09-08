@@ -7,6 +7,7 @@ import { ProtectedRoute } from '@/lib/context/ProtectedRoute';
 import { DashboardLayout } from '@/components/layouts/DashboardLayout';
 import { useAuth } from '@/lib/context/AuthContext';
 import { Icons } from '@/components/common/Icons';
+import { ConfirmModal } from '@/components/common/ConfirmModal';
 import { apiFetch } from '@/lib/utils/apiClient';
 import { TeamMember } from '@/types';
 
@@ -24,6 +25,22 @@ export default function TeamPage() {
     password: '',
   });
   const [formError, setFormError] = useState('');
+
+  // Confirmation modal state
+  const [confirmModal, setConfirmModal] = useState<{
+    isOpen: boolean;
+    title: string;
+    message: string;
+    confirmText?: string;
+    confirmVariant?: 'danger' | 'primary';
+    onConfirm: () => Promise<void> | void;
+    isLoading?: boolean;
+  }>({
+    isOpen: false,
+    title: '',
+    message: '',
+    onConfirm: () => {},
+  });
 
   // Fetch team members on mount
   useEffect(() => {
@@ -95,28 +112,37 @@ export default function TeamPage() {
     }
   };
 
-  const handleRemoveMember = async (memberId: string) => {
-    if (!confirm('Are you sure you want to remove this team member?')) {
-      return;
-    }
+  const handleRemoveMember = (memberId: string) => {
+    setConfirmModal({
+      isOpen: true,
+      title: 'Remove Team Member',
+      message: 'Are you sure you want to remove this team member? They will immediately lose all access to this agency workspace.',
+      confirmText: 'Remove Member',
+      confirmVariant: 'danger',
+      onConfirm: async () => {
+        setConfirmModal((prev) => ({ ...prev, isLoading: true }));
+        try {
+          const res = await apiFetch(`/api/team/${memberId}`, {
+            method: 'DELETE',
+          });
 
-    try {
-      const res = await apiFetch(`/api/team/${memberId}`, {
-        method: 'DELETE',
-      });
+          const data = await res.json();
 
-      const data = await res.json();
+          if (!data.success) {
+            setError(data.error || 'Failed to remove team member');
+            return;
+          }
 
-      if (!data.success) {
-        setError(data.error || 'Failed to remove team member');
-        return;
-      }
-
-      setMembers(members.filter((m) => m.id !== memberId));
-    } catch (err) {
-      setError('Failed to remove team member');
-      console.error(err);
-    }
+          setMembers(members.filter((m) => m.id !== memberId));
+          setConfirmModal((prev) => ({ ...prev, isOpen: false }));
+        } catch (err) {
+          setError('Failed to remove team member');
+          console.error(err);
+        } finally {
+          setConfirmModal((prev) => ({ ...prev, isLoading: false }));
+        }
+      },
+    });
   };
 
   // Only show to owners
@@ -437,6 +463,18 @@ export default function TeamPage() {
             </div>
           </div>
         </div>
+
+        {/* Custom Dark Confirmation Modal */}
+        <ConfirmModal
+          isOpen={confirmModal.isOpen}
+          onClose={() => setConfirmModal((prev) => ({ ...prev, isOpen: false }))}
+          onConfirm={confirmModal.onConfirm}
+          title={confirmModal.title}
+          message={confirmModal.message}
+          confirmText={confirmModal.confirmText}
+          confirmVariant={confirmModal.confirmVariant}
+          isLoading={confirmModal.isLoading}
+        />
       </DashboardLayout>
     </ProtectedRoute>
   );

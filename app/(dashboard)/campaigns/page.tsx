@@ -16,6 +16,7 @@ import {
   IconMetrics,
   IconPlus,
 } from '@/components/common/Icons';
+import { ConfirmModal } from '@/components/common/ConfirmModal';
 
 function CampaignStatusSelect({
   status,
@@ -140,6 +141,22 @@ export default function CampaignsPage() {
     custom_platform: '',
   });
   const [formError, setFormError] = useState('');
+
+  // Confirmation modal state
+  const [confirmModal, setConfirmModal] = useState<{
+    isOpen: boolean;
+    title: string;
+    message: string;
+    confirmText?: string;
+    confirmVariant?: 'danger' | 'primary';
+    onConfirm: () => Promise<void> | void;
+    isLoading?: boolean;
+  }>({
+    isOpen: false,
+    title: '',
+    message: '',
+    onConfirm: () => {},
+  });
 
   // Fetch data on mount
   useEffect(() => {
@@ -308,28 +325,37 @@ export default function CampaignsPage() {
     }
   };
 
-  const handleDelete = async (campaignId: string) => {
-    if (!confirm('Are you sure? This will delete all metrics for this campaign.')) {
-      return;
-    }
+  const handleDelete = (campaignId: string) => {
+    setConfirmModal({
+      isOpen: true,
+      title: 'Delete Campaign',
+      message: 'Are you sure? This will delete all metrics for this campaign. This action cannot be undone.',
+      confirmText: 'Delete Campaign',
+      confirmVariant: 'danger',
+      onConfirm: async () => {
+        setConfirmModal((prev) => ({ ...prev, isLoading: true }));
+        try {
+          const res = await apiFetch(`/api/campaigns/${campaignId}`, {
+            method: 'DELETE',
+          });
 
-    try {
-      const res = await apiFetch(`/api/campaigns/${campaignId}`, {
-        method: 'DELETE',
-      });
+          const data = await res.json();
 
-      const data = await res.json();
+          if (!data.success) {
+            setError(data.error || 'Failed to delete campaign');
+            return;
+          }
 
-      if (!data.success) {
-        setError(data.error || 'Failed to delete campaign');
-        return;
-      }
-
-      setCampaigns(campaigns.filter((c) => c.id !== campaignId));
-    } catch (err) {
-      setError('Failed to delete campaign');
-      console.error(err);
-    }
+          setCampaigns(campaigns.filter((c) => c.id !== campaignId));
+          setConfirmModal((prev) => ({ ...prev, isOpen: false }));
+        } catch (err) {
+          setError('Failed to delete campaign');
+          console.error(err);
+        } finally {
+          setConfirmModal((prev) => ({ ...prev, isLoading: false }));
+        }
+      },
+    });
   };
 
   // Get client name by ID
@@ -683,6 +709,18 @@ export default function CampaignsPage() {
             </div>
           )}
         </div>
+
+        {/* Custom Dark Confirmation Modal */}
+        <ConfirmModal
+          isOpen={confirmModal.isOpen}
+          onClose={() => setConfirmModal((prev) => ({ ...prev, isOpen: false }))}
+          onConfirm={confirmModal.onConfirm}
+          title={confirmModal.title}
+          message={confirmModal.message}
+          confirmText={confirmModal.confirmText}
+          confirmVariant={confirmModal.confirmVariant}
+          isLoading={confirmModal.isLoading}
+        />
       </DashboardLayout>
     </ProtectedRoute>
   );
