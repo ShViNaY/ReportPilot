@@ -4,6 +4,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { supabaseServer } from '@/lib/supabase/server';
 import { protectedRoute } from '@/lib/middleware';
 import { validateRouteId, validatePortalTokenGenerateInput } from '@/lib/utils/validation';
+import { getPortalUrl } from '@/lib/utils/url';
 import { PortalTokenResponse, PortalTokenStatusResponse, RevokePortalTokenResponse } from '@/types';
 import crypto from 'crypto';
 
@@ -196,7 +197,7 @@ export async function POST(
       {
         success: true,
         portal_token: portalToken,
-        portal_url: `/portal/${portalToken}`,
+        portal_url: getPortalUrl(portalToken, request),
         expires_at: expiresAt,
       },
       { status: 200 }

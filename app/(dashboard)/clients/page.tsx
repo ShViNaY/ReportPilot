@@ -19,6 +19,7 @@ import {
   IconPlus,
 } from '@/components/common/Icons';
 import { ConfirmModal } from '@/components/common/ConfirmModal';
+import { getPortalUrl } from '@/lib/utils/url';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -35,6 +36,7 @@ type PortalTokenState = {
   expiresAt: string | null;
   /** The raw token is held here only until the user dismisses the copy dialog */
   generatedToken: string | null;
+  generatedUrl?: string | null;
   generating: boolean;
   revoking: boolean;
   showGeneratePanel: boolean;
@@ -48,6 +50,7 @@ function defaultPortalState(): PortalTokenState {
     hasToken: false,
     expiresAt: null,
     generatedToken: null,
+    generatedUrl: null,
     generating: false,
     revoking: false,
     showGeneratePanel: false,
@@ -416,6 +419,7 @@ export default function ClientsPage() {
         expiresAt: data.expires_at,
         // Store the raw token just long enough for the user to copy it
         generatedToken: data.portal_token,
+        generatedUrl: data.portal_url,
       });
     } catch {
       patchPortal(clientId, { generating: false, error: 'Failed to generate token' });
@@ -444,6 +448,7 @@ export default function ClientsPage() {
             hasToken: false,
             expiresAt: null,
             generatedToken: null,
+            generatedUrl: null,
           });
           setConfirmModal((prev) => ({ ...prev, isOpen: false }));
         } catch {
@@ -455,8 +460,8 @@ export default function ClientsPage() {
     });
   };
 
-  const handleCopyLink = (clientId: string, token: string) => {
-    const link = `${window.location.origin}/portal/${token}`;
+  const handleCopyLink = (clientId: string, token: string, url?: string) => {
+    const link = url || getPortalUrl(token);
     navigator.clipboard
       .writeText(link)
       .then(() => {
@@ -741,14 +746,12 @@ export default function ClientsPage() {
                                   <span>🔗 Generated Portal Link</span>
                                 </p>
                                 <p className="text-[11px] font-mono text-zinc-300 break-all select-all leading-relaxed bg-zinc-950 rounded-lg p-2.5 border border-zinc-800">
-                                  {typeof window !== 'undefined'
-                                    ? `${window.location.origin}/portal/${pt.generatedToken}`
-                                    : `/portal/${pt.generatedToken}`}
+                                  {pt.generatedUrl || getPortalUrl(pt.generatedToken)}
                                 </p>
                                 <div className="flex gap-2">
                                   <button
                                     type="button"
-                                    onClick={() => handleCopyLink(client.id, pt.generatedToken!)}
+                                    onClick={() => handleCopyLink(client.id, pt.generatedToken!, pt.generatedUrl || undefined)}
                                     className="flex-1 inline-flex items-center justify-center gap-1.5 px-3.5 py-2 bg-lime-400 hover:bg-lime-300 text-black rounded-lg text-xs font-semibold transition-all active:scale-98 cursor-pointer shadow-xs"
                                   >
                                     {copiedId === client.id ? (
@@ -765,7 +768,7 @@ export default function ClientsPage() {
                                   </button>
                                   <button
                                     type="button"
-                                    onClick={() => patchPortal(client.id, { generatedToken: null })}
+                                    onClick={() => patchPortal(client.id, { generatedToken: null, generatedUrl: null })}
                                     className="px-3.5 py-2 bg-zinc-900 border border-zinc-800 hover:bg-zinc-850 text-zinc-400 hover:text-zinc-200 rounded-lg text-xs font-medium transition-colors cursor-pointer"
                                   >
                                     Dismiss
