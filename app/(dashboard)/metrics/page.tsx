@@ -150,7 +150,30 @@ export default function MetricsPage() {
   const [error, setError] = useState('');
   const [showForm, setShowForm] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [editingId, setEditingId] = useState<string | null>(null);
+
+  // Edit modal state
+  const [editingMetric, setEditingMetric] = useState<MetricEntry | null>(null);
+  const [editFormData, setEditFormData] = useState({
+    ad_spend: '',
+    impressions: '',
+    clicks: '',
+    leads: '',
+    conversions: '',
+  });
+  const [editFormError, setEditFormError] = useState('');
+  const [isEditSubmitting, setIsEditSubmitting] = useState(false);
+
+  // Close edit modal on Escape key
+  useEffect(() => {
+    if (!editingMetric) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && !isEditSubmitting) {
+        setEditingMetric(null);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [editingMetric, isEditSubmitting]);
   const [selectedPeriod, setSelectedPeriod] = useState<string>('all');
   const [selectedClientId, setSelectedClientId] = useState<string>('');
   const [selectedCampaignId, setSelectedCampaignId] = useState<string>(filterCampaignId || '');
@@ -282,55 +305,28 @@ export default function MetricsPage() {
     try {
       setIsSubmitting(true);
 
-      if (editingId) {
-        // Update existing metric
-        const res = await apiFetch(`/api/metrics/${editingId}`, {
-          method: 'PUT',
-          body: JSON.stringify({
-            ad_spend: adSpend,
-            impressions,
-            clicks,
-            leads,
-            conversions,
-          }),
-        });
+      // Create new metric
+      const res = await apiFetch('/api/metrics', {
+        method: 'POST',
+        body: JSON.stringify({
+          campaign_id: formData.campaign_id,
+          reporting_period: formData.reporting_period,
+          ad_spend: adSpend,
+          impressions,
+          clicks,
+          leads,
+          conversions,
+        }),
+      });
 
-        const data = await res.json();
+      const data = await res.json();
 
-        if (!data.success) {
-          setFormError(data.error || 'Failed to update metric');
-          return;
-        }
-
-        // Update local state
-        setMetrics(
-          metrics.map((m) => (m.id === editingId ? data.metric : m))
-        );
-        setEditingId(null);
-      } else {
-        // Create new metric
-        const res = await apiFetch('/api/metrics', {
-          method: 'POST',
-          body: JSON.stringify({
-            campaign_id: formData.campaign_id,
-            reporting_period: formData.reporting_period,
-            ad_spend: adSpend,
-            impressions,
-            clicks,
-            leads,
-            conversions,
-          }),
-        });
-
-        const data = await res.json();
-
-        if (!data.success) {
-          setFormError(data.error || 'Failed to create metric');
-          return;
-        }
-
-        setMetrics([data.entry, ...metrics]);
+      if (!data.success) {
+        setFormError(data.error || 'Failed to create metric');
+        return;
       }
+
+      setMetrics([data.entry, ...metrics]);
 
       // Reset form
       resetForm();
@@ -344,17 +340,79 @@ export default function MetricsPage() {
   };
 
   const handleEdit = (metric: MetricEntry) => {
-    setEditingId(metric.id);
-    setFormData({
-      campaign_id: metric.campaign_id,
-      reporting_period: metric.reporting_period,
+    setEditingMetric(metric);
+    setEditFormData({
       ad_spend: metric.ad_spend.toString(),
       impressions: metric.impressions.toString(),
       clicks: metric.clicks.toString(),
       leads: metric.leads.toString(),
       conversions: metric.conversions.toString(),
     });
-    setShowForm(true);
+    setEditFormError('');
+  };
+
+  const handleUpdateMetric = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingMetric) return;
+    setEditFormError('');
+
+    const adSpend = parseFloat(editFormData.ad_spend || '0');
+    const impressions = parseInt(editFormData.impressions || '0', 10);
+    const clicks = parseInt(editFormData.clicks || '0', 10);
+    const leads = parseInt(editFormData.leads || '0', 10);
+    const conversions = parseInt(editFormData.conversions || '0', 10);
+
+    if (isNaN(adSpend) || adSpend < 0) {
+      setEditFormError('Ad spend must be a non-negative number');
+      return;
+    }
+    if (isNaN(impressions) || impressions < 0) {
+      setEditFormError('Impressions must be a non-negative integer');
+      return;
+    }
+    if (isNaN(clicks) || clicks < 0) {
+      setEditFormError('Clicks must be a non-negative integer');
+      return;
+    }
+    if (isNaN(leads) || leads < 0) {
+      setEditFormError('Leads must be a non-negative integer');
+      return;
+    }
+    if (isNaN(conversions) || conversions < 0) {
+      setEditFormError('Conversions must be a non-negative integer');
+      return;
+    }
+
+    try {
+      setIsEditSubmitting(true);
+      const res = await apiFetch(`/api/metrics/${editingMetric.id}`, {
+        method: 'PUT',
+        body: JSON.stringify({
+          ad_spend: adSpend,
+          impressions,
+          clicks,
+          leads,
+          conversions,
+        }),
+      });
+
+      const data = await res.json();
+      if (!data.success) {
+        setEditFormError(data.error || 'Failed to update metric entry');
+        return;
+      }
+
+      // Update local state immediately with updated record from DB
+      setMetrics((prev) =>
+        prev.map((m) => (m.id === editingMetric.id ? data.metric : m))
+      );
+      setEditingMetric(null);
+    } catch (err) {
+      setEditFormError('Network error while updating metric. Please try again.');
+      console.error('Update metric error:', err);
+    } finally {
+      setIsEditSubmitting(false);
+    }
   };
 
   const handleDelete = (metricId: string) => {
@@ -391,7 +449,6 @@ export default function MetricsPage() {
   };
 
   const resetForm = () => {
-    setEditingId(null);
     setFormData({
       campaign_id: filterCampaignId || '',
       reporting_period: '',
@@ -672,7 +729,7 @@ export default function MetricsPage() {
             <div className="bg-[#111113] rounded-2xl border border-zinc-800/80 p-6 shadow-xl space-y-4">
               <div className="flex items-center justify-between">
                 <h2 className="text-base font-semibold text-zinc-100">
-                  {editingId ? 'Edit Metric Record' : 'Log New Campaign Metrics'}
+                  Log New Campaign Metrics
                 </h2>
                 <span className="text-xs text-zinc-500 font-mono">Periodic reporting data</span>
               </div>
@@ -689,7 +746,6 @@ export default function MetricsPage() {
                       onChange={(val) =>
                         setFormData({ ...formData, campaign_id: val })
                       }
-                      disabled={editingId !== null}
                       placeholder="Select a campaign..."
                       className="w-full"
                       triggerClassName="w-full h-11 bg-zinc-950 hover:bg-zinc-900 border-zinc-800 px-4 text-sm font-normal"
@@ -720,14 +776,8 @@ export default function MetricsPage() {
                       onChange={(val) =>
                         setFormData({ ...formData, reporting_period: val })
                       }
-                      disabled={editingId !== null}
                       required
                     />
-                    {editingId && (
-                      <p className="text-[11px] text-zinc-500 mt-1">
-                        Campaign and period date are locked during edit.
-                      </p>
-                    )}
                   </div>
                 </div>
 
@@ -817,7 +867,7 @@ export default function MetricsPage() {
                     disabled={isSubmitting}
                     className="inline-flex items-center justify-center px-5 py-2.5 rounded-full bg-lime-400 hover:bg-lime-300 text-black text-xs font-semibold transition-all active:scale-98 disabled:opacity-60 cursor-pointer shadow-xs"
                   >
-                    {isSubmitting ? 'Saving...' : editingId ? 'Update Record' : 'Save Metrics'}
+                    {isSubmitting ? 'Saving...' : 'Save Metrics'}
                   </button>
                   <button
                     type="button"
@@ -1138,6 +1188,228 @@ export default function MetricsPage() {
             </div>
           )}
         </div>
+
+        {/* Edit Metric Record Modal */}
+        {editingMetric && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-xs animate-in fade-in duration-150">
+            <div
+              className="fixed inset-0"
+              onClick={() => {
+                if (!isEditSubmitting) setEditingMetric(null);
+              }}
+            />
+            <div className="relative w-full max-w-lg bg-[#141416] border border-zinc-800/90 rounded-2xl p-6 shadow-2xl shadow-black/95 space-y-5 animate-in zoom-in-95 duration-150 z-10">
+              {/* Header */}
+              <div className="flex items-start justify-between gap-3 border-b border-zinc-800/80 pb-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-lime-400/10 border border-lime-400/20 text-lime-400 flex items-center justify-center shrink-0">
+                    <IconEdit className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h3 className="text-base font-bold text-zinc-100 tracking-tight">
+                      Edit Metric Record
+                    </h3>
+                    <p className="text-xs text-zinc-400 mt-0.5">
+                      Update performance numbers for this reporting period
+                    </p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  disabled={isEditSubmitting}
+                  onClick={() => setEditingMetric(null)}
+                  className="p-1.5 text-zinc-500 hover:text-zinc-300 hover:bg-zinc-850 rounded-lg transition-colors cursor-pointer disabled:opacity-50"
+                  aria-label="Close dialog"
+                >
+                  <IconX className="w-4 h-4" />
+                </button>
+              </div>
+
+              {/* Locked Context Summary (Campaign & Date) */}
+              <div className="bg-zinc-950 rounded-xl p-3.5 border border-zinc-800/80 grid grid-cols-2 gap-3 text-xs">
+                <div>
+                  <span className="text-zinc-500 block text-[11px] font-medium">Campaign</span>
+                  <span className="text-zinc-200 font-semibold truncate block mt-0.5">
+                    {getCampaignName(editingMetric.campaign_id)}
+                  </span>
+                </div>
+                <div>
+                  <span className="text-zinc-500 block text-[11px] font-medium">Reporting Date</span>
+                  <span className="text-zinc-200 font-semibold block mt-0.5">
+                    {new Date(editingMetric.reporting_period).toLocaleDateString(undefined, {
+                      year: 'numeric',
+                      month: 'short',
+                      day: 'numeric',
+                    })}
+                  </span>
+                </div>
+              </div>
+
+              {/* Edit Form */}
+              <form onSubmit={handleUpdateMetric} className="space-y-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                  {/* Ad Spend */}
+                  <div className="space-y-1.5 sm:col-span-2">
+                    <label className="block text-xs font-semibold text-zinc-300">
+                      Ad Spend ($) <span className="text-lime-400">*</span>
+                    </label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      required
+                      placeholder="0.00"
+                      value={editFormData.ad_spend}
+                      onChange={(e) =>
+                        setEditFormData({ ...editFormData, ad_spend: e.target.value })
+                      }
+                      className="w-full h-10 bg-zinc-950 border border-zinc-800 rounded-xl px-3.5 text-sm text-zinc-100 placeholder:text-zinc-600 focus:outline-none focus:border-lime-400 focus:ring-1 focus:ring-lime-400/30 transition-colors"
+                    />
+                  </div>
+
+                  {/* Impressions */}
+                  <div className="space-y-1.5">
+                    <label className="block text-xs font-semibold text-zinc-300">
+                      Impressions
+                    </label>
+                    <input
+                      type="number"
+                      min="0"
+                      placeholder="0"
+                      value={editFormData.impressions}
+                      onChange={(e) =>
+                        setEditFormData({ ...editFormData, impressions: e.target.value })
+                      }
+                      className="w-full h-10 bg-zinc-950 border border-zinc-800 rounded-xl px-3.5 text-sm text-zinc-100 placeholder:text-zinc-600 focus:outline-none focus:border-lime-400 focus:ring-1 focus:ring-lime-400/30 transition-colors"
+                    />
+                  </div>
+
+                  {/* Clicks */}
+                  <div className="space-y-1.5">
+                    <label className="block text-xs font-semibold text-zinc-300">
+                      Clicks
+                    </label>
+                    <input
+                      type="number"
+                      min="0"
+                      placeholder="0"
+                      value={editFormData.clicks}
+                      onChange={(e) =>
+                        setEditFormData({ ...editFormData, clicks: e.target.value })
+                      }
+                      className="w-full h-10 bg-zinc-950 border border-zinc-800 rounded-xl px-3.5 text-sm text-zinc-100 placeholder:text-zinc-600 focus:outline-none focus:border-lime-400 focus:ring-1 focus:ring-lime-400/30 transition-colors"
+                    />
+                  </div>
+
+                  {/* Leads */}
+                  <div className="space-y-1.5">
+                    <label className="block text-xs font-semibold text-zinc-300">
+                      Leads
+                    </label>
+                    <input
+                      type="number"
+                      min="0"
+                      placeholder="0"
+                      value={editFormData.leads}
+                      onChange={(e) =>
+                        setEditFormData({ ...editFormData, leads: e.target.value })
+                      }
+                      className="w-full h-10 bg-zinc-950 border border-zinc-800 rounded-xl px-3.5 text-sm text-zinc-100 placeholder:text-zinc-600 focus:outline-none focus:border-lime-400 focus:ring-1 focus:ring-lime-400/30 transition-colors"
+                    />
+                  </div>
+
+                  {/* Conversions */}
+                  <div className="space-y-1.5">
+                    <label className="block text-xs font-semibold text-zinc-300">
+                      Conversions
+                    </label>
+                    <input
+                      type="number"
+                      min="0"
+                      placeholder="0"
+                      value={editFormData.conversions}
+                      onChange={(e) =>
+                        setEditFormData({ ...editFormData, conversions: e.target.value })
+                      }
+                      className="w-full h-10 bg-zinc-950 border border-zinc-800 rounded-xl px-3.5 text-sm text-zinc-100 placeholder:text-zinc-600 focus:outline-none focus:border-lime-400 focus:ring-1 focus:ring-lime-400/30 transition-colors"
+                    />
+                  </div>
+                </div>
+
+                {/* Live Computed KPIs Preview */}
+                {(() => {
+                  const spend = parseFloat(editFormData.ad_spend || '0');
+                  const leads = parseInt(editFormData.leads || '0', 10);
+                  const conv = parseInt(editFormData.conversions || '0', 10);
+                  const cpl = leads > 0 ? (spend / leads).toFixed(2) : null;
+                  const cvr = leads > 0 ? ((conv / leads) * 100).toFixed(1) : null;
+
+                  return (
+                    <div className="flex items-center justify-between px-3.5 py-2.5 bg-zinc-950/60 rounded-xl border border-zinc-800/60 text-xs">
+                      <div className="flex items-center gap-4">
+                        <span className="text-zinc-400">
+                          Calculated CPL:{' '}
+                          <strong className="text-zinc-200 font-mono">
+                            {cpl ? `$${cpl}` : '—'}
+                          </strong>
+                        </span>
+                        <span className="text-zinc-400">
+                          Conv. Rate:{' '}
+                          <strong className="text-lime-400 font-mono">
+                            {cvr ? `${cvr}%` : '—'}
+                          </strong>
+                        </span>
+                      </div>
+                      <span className="text-[10px] text-zinc-500 font-medium">Live calculation</span>
+                    </div>
+                  );
+                })()}
+
+                {/* Error Banner */}
+                {editFormError && (
+                  <div className="rounded-xl bg-rose-950/40 border border-rose-900/60 p-3 text-xs text-rose-400 font-medium">
+                    {editFormError}
+                  </div>
+                )}
+
+                {/* Actions */}
+                <div className="flex items-center justify-end gap-3 pt-3 border-t border-zinc-800/80">
+                  <button
+                    type="button"
+                    disabled={isEditSubmitting}
+                    onClick={() => setEditingMetric(null)}
+                    className="px-4 py-2 rounded-xl bg-zinc-900 hover:bg-zinc-850 text-zinc-300 hover:text-zinc-100 text-xs font-semibold border border-zinc-800 hover:border-zinc-700 transition-colors disabled:opacity-50 cursor-pointer"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={isEditSubmitting}
+                    className="inline-flex items-center justify-center gap-2 px-5 py-2 rounded-xl bg-lime-400 hover:bg-lime-300 text-black text-xs font-semibold shadow-xs transition-all active:scale-98 disabled:opacity-60 cursor-pointer"
+                  >
+                    {isEditSubmitting && (
+                      <svg
+                        className="w-3.5 h-3.5 animate-spin"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2.5"
+                      >
+                        <circle className="opacity-25" cx="12" cy="12" r="10" />
+                        <path
+                          className="opacity-75"
+                          fill="currentColor"
+                          d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                        />
+                      </svg>
+                    )}
+                    <span>{isEditSubmitting ? 'Updating...' : 'Save Changes'}</span>
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
 
         {/* Custom Dark Confirmation Modal */}
         <ConfirmModal
