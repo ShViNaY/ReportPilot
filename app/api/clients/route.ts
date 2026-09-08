@@ -87,9 +87,32 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       }
     }
 
+    // Step 3b: For owners only, batch-lookup portal token status (never secret token_hash)
+    let tokenStatusByClientId: Record<string, { has_token: boolean; expires_at: string | null }> = {};
+
+    if (role === 'owner' && clientIds.length > 0) {
+      const { data: tokenRows } = await supabaseServer
+        .from('client_access_tokens')
+        .select('client_id, expires_at')
+        .in('client_id', clientIds);
+
+      if (tokenRows) {
+        tokenRows.forEach((t) => {
+          tokenStatusByClientId[t.client_id] = {
+            has_token: true,
+            expires_at: t.expires_at,
+          };
+        });
+      }
+    }
+
     const clientsWithAssignment = (clients || []).map((c) => ({
       ...c,
       assigned_manager: assignedManagerByClientId[c.id] || null,
+      portal_token:
+        role === 'owner'
+          ? tokenStatusByClientId[c.id] || { has_token: false, expires_at: null }
+          : undefined,
     }));
 
     return NextResponse.json(

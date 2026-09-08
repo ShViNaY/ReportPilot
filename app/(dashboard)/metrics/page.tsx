@@ -212,14 +212,24 @@ export default function MetricsPage() {
     try {
       setIsLoading(true);
 
-      // Fetch metrics
+      // Fetch metrics, campaigns, and clients concurrently
       let metricsUrl = '/api/metrics';
 
       if (start && end) {
         metricsUrl += `?startDate=${start.toISOString()}&endDate=${end.toISOString()}`;
       }
-      const metricsRes = await apiFetch(metricsUrl);
-      const metricsData = await metricsRes.json();
+
+      const [metricsRes, campaignsRes, clientsRes] = await Promise.all([
+        apiFetch(metricsUrl),
+        apiFetch('/api/campaigns'),
+        apiFetch('/api/clients'),
+      ]);
+
+      const [metricsData, campaignsData, clientsData] = await Promise.all([
+        metricsRes.json(),
+        campaignsRes.json(),
+        clientsRes.json(),
+      ]);
 
       if (!metricsData.success) {
         setError(metricsData.error || 'Failed to load metrics');
@@ -228,17 +238,9 @@ export default function MetricsPage() {
 
       setMetrics(metricsData.metrics || []);
 
-      // Fetch campaigns
-      const campaignsRes = await apiFetch('/api/campaigns');
-      const campaignsData = await campaignsRes.json();
-
       if (campaignsData.success) {
         setCampaigns(campaignsData.campaigns || []);
       }
-
-      // Fetch clients
-      const clientsRes = await apiFetch('/api/clients');
-      const clientsData = await clientsRes.json();
 
       if (clientsData.success) {
         setClients(clientsData.clients || []);

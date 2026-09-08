@@ -167,9 +167,16 @@ export default function CampaignsPage() {
     try {
       setIsLoading(true);
 
-      // Fetch campaigns
-      const campaignsRes = await apiFetch('/api/campaigns');
-      const campaignsData = await campaignsRes.json();
+      // Fetch campaigns and clients concurrently
+      const [campaignsRes, clientsRes] = await Promise.all([
+        apiFetch('/api/campaigns'),
+        apiFetch('/api/clients'),
+      ]);
+
+      const [campaignsData, clientsData] = await Promise.all([
+        campaignsRes.json(),
+        clientsRes.json(),
+      ]);
 
       if (!campaignsData.success) {
         setError(campaignsData.error || 'Failed to load campaigns');
@@ -177,10 +184,6 @@ export default function CampaignsPage() {
       }
 
       setCampaigns(campaignsData.campaigns || []);
-
-      // Fetch clients
-      const clientsRes = await apiFetch('/api/clients');
-      const clientsData = await clientsRes.json();
 
       if (clientsData.success) {
         setClients(clientsData.clients || []);

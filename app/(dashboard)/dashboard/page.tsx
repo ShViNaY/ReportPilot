@@ -52,22 +52,26 @@ export default function DashboardPage() {
     try {
       setIsLoading(true);
 
-      // Fetch dashboard summary (filtered by the same selected date range)
+      // Fetch dashboard summary and metrics concurrently
       const summaryUrl = `/api/dashboard/agency?startDate=${startDate?.toISOString()}&endDate=${endDate?.toISOString()}`;
-      const res = await apiFetch(summaryUrl);
-      const data = await res.json();
+      const metricsUrl = `/api/metrics?startDate=${startDate?.toISOString()}&endDate=${endDate?.toISOString()}`;
 
-      if (!data.success) {
-        setError(data.error || 'Failed to load dashboard');
+      const [summaryRes, metricsRes] = await Promise.all([
+        apiFetch(summaryUrl),
+        apiFetch(metricsUrl),
+      ]);
+
+      const [summaryData, metricsData] = await Promise.all([
+        summaryRes.json(),
+        metricsRes.json(),
+      ]);
+
+      if (!summaryData.success) {
+        setError(summaryData.error || 'Failed to load dashboard');
         return;
       }
 
-      setSummary(data.summary);
-
-      // Fetch metrics for charts with date filtering
-      const metricsUrl = `/api/metrics?startDate=${startDate?.toISOString()}&endDate=${endDate?.toISOString()}`;
-      const metricsRes = await apiFetch(metricsUrl);
-      const metricsData = await metricsRes.json();
+      setSummary(summaryData.summary);
 
       if (metricsData.success) {
         setMetrics(metricsData.metrics || []);

@@ -228,7 +228,24 @@ export default function ClientsPage() {
         setError(data.error || 'Failed to load clients');
         return;
       }
-      setClients(data.clients || []);
+      const loadedClients: ClientWithAssignment[] = data.clients || [];
+      setClients(loadedClients);
+
+      // Initialize portal state immediately from enriched response (eliminates N+1 HTTP loop)
+      if (isOwner && loadedClients.length > 0) {
+        const initialPortalState: Record<string, PortalTokenState> = {};
+        loadedClients.forEach((c) => {
+          if (c.portal_token) {
+            initialPortalState[c.id] = {
+              ...defaultPortalState(),
+              hasToken: c.portal_token.has_token,
+              expiresAt: c.portal_token.expires_at,
+            };
+          }
+        });
+        setPortalState((prev) => ({ ...initialPortalState, ...prev }));
+      }
+
       setCurrentPage(1); // reset to first page on refresh
     } catch (err) {
       setError('Something went wrong');
@@ -236,7 +253,7 @@ export default function ClientsPage() {
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [isOwner]);
 
   const fetchManagers = useCallback(async () => {
     try {
@@ -281,12 +298,6 @@ export default function ClientsPage() {
     fetchClients();
     if (isOwner) fetchManagers();
   }, [fetchClients, fetchManagers, isOwner]);
-
-  // Once clients are loaded, fetch token status for all of them (owner only)
-  useEffect(() => {
-    if (!isOwner || clients.length === 0) return;
-    clients.forEach((c) => fetchTokenStatus(c.id));
-  }, [isOwner, clients, fetchTokenStatus]);
 
   // ---------------------------------------------------------------------------
   // Handlers — assignments

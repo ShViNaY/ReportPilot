@@ -26,6 +26,10 @@ export type Client = {
   contact_email: string | null;
   created_at: string;
   updated_at: string;
+  portal_token?: {
+    has_token: boolean;
+    expires_at: string | null;
+  } | null;
 };
 
 export type Campaign = {
