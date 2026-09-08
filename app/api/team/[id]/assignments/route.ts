@@ -153,6 +153,19 @@ export async function DELETE(
       );
     }
 
+    const { data: client } = await supabaseServer
+      .from('clients')
+      .select('id, agency_id')
+      .eq('id', clientId)
+      .single();
+
+    if (!client || client.agency_id !== agency_id) {
+      return NextResponse.json(
+        { success: false, error: 'Client not found' },
+        { status: 404 }
+      );
+    }
+
     const { error } = await supabaseServer
       .from('user_client_assignments')
       .delete()

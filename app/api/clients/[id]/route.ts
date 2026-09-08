@@ -209,6 +209,21 @@ export async function DELETE(
       );
     }
 
+    // Verify client exists and belongs to user's agency (IDOR prevention)
+    const { data: existingClient } = await supabaseServer
+      .from('clients')
+      .select('id')
+      .eq('id', clientId)
+      .eq('agency_id', agency_id)
+      .single();
+
+    if (!existingClient) {
+      return NextResponse.json(
+        { success: false, error: 'Client not found' },
+        { status: 404 }
+      );
+    }
+
     // Delete associated portal tokens
     await supabaseServer
       .from('client_access_tokens')
