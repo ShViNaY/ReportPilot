@@ -246,6 +246,61 @@ export const IconChevronRight: React.FC<IconProps> = ({ className = 'w-4 h-4', s
   </svg>
 );
 
+export const IconChevronLeft: React.FC<IconProps> = ({ className = 'w-4 h-4', size, ...props }) => (
+  <svg
+    width={size}
+    height={size}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    className={className}
+    {...props}
+  >
+    <polyline points="15 18 9 12 15 6" />
+  </svg>
+);
+
+export const IconPanelLeftClose: React.FC<IconProps> = ({ className = 'w-4 h-4', size, ...props }) => (
+  <svg
+    width={size}
+    height={size}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    className={className}
+    {...props}
+  >
+    <rect width="18" height="18" x="3" y="3" rx="2" />
+    <path d="M9 3v18" />
+    <path d="m16 15-3-3 3-3" />
+  </svg>
+);
+
+export const IconPanelLeftOpen: React.FC<IconProps> = ({ className = 'w-4 h-4', size, ...props }) => (
+  <svg
+    width={size}
+    height={size}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    className={className}
+    {...props}
+  >
+    <rect width="18" height="18" x="3" y="3" rx="2" />
+    <path d="M9 3v18" />
+    <path d="m14 9 3 3-3 3" />
+  </svg>
+);
+
 export const IconDownload: React.FC<IconProps> = ({ className = 'w-4 h-4', size, ...props }) => (
   <svg
     width={size}
@@ -635,6 +690,9 @@ export const Icons = {
   Copy: IconCopy,
   Check: IconCheck,
   ChevronRight: IconChevronRight,
+  ChevronLeft: IconChevronLeft,
+  PanelLeftClose: IconPanelLeftClose,
+  PanelLeftOpen: IconPanelLeftOpen,
   Download: IconDownload,
   Refresh: IconRefresh,
   Edit: IconEdit,
