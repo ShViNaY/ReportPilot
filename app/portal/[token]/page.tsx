@@ -57,25 +57,25 @@ export default function ClientPortalPage() {
 
   if (isLoading) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-screen bg-slate-50 text-center px-4">
-        <div className="w-10 h-10 rounded-full border-2 border-indigo-600 border-t-transparent animate-spin mb-4" />
-        <p className="text-sm font-semibold text-slate-800 tracking-tight">Preparing Client Dashboard</p>
-        <p className="text-xs text-slate-400 mt-1">Aggregating live performance data...</p>
+      <div className="flex flex-col items-center justify-center min-h-screen bg-black text-center px-4">
+        <div className="w-10 h-10 rounded-full border-2 border-zinc-800 border-t-lime-400 animate-spin mb-4" />
+        <p className="text-sm font-semibold text-zinc-200 tracking-tight">Preparing Client Dashboard</p>
+        <p className="text-xs text-zinc-500 mt-1">Aggregating live performance data...</p>
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-slate-50 p-4">
-        <div className="rounded-2xl bg-white border border-red-200/80 p-8 max-w-md w-full text-center shadow-lg shadow-red-500/5">
-          <div className="w-12 h-12 rounded-2xl bg-red-50 text-red-600 flex items-center justify-center mx-auto mb-4 ring-1 ring-red-200">
+      <div className="flex items-center justify-center min-h-screen bg-black p-4">
+        <div className="rounded-2xl bg-[#111113] border border-rose-900/60 p-8 max-w-md w-full text-center shadow-xl">
+          <div className="w-12 h-12 rounded-2xl bg-rose-950/60 text-rose-400 flex items-center justify-center mx-auto mb-4 border border-rose-800/60">
             <Icons.X className="w-6 h-6" />
           </div>
-          <h1 className="text-xl font-bold tracking-tight text-slate-900 mb-1.5">Portal Unavailable</h1>
-          <p className="text-sm text-slate-600">{error}</p>
-          <div className="mt-6 pt-5 border-t border-slate-100">
-            <p className="text-xs text-slate-400">
+          <h1 className="text-xl font-bold tracking-tight text-zinc-100 mb-1.5">Portal Unavailable</h1>
+          <p className="text-sm text-zinc-400">{error}</p>
+          <div className="mt-6 pt-5 border-t border-zinc-800">
+            <p className="text-xs text-zinc-500">
               Please check your link or contact your agency account manager for an updated access link.
             </p>
           </div>
@@ -94,62 +94,52 @@ export default function ClientPortalPage() {
     label,
     value,
     icon: IconComponent,
-    color = 'indigo',
     subtitle,
   }: {
     label: string;
     value: string | number;
     icon: React.ComponentType<{ className?: string }>;
-    color?: 'indigo' | 'emerald' | 'amber' | 'blue' | 'purple';
     subtitle?: string;
   }) => {
-    const colorStyles = {
-      indigo: 'bg-indigo-50 text-indigo-600 border-indigo-100',
-      emerald: 'bg-emerald-50 text-emerald-600 border-emerald-100',
-      amber: 'bg-amber-50 text-amber-600 border-amber-100',
-      blue: 'bg-blue-50 text-blue-600 border-blue-100',
-      purple: 'bg-purple-50 text-purple-600 border-purple-100',
-    };
-
     return (
-      <div className="bg-white rounded-2xl border border-slate-200/80 p-5 hover:border-slate-300 hover:shadow-xs transition-all">
-        <div className="flex items-center justify-between mb-3">
-          <span className="text-xs font-semibold text-slate-500 tracking-wide uppercase">{label}</span>
-          <div className={`w-9 h-9 rounded-xl flex items-center justify-center border ${colorStyles[color]}`}>
+      <div className="bg-[#111113] rounded-2xl border border-zinc-800/80 p-5 hover:border-zinc-700 transition-all duration-200 hover:-translate-y-0.5">
+        <div className="flex items-start justify-between mb-3">
+          <span className="text-xs font-semibold text-zinc-500 uppercase tracking-wider">{label}</span>
+          <div className="w-8 h-8 rounded-lg bg-zinc-950 border border-zinc-800/60 flex items-center justify-center text-zinc-400 shrink-0">
             <IconComponent className="w-4 h-4" />
           </div>
         </div>
-        <div className="text-2xl font-bold tracking-tight text-slate-900 tabular-nums">
+        <div className="text-2xl font-bold tracking-tight text-zinc-100 tabular-nums">
           {value}
         </div>
         {subtitle && (
-          <p className="text-[11px] text-slate-400 mt-1 font-medium">{subtitle}</p>
+          <p className="text-[11px] text-zinc-500 mt-1 font-medium">{subtitle}</p>
         )}
       </div>
     );
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-900 selection:bg-indigo-500 selection:text-white">
+    <div className="min-h-screen bg-black text-zinc-100 selection:bg-lime-400 selection:text-black">
       {/* Brand & Security Top Bar */}
-      <div className="bg-white border-b border-slate-200 sticky top-0 z-30 shadow-2xs">
+      <div className="bg-[#111113]/80 backdrop-blur-md border-b border-zinc-800/80 sticky top-0 z-30 shadow-2xs">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
             <div className="flex items-center gap-3">
-              <div className="w-8 h-8 rounded-lg bg-indigo-600 text-white flex items-center justify-center font-bold text-xs shadow-xs">
+              <div className="w-8 h-8 rounded-lg bg-lime-400 text-black flex items-center justify-center font-bold text-xs shadow-xs">
                 RP
               </div>
               <div>
-                <span className="text-sm font-bold tracking-tight text-slate-900">ReportPilot</span>
-                <span className="hidden sm:inline-block text-xs text-slate-400 ml-2 border-l border-slate-200 pl-2">
+                <span className="text-sm font-bold tracking-tight text-zinc-100">Report<span className="text-lime-400">Pilot</span></span>
+                <span className="hidden sm:inline-block text-xs text-zinc-500 ml-2.5 border-l border-zinc-800 pl-2.5">
                   Client Portal
                 </span>
               </div>
             </div>
 
             <div className="flex items-center gap-2">
-              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-lime-400/10 text-lime-400 border border-lime-400/20">
+                <span className="w-1.5 h-1.5 rounded-full bg-lime-400 animate-pulse" />
                 Live Client Portal
               </span>
             </div>
@@ -158,23 +148,23 @@ export default function ClientPortalPage() {
       </div>
 
       {/* Hero / Header Section */}
-      <div className="bg-white border-b border-slate-200/80">
+      <div className="bg-transparent border-b border-zinc-800/80">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
             <div>
-              <div className="inline-flex items-center gap-2 text-xs font-bold text-indigo-600 bg-indigo-50 px-2.5 py-1 rounded-md mb-2">
-                <Icons.Clients className="w-3.5 h-3.5" />
-                Client Performance Report
+              <div className="inline-flex items-center gap-1.5 text-xs font-semibold text-lime-400 bg-lime-400/10 border border-lime-400/20 px-2.5 py-0.5 rounded-full mb-2.5">
+                <Icons.Clients className="w-3.5 h-3.5 text-lime-400" />
+                <span>Client Performance Report</span>
               </div>
-              <h1 className="text-3xl font-extrabold tracking-tight text-slate-900">
+              <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-zinc-100">
                 {summary.client_name}
               </h1>
-              <p className="text-sm text-slate-500 mt-1">
+              <p className="text-xs sm:text-sm text-zinc-500 mt-1">
                 Real-time campaign telemetry and ad performance analytics managed by your agency.
               </p>
             </div>
 
-            <div className="self-start lg:self-auto">
+            <div className="self-start lg:self-auto bg-[#111113] p-2 sm:p-2.5 rounded-2xl border border-zinc-800/80">
               <DateRangeFilter
                 selectedRange={dateRange}
                 onRangeChange={(range, start, end) => {
@@ -195,11 +185,11 @@ export default function ClientPortalPage() {
         {/* KPI Grid */}
         <section>
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-base font-bold tracking-tight text-slate-900 flex items-center gap-2">
-              <Icons.Metrics className="w-4 h-4 text-indigo-600" />
+            <h2 className="text-sm font-semibold text-zinc-100 tracking-tight flex items-center gap-2">
+              <Icons.Metrics className="w-4 h-4 text-lime-400" />
               Executive Metrics
             </h2>
-            <span className="text-xs text-slate-400 font-medium">Selected period</span>
+            <span className="text-xs text-zinc-500 font-medium">Selected period</span>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
@@ -207,38 +197,32 @@ export default function ClientPortalPage() {
               label="Active Campaigns"
               value={summary.total_campaigns}
               icon={Icons.Campaigns}
-              color="indigo"
             />
             <StatTile
               label="Total Ad Spend"
               value={`$${(summary.total_ad_spend || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
               icon={Icons.Spend}
-              color="blue"
             />
             <StatTile
               label="Total Leads"
               value={(summary.total_leads || 0).toLocaleString()}
               icon={Icons.Leads}
-              color="purple"
             />
             <StatTile
               label="Total Conversions"
               value={(summary.total_conversions || 0).toLocaleString()}
               icon={Icons.Conversions}
-              color="emerald"
             />
             <StatTile
               label="Avg Cost / Lead"
               value={`$${(summary.average_cpl || 0).toFixed(2)}`}
               icon={Icons.Metrics}
-              color="amber"
               subtitle="Efficiency ratio"
             />
             <StatTile
               label="Conversion Rate"
               value={`${(summary.average_conversion_rate || 0).toFixed(1)}%`}
               icon={Icons.ArrowUpRight}
-              color="emerald"
               subtitle="Lead to conversion"
             />
           </div>
@@ -247,8 +231,8 @@ export default function ClientPortalPage() {
         {/* Campaigns List */}
         <section>
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-base font-bold tracking-tight text-slate-900 flex items-center gap-2">
-              <Icons.Campaigns className="w-4 h-4 text-indigo-600" />
+            <h2 className="text-sm font-semibold text-zinc-100 tracking-tight flex items-center gap-2">
+              <Icons.Campaigns className="w-4 h-4 text-lime-400" />
               Active Campaigns ({data.campaigns?.length || 0})
             </h2>
           </div>
@@ -258,43 +242,43 @@ export default function ClientPortalPage() {
               {data.campaigns.map(campaign => (
                 <div
                   key={campaign.id}
-                  className="bg-white rounded-2xl border border-slate-200/80 p-5 hover:border-slate-300 hover:shadow-xs transition-all flex flex-col justify-between"
+                  className="bg-[#111113] rounded-2xl border border-zinc-800/80 p-5 hover:border-zinc-700 transition-all duration-200 flex flex-col justify-between shadow-xs"
                 >
                   <div>
-                    <div className="flex items-center justify-between gap-2 mb-2.5">
-                      <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500 bg-slate-100 px-2.5 py-0.5 rounded-md">
+                    <div className="flex items-center justify-between gap-2 mb-3">
+                      <span className="text-[11px] font-medium text-zinc-400 bg-zinc-900 border border-zinc-800 px-2.5 py-0.5 rounded-lg">
                         {campaign.platform.replace('_', ' ')}
                       </span>
                       <span
                         className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold ${
                           campaign.status === 'active'
-                            ? 'bg-emerald-50 text-emerald-700 border border-emerald-200/60'
+                            ? 'bg-lime-400/10 text-lime-400 border border-lime-400/20'
                             : campaign.status === 'paused'
-                            ? 'bg-amber-50 text-amber-700 border border-amber-200/60'
-                            : 'bg-slate-100 text-slate-700 border border-slate-200'
+                            ? 'bg-amber-400/10 text-amber-400 border border-amber-400/20'
+                            : 'bg-zinc-800/80 text-zinc-400 border border-zinc-700/80'
                         }`}
                       >
                         <span
                           className={`w-1.5 h-1.5 rounded-full ${
                             campaign.status === 'active'
-                              ? 'bg-emerald-500'
+                              ? 'bg-lime-400'
                               : campaign.status === 'paused'
-                              ? 'bg-amber-500'
-                              : 'bg-slate-400'
+                              ? 'bg-amber-400'
+                              : 'bg-zinc-500'
                           }`}
                         />
-                        {campaign.status.charAt(0).toUpperCase() + campaign.status.slice(1)}
+                        <span className="capitalize">{campaign.status}</span>
                       </span>
                     </div>
 
-                    <h3 className="text-base font-bold text-slate-900 truncate">
+                    <h3 className="text-base font-bold text-zinc-100 truncate">
                       {campaign.name}
                     </h3>
                   </div>
 
-                  <div className="mt-4 pt-3 border-t border-slate-100 text-xs text-slate-400 flex items-center justify-between">
+                  <div className="mt-4 pt-3 border-t border-zinc-800/60 text-xs text-zinc-500 flex items-center justify-between">
                     <span>Performance Tracking</span>
-                    <span className="text-indigo-600 font-semibold inline-flex items-center gap-0.5">
+                    <span className="text-lime-400 font-medium inline-flex items-center gap-1">
                       Live telemetry
                     </span>
                   </div>
@@ -302,10 +286,10 @@ export default function ClientPortalPage() {
               ))}
             </div>
           ) : (
-            <div className="bg-white rounded-2xl border border-slate-200/80 p-8 text-center text-slate-500">
-              <Icons.Campaigns className="w-8 h-8 text-slate-300 mx-auto mb-2" />
-              <p className="text-sm font-semibold text-slate-700">No campaigns found</p>
-              <p className="text-xs text-slate-400 mt-0.5">Campaigns will appear here once configured by your agency.</p>
+            <div className="bg-[#111113] rounded-2xl border border-zinc-800/80 p-8 text-center text-zinc-500">
+              <Icons.Campaigns className="w-8 h-8 text-zinc-600 mx-auto mb-2" />
+              <p className="text-sm font-semibold text-zinc-300">No campaigns found</p>
+              <p className="text-xs text-zinc-500 mt-0.5">Campaigns will appear here once configured by your agency.</p>
             </div>
           )}
         </section>
@@ -313,17 +297,17 @@ export default function ClientPortalPage() {
         {/* Recent Metrics Table */}
         <section>
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-base font-bold tracking-tight text-slate-900 flex items-center gap-2">
-              <Icons.Metrics className="w-4 h-4 text-indigo-600" />
+            <h2 className="text-sm font-semibold text-zinc-100 tracking-tight flex items-center gap-2">
+              <Icons.Metrics className="w-4 h-4 text-lime-400" />
               Daily Telemetry Log
             </h2>
           </div>
 
           {data.recent_metrics && data.recent_metrics.length > 0 ? (
-            <div className="bg-white rounded-2xl border border-slate-200/80 overflow-hidden shadow-xs">
+            <div className="bg-[#111113] rounded-2xl border border-zinc-800/80 overflow-hidden shadow-xs">
               <div className="overflow-x-auto">
                 <table className="w-full text-left text-sm">
-                  <thead className="bg-slate-50/80 border-b border-slate-200/80 text-xs font-semibold text-slate-600">
+                  <thead className="bg-zinc-950/80 border-b border-zinc-800 text-xs font-semibold text-zinc-500 uppercase tracking-wider">
                     <tr>
                       <th className="px-6 py-3.5">Date</th>
                       <th className="px-6 py-3.5">Campaign</th>
@@ -334,32 +318,32 @@ export default function ClientPortalPage() {
                       <th className="px-6 py-3.5 text-right">Conv. Rate</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-slate-100">
+                  <tbody className="divide-y divide-zinc-800/60">
                     {data.recent_metrics.map(metric => (
-                      <tr key={metric.id} className="hover:bg-slate-50/60 transition-colors">
-                        <td className="px-6 py-4 text-xs font-medium text-slate-600">
+                      <tr key={metric.id} className="hover:bg-zinc-900/40 transition-colors">
+                        <td className="px-6 py-4 text-xs font-medium text-zinc-400">
                           {new Date(metric.reporting_period).toLocaleDateString(undefined, {
                             month: 'short',
                             day: 'numeric',
                             year: 'numeric',
                           })}
                         </td>
-                        <td className="px-6 py-4 text-xs font-bold text-slate-900">
+                        <td className="px-6 py-4 text-xs font-bold text-zinc-200">
                           {data.campaigns?.find(c => c.id === metric.campaign_id)?.name || 'Unknown Campaign'}
                         </td>
-                        <td className="px-6 py-4 text-xs text-slate-900 text-right font-bold tabular-nums">
+                        <td className="px-6 py-4 text-xs text-zinc-100 text-right font-bold tabular-nums">
                           ${metric.ad_spend.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                         </td>
-                        <td className="px-6 py-4 text-xs text-slate-700 text-right font-medium tabular-nums">
+                        <td className="px-6 py-4 text-xs text-zinc-300 text-right font-medium tabular-nums">
                           {metric.leads.toLocaleString()}
                         </td>
-                        <td className="px-6 py-4 text-xs text-slate-700 text-right font-medium tabular-nums">
+                        <td className="px-6 py-4 text-xs text-zinc-300 text-right font-medium tabular-nums">
                           {metric.conversions.toLocaleString()}
                         </td>
-                        <td className="px-6 py-4 text-xs text-slate-900 text-right font-bold tabular-nums">
+                        <td className="px-6 py-4 text-xs text-zinc-100 text-right font-bold tabular-nums">
                           {metric.cost_per_lead ? `$${metric.cost_per_lead.toFixed(2)}` : '—'}
                         </td>
-                        <td className="px-6 py-4 text-xs text-slate-900 text-right font-bold tabular-nums">
+                        <td className="px-6 py-4 text-xs text-zinc-100 text-right font-bold tabular-nums">
                           {metric.conversion_rate ? `${metric.conversion_rate.toFixed(1)}%` : '—'}
                         </td>
                       </tr>
@@ -369,28 +353,28 @@ export default function ClientPortalPage() {
               </div>
             </div>
           ) : (
-            <div className="bg-white rounded-2xl border border-slate-200/80 p-8 text-center text-slate-500">
-              <Icons.Metrics className="w-8 h-8 text-slate-300 mx-auto mb-2" />
-              <p className="text-sm font-semibold text-slate-700">No telemetry records in this date range</p>
-              <p className="text-xs text-slate-400 mt-0.5">Try selecting a broader date range above to view historical data.</p>
+            <div className="bg-[#111113] rounded-2xl border border-zinc-800/80 p-8 text-center text-zinc-500">
+              <Icons.Metrics className="w-8 h-8 text-zinc-600 mx-auto mb-2" />
+              <p className="text-sm font-semibold text-zinc-300">No telemetry records in this date range</p>
+              <p className="text-xs text-zinc-500 mt-0.5">Try selecting a broader date range above to view historical data.</p>
             </div>
           )}
         </section>
 
         {/* Portal Footer Notice */}
-        <div className="rounded-2xl bg-gradient-to-r from-slate-900 to-indigo-950 text-white p-6 sm:p-7 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="rounded-2xl bg-[#111113] border border-zinc-800/80 text-zinc-100 p-6 sm:p-7 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-xs">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center text-indigo-400 shrink-0">
+            <div className="w-10 h-10 rounded-xl bg-lime-400/10 border border-lime-400/20 flex items-center justify-center text-lime-400 shrink-0">
               <Icons.Check className="w-5 h-5" />
             </div>
             <div>
-              <h3 className="text-sm font-bold text-white">Private & Verified Client Portal</h3>
-              <p className="text-xs text-slate-400 mt-0.5">
+              <h3 className="text-sm font-bold text-zinc-100">Private & Verified Client Portal</h3>
+              <p className="text-xs text-zinc-500 mt-0.5">
                 Metrics are updated continuously by your agency team. Bookmark this URL for instant access.
               </p>
             </div>
           </div>
-          <div className="text-xs text-slate-400 font-mono">
+          <div className="text-xs text-zinc-500 font-mono">
             Powered by ReportPilot
           </div>
         </div>
