@@ -3,11 +3,33 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseServer } from '@/lib/supabase/server';
 import { hashPassword, generateToken, validateEmail, validatePasswordStrength } from '@/lib/utils/auth';
+import {
+  getClientIp,
+  checkRateLimit,
+  createRateLimitResponse,
+  getRateLimitConfig,
+} from '@/lib/utils/rateLimit';
 import { SignupRequest, SignupResponse } from '@/types';
 import crypto from 'crypto';
 
 export async function POST(request: NextRequest): Promise<NextResponse<SignupResponse>> {
   try {
+    // IP-based rate limiting for registrations
+    const clientIp = getClientIp(request);
+    const config = getRateLimitConfig();
+    const ipRateLimit = checkRateLimit(
+      `signup:ip:${clientIp}`,
+      config.signup.ipMax,
+      config.signup.ipWindowSec
+    );
+
+    if (!ipRateLimit.allowed) {
+      return createRateLimitResponse(
+        ipRateLimit,
+        'Too many account registrations from this IP. Please try again later.'
+      );
+    }
+
     // Parse request body
     const body: SignupRequest = await request.json();
     const { email, password, agency_name } = body;

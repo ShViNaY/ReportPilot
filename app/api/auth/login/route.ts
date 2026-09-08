@@ -3,10 +3,33 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseServer } from '@/lib/supabase/server';
 import { hashPassword, generateToken } from '@/lib/utils/auth';
+import {
+  getClientIp,
+  checkRateLimit,
+  resetRateLimit,
+  createRateLimitResponse,
+  getRateLimitConfig,
+} from '@/lib/utils/rateLimit';
 import { LoginRequest, LoginResponse } from '@/types';
 
 export async function POST(request: NextRequest): Promise<NextResponse<LoginResponse>> {
   try {
+    // 1. IP-based rate limiting check
+    const clientIp = getClientIp(request);
+    const config = getRateLimitConfig();
+    const ipRateLimit = checkRateLimit(
+      `login:ip:${clientIp}`,
+      config.login.ipMax,
+      config.login.ipWindowSec
+    );
+
+    if (!ipRateLimit.allowed) {
+      return createRateLimitResponse(
+        ipRateLimit,
+        'Too many login attempts from this IP. Please try again later.'
+      );
+    }
+
     // Parse request body
     const body: LoginRequest = await request.json();
     const { email, password } = body;
@@ -19,11 +42,26 @@ export async function POST(request: NextRequest): Promise<NextResponse<LoginResp
       );
     }
 
+    // 2. Account-based rate limiting check (keyed by normalized email)
+    const normalizedEmail = email.toLowerCase().trim();
+    const accountRateLimit = checkRateLimit(
+      `login:account:${normalizedEmail}`,
+      config.login.accountMax,
+      config.login.accountWindowSec
+    );
+
+    if (!accountRateLimit.allowed) {
+      return createRateLimitResponse(
+        accountRateLimit,
+        'Too many failed login attempts for this account. Please try again later.'
+      );
+    }
+
     // Query Supabase for user
     const { data: users, error: queryError } = await supabaseServer
       .from('users')
       .select('*')
-      .eq('email', email.toLowerCase());
+      .eq('email', normalizedEmail);
 
     if (queryError) {
       console.error('Database query error:', queryError);
@@ -51,6 +89,9 @@ export async function POST(request: NextRequest): Promise<NextResponse<LoginResp
         { status: 401 }
       );
     }
+
+    // Password correct - clear account-specific rate limit on success
+    resetRateLimit(`login:account:${normalizedEmail}`);
 
     // Password correct - generate JWT token
     const token = generateToken({

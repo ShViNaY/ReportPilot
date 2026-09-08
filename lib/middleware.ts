@@ -2,6 +2,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { verifyToken, extractTokenFromHeader } from './utils/auth';
+import { checkRateLimit, createRateLimitResponse, getRateLimitConfig } from './utils/rateLimit';
 import { AuthPayload } from '@/types';
 
 // Explicit discriminated union types so TS can narrow correctly.
@@ -53,6 +54,24 @@ export async function protectedRoute(request: NextRequest): Promise<ProtectedRou
         response: NextResponse.json(
           { success: false, error: 'Invalid or expired token' },
           { status: 401 }
+        ),
+      };
+    }
+
+    // Rate limiting for authenticated user actions
+    const config = getRateLimitConfig();
+    const rateLimit = checkRateLimit(
+      `auth:user:${payload.user_id}`,
+      config.authenticated.max,
+      config.authenticated.windowSec
+    );
+
+    if (!rateLimit.allowed) {
+      return {
+        success: false,
+        response: createRateLimitResponse(
+          rateLimit,
+          'Rate limit exceeded. Please slow down your requests.'
         ),
       };
     }

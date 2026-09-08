@@ -3,10 +3,32 @@
 import { NextRequest, NextResponse } from 'next/server';
 import crypto from 'crypto';
 import { supabaseServer } from '@/lib/supabase/server';
+import {
+  getClientIp,
+  checkRateLimit,
+  createRateLimitResponse,
+  getRateLimitConfig,
+} from '@/lib/utils/rateLimit';
 import { ClientDashboardResponse, ClientDashboardSummary } from '@/types';
 
 export async function GET(request: NextRequest): Promise<NextResponse> {
   try {
+    // 1. IP-based rate limiting for public portal endpoint
+    const clientIp = getClientIp(request);
+    const config = getRateLimitConfig();
+    const ipRateLimit = checkRateLimit(
+      `public:portal:ip:${clientIp}`,
+      config.publicPortal.ipMax,
+      config.publicPortal.ipWindowSec
+    );
+
+    if (!ipRateLimit.allowed) {
+      return createRateLimitResponse(
+        ipRateLimit,
+        'Too many requests from this IP. Please slow down.'
+      );
+    }
+
     const { searchParams } = new URL(request.url);
     const portalToken = searchParams.get('token')?.trim();
 
@@ -24,6 +46,20 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       .createHash('sha256')
       .update(portalToken)
       .digest('hex');
+
+    // 2. Token-based rate limiting for this specific portal
+    const tokenRateLimit = checkRateLimit(
+      `public:portal:token:${tokenHash}`,
+      config.publicPortal.tokenMax,
+      config.publicPortal.tokenWindowSec
+    );
+
+    if (!tokenRateLimit.allowed) {
+      return createRateLimitResponse(
+        tokenRateLimit,
+        'Too many requests for this client portal. Please slow down.'
+      );
+    }
 
     const { data: accessToken, error: accessTokenError } = await supabaseServer
       .from('client_access_tokens')

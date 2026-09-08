@@ -3,6 +3,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseServer } from '@/lib/supabase/server';
 import { protectedRoute } from '@/lib/middleware';
+import {
+  checkRateLimit,
+  createRateLimitResponse,
+  getRateLimitConfig,
+} from '@/lib/utils/rateLimit';
 import { TeamListResponse, AddTeamMemberResponse } from '@/types';
 import { hashPassword, validateEmail, validatePasswordStrength } from '@/lib/utils/auth';
 
@@ -95,6 +100,21 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       return NextResponse.json(
         { success: false, error: 'Only agency owners can add team members' },
         { status: 403 }
+      );
+    }
+
+    // Rate limiting for adding team members / account creation
+    const config = getRateLimitConfig();
+    const teamRateLimit = checkRateLimit(
+      `team:create:${agency_id}`,
+      config.passwordAction.max,
+      config.passwordAction.windowSec
+    );
+
+    if (!teamRateLimit.allowed) {
+      return createRateLimitResponse(
+        teamRateLimit,
+        'Rate limit exceeded for creating team accounts. Please try again later.'
       );
     }
 
