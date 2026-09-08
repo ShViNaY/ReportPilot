@@ -9,6 +9,7 @@ import {
   createRateLimitResponse,
   getRateLimitConfig,
 } from '@/lib/utils/rateLimit';
+import { validatePortalTokenString, validateDateRange } from '@/lib/utils/validation';
 import { ClientDashboardResponse, ClientDashboardSummary } from '@/types';
 
 export async function GET(request: NextRequest): Promise<NextResponse> {
@@ -30,14 +31,23 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     }
 
     const { searchParams } = new URL(request.url);
-    const portalToken = searchParams.get('token')?.trim();
+    const rawToken = searchParams.get('token');
 
-    if (!portalToken) {
+    if (!rawToken || !rawToken.trim()) {
       return NextResponse.json(
         { success: false, error: 'Portal token is required' },
         { status: 400 }
       );
     }
+
+    const tokenValidation = validatePortalTokenString(rawToken);
+    if (!tokenValidation.success) {
+      return NextResponse.json(
+        { success: false, error: 'Invalid or expired portal token' },
+        { status: 401 }
+      );
+    }
+    const portalToken = tokenValidation.data;
 
     // Look up the token by its hash, never by the raw value — this is the
     // credential a client presents on every request, so it should be
@@ -114,16 +124,25 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     const startDateParam = searchParams.get('startDate');
     const endDateParam = searchParams.get('endDate');
 
+    const dateValidation = validateDateRange(startDateParam, endDateParam);
+    if (!dateValidation.success) {
+      return NextResponse.json(
+        { success: false, error: dateValidation.error },
+        { status: 400 }
+      );
+    }
+    const { startDate, endDate } = dateValidation.data;
+
     let metricsQuery = supabaseServer
       .from('metric_entries')
       .select('*')
       .eq('client_id', clientId);
 
-    if (startDateParam) {
-      metricsQuery = metricsQuery.gte('reporting_period', startDateParam.split('T')[0]);
+    if (startDate) {
+      metricsQuery = metricsQuery.gte('reporting_period', startDate);
     }
-    if (endDateParam) {
-      metricsQuery = metricsQuery.lte('reporting_period', endDateParam.split('T')[0]);
+    if (endDate) {
+      metricsQuery = metricsQuery.lte('reporting_period', endDate);
     }
 
     const { data: metrics, error: metricsError } = await metricsQuery.order(

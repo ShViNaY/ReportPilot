@@ -3,6 +3,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseServer } from '@/lib/supabase/server';
 import { protectedRoute } from '@/lib/middleware';
+import { validateRouteId, validateUpdateCampaignInput } from '@/lib/utils/validation';
 
 interface RouteParams { 
     params: Promise<{ id: string }>; 
@@ -25,6 +26,14 @@ export async function GET(
 
         const { agency_id, user_id, role } = auth.payload;
         const { id: campaignId } = await params;
+
+        const idValidation = validateRouteId(campaignId, 'Campaign ID');
+        if (!idValidation.success) {
+            return NextResponse.json(
+                { success: false, error: idValidation.error },
+                { status: 400 }
+            );
+        }
 
         // Step 2: Fetch campaign
         const { data: campaign, error } = await supabaseServer
@@ -89,32 +98,25 @@ export async function PUT(
 
         const { agency_id, user_id, role } = auth.payload;
         const { id: campaignId } = await params;
+
+        const idValidation = validateRouteId(campaignId, 'Campaign ID');
+        if (!idValidation.success) {
+            return NextResponse.json(
+                { success: false, error: idValidation.error },
+                { status: 400 }
+            );
+        }
         
-        // Step 2: Parse request
-        const body = await request.json();
-        const { name, platform, status } = body;
-
-        // Step 3: Validate input
-        if (name !== undefined && name.trim() === '') {
+        // Step 2: Parse and validate request
+        const body = await request.json().catch(() => null);
+        const validation = validateUpdateCampaignInput(body);
+        if (!validation.success) {
             return NextResponse.json(
-                { success: false, error: 'Campaign name cannot be empty' },
+                { success: false, error: validation.error },
                 { status: 400 }
             );
         }
-
-        if (platform !== undefined && platform.trim() === '') {
-            return NextResponse.json(
-                { success: false, error: 'Platform cannot be empty' },
-                { status: 400 }
-            );
-        }
-
-        if (status && !['active', 'paused', 'completed'].includes(status)) {
-            return NextResponse.json(
-                { success: false, error: 'Invalid status' },
-                { status: 400 }
-            );
-        }
+        const { name, platform, status } = validation.data;
 
         // Step 4: Verify campaign exists and belongs to user's agency
         const { data: existingCampaign } = await supabaseServer
@@ -204,6 +206,14 @@ export async function DELETE(
 
         const { agency_id, role } = auth.payload;
         const { id: campaignId } = await params;
+
+        const idValidation = validateRouteId(campaignId, 'Campaign ID');
+        if (!idValidation.success) {
+            return NextResponse.json(
+                { success: false, error: idValidation.error },
+                { status: 400 }
+            );
+        }
 
         // Step 2: Only owners can delete campaigns
         if (role !== 'owner') {

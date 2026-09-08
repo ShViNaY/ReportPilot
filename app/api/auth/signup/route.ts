@@ -9,6 +9,7 @@ import {
   createRateLimitResponse,
   getRateLimitConfig,
 } from '@/lib/utils/rateLimit';
+import { validateSignupInput } from '@/lib/utils/validation';
 import { SignupRequest, SignupResponse } from '@/types';
 import crypto from 'crypto';
 
@@ -30,34 +31,16 @@ export async function POST(request: NextRequest): Promise<NextResponse<SignupRes
       );
     }
 
-    // Parse request body
-    const body: SignupRequest = await request.json();
-    const { email, password, agency_name } = body;
-
-    // Validate input
-    if (!email || !password || !agency_name) {
+    // Parse and validate request body
+    const body = await request.json().catch(() => null);
+    const validation = validateSignupInput(body);
+    if (!validation.success) {
       return NextResponse.json(
-        { success: false, error: 'Email, password, and agency name are required' },
+        { success: false, error: validation.error },
         { status: 400 }
       );
     }
-
-    // Validate email format
-    if (!validateEmail(email)) {
-      return NextResponse.json(
-        { success: false, error: 'Invalid email format' },
-        { status: 400 }
-      );
-    }
-
-    // Validate password strength
-    const passwordError = validatePasswordStrength(password);
-    if (passwordError) {
-      return NextResponse.json(
-        { success: false, error: passwordError },
-        { status: 400 }
-      );
-    }
+    const { email, password, agency_name } = validation.data;
 
     // Check if user already exists
     const { data: existingUsers, error: checkError } = await supabaseServer

@@ -3,6 +3,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseServer } from '@/lib/supabase/server';
 import { protectedRoute } from '@/lib/middleware';
+import { validateCreateCampaignInput } from '@/lib/utils/validation';
 import { CreateCampaignRequest, CreateCampaignResponse, GetCampaignsResponse } from '@/types';
 
 /**
@@ -88,17 +89,16 @@ export async function POST(request: NextRequest): Promise<NextResponse<CreateCam
 
         const { agency_id, user_id, role } = auth.payload;
 
-        // Step 2: Parse request
-        const body: CreateCampaignRequest = await request.json();
-        const { client_id, name, platform } = body;
-
-        // Step 3: Validate input
-        if (!client_id || !name || !name.trim() || !platform || !platform.trim()) {
-            return NextResponse.json(
-                { success: false, error: 'Client ID, campaign name, and platform are required' },
+        // Step 2: Parse and validate request
+        const body = await request.json().catch(() => null);
+        const validation = validateCreateCampaignInput(body);
+        if (!validation.success) {
+            return NextResponse.json<CreateCampaignResponse>(
+                { success: false, error: validation.error },
                 { status: 400 }
             );
         }
+        const { client_id, name, platform } = validation.data;
 
         // Step 4: Verify client exists and belongs to user's agency
         const { data: client } = await supabaseServer

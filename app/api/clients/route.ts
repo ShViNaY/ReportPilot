@@ -3,6 +3,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseServer } from '@/lib/supabase/server';
 import { protectedRoute } from '@/lib/middleware';
+import { validateCreateClientInput } from '@/lib/utils/validation';
 import { CreateClientRequest, CreateClientResponse, GetClientsResponse } from '@/types';
 
 /**
@@ -123,15 +124,15 @@ export async function POST(request: NextRequest): Promise<NextResponse<CreateCli
       );
     }
 
-    const body: CreateClientRequest = await request.json();
-    const { name, contact_email } = body;
-
-    if (!name) {
+    const body = await request.json().catch(() => null);
+    const validation = validateCreateClientInput(body);
+    if (!validation.success) {
       return NextResponse.json<CreateClientResponse>(
-        { success: false, error: 'Client name is required' },
+        { success: false, error: validation.error },
         { status: 400 }
       );
     }
+    const { name, contact_email } = validation.data;
 
     // Create client (no portal token here — generated on-demand by the owner)
     const { data: client, error: clientError } = await supabaseServer

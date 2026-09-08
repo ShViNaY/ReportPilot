@@ -3,6 +3,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseServer } from '@/lib/supabase/server';
 import { protectedRoute } from '@/lib/middleware';
+import { validateRouteId } from '@/lib/utils/validation';
 
 interface RouteParams {
   params: Promise<{ id: string }>;
@@ -14,6 +15,14 @@ export async function POST(
 ): Promise<NextResponse> {
   try {
     const { id: managerId } = await params;
+
+    const managerIdValidation = validateRouteId(managerId, 'Team member ID');
+    if (!managerIdValidation.success) {
+      return NextResponse.json(
+        { success: false, error: managerIdValidation.error },
+        { status: 400 }
+      );
+    }
 
     const auth = await protectedRoute(request);
     if (!auth.success) return auth.response;
@@ -27,15 +36,17 @@ export async function POST(
       );
     }
 
-    const body = await request.json();
-    const { client_id } = body;
+    const body = await request.json().catch(() => null);
+    const clientId = body?.client_id;
 
-    if (!client_id) {
+    const clientIdValidation = validateRouteId(clientId, 'Client ID');
+    if (!clientIdValidation.success) {
       return NextResponse.json(
-        { success: false, error: 'client_id is required' },
+        { success: false, error: clientIdValidation.error },
         { status: 400 }
       );
     }
+    const client_id = clientIdValidation.data;
 
     const { data: manager } = await supabaseServer
       .from('users')
@@ -97,6 +108,14 @@ export async function DELETE(
   try {
     const { id: managerId } = await params;
 
+    const managerIdValidation = validateRouteId(managerId, 'Team member ID');
+    if (!managerIdValidation.success) {
+      return NextResponse.json(
+        { success: false, error: managerIdValidation.error },
+        { status: 400 }
+      );
+    }
+
     const auth = await protectedRoute(request);
     if (!auth.success) return auth.response;
 
@@ -110,14 +129,16 @@ export async function DELETE(
     }
 
     const { searchParams } = new URL(request.url);
-    const clientId = searchParams.get('client_id');
+    const clientIdParam = searchParams.get('client_id');
 
-    if (!clientId) {
+    const clientIdValidation = validateRouteId(clientIdParam, 'Client ID');
+    if (!clientIdValidation.success) {
       return NextResponse.json(
-        { success: false, error: 'client_id query param is required' },
+        { success: false, error: clientIdValidation.error },
         { status: 400 }
       );
     }
+    const clientId = clientIdValidation.data;
 
     const { data: manager } = await supabaseServer
       .from('users')

@@ -3,6 +3,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseServer } from '@/lib/supabase/server';
 import { protectedRoute } from '@/lib/middleware';
+import { validateRouteId } from '@/lib/utils/validation';
 import { UpdateTeamMemberResponse, DeleteResponse } from '@/types';
 
 interface RouteParams { 
@@ -24,6 +25,14 @@ export async function PUT(
 
     const { agency_id, role, user_id } = auth.payload;
     const { id: targetId } = await params;
+
+    const idValidation = validateRouteId(targetId, 'Team member ID');
+    if (!idValidation.success) {
+      return NextResponse.json(
+        { success: false, error: idValidation.error },
+        { status: 400 }
+      );
+    }
 
     if (role !== 'owner') {
       return NextResponse.json(
@@ -106,6 +115,14 @@ export async function DELETE(
 
     const { agency_id, role, user_id } = auth.payload;
     const { id: targetId } = await params;
+
+    const idValidation = validateRouteId(targetId, 'Team member ID');
+    if (!idValidation.success) {
+      return NextResponse.json(
+        { success: false, error: idValidation.error },
+        { status: 400 }
+      );
+    }
 
     if (role !== 'owner') {
       return NextResponse.json(

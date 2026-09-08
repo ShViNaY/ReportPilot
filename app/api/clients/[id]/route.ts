@@ -3,6 +3,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseServer } from '@/lib/supabase/server';
 import { protectedRoute } from '@/lib/middleware';
+import { validateRouteId, validateUpdateClientInput } from '@/lib/utils/validation';
 import { 
   GetClientResponse, 
   UpdateClientRequest, 
@@ -32,6 +33,14 @@ export async function GET(
 
     const { agency_id, user_id, role } = auth.payload;
     const { id: clientId } = await params;
+
+    const idValidation = validateRouteId(clientId, 'Client ID');
+    if (!idValidation.success) {
+      return NextResponse.json<GetClientResponse>(
+        { success: false, error: idValidation.error },
+        { status: 400 }
+      );
+    }
 
     // Fetch client without portal_token
     const { data: client, error } = await supabaseServer
@@ -98,8 +107,22 @@ export async function PUT(
     const { agency_id, user_id, role } = auth.payload;
     const { id: clientId } = await params;
 
-    const body: UpdateClientRequest = await request.json();
-    const { name, contact_email } = body;
+    const idValidation = validateRouteId(clientId, 'Client ID');
+    if (!idValidation.success) {
+      return NextResponse.json<UpdateClientResponse>(
+        { success: false, error: idValidation.error },
+        { status: 400 }
+      );
+    }
+
+    const body = await request.json().catch(() => null);
+    const validation = validateUpdateClientInput(body);
+    if (!validation.success) {
+      return NextResponse.json<UpdateClientResponse>(
+        { success: false, error: validation.error },
+        { status: 400 }
+      );
+    }
 
     // Check if account manager has access
     if (role === 'account_manager') {
@@ -118,12 +141,11 @@ export async function PUT(
       }
     }
 
-    // Update client
+    // Update client with validated fields
     const { data: client, error } = await supabaseServer
       .from('clients')
       .update({
-        name,
-        contact_email,
+        ...validation.data,
         updated_at: new Date().toISOString(),
       })
       .eq('id', clientId)
@@ -171,6 +193,14 @@ export async function DELETE(
 
     const { agency_id, role } = auth.payload;
     const { id: clientId } = await params;
+
+    const idValidation = validateRouteId(clientId, 'Client ID');
+    if (!idValidation.success) {
+      return NextResponse.json(
+        { success: false, error: idValidation.error },
+        { status: 400 }
+      );
+    }
 
     if (role !== 'owner') {
       return NextResponse.json(

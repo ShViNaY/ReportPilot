@@ -3,6 +3,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseServer } from '@/lib/supabase/server';
 import { protectedRoute } from '@/lib/middleware';
+import { validateRouteId, validateDateRange, validateCreateMetricInput } from '@/lib/utils/validation';
 import { CreateMetricEntryRequest, CreateMetricEntryResponse, GetMetricsResponse } from '@/types';
 
 /**
@@ -51,19 +52,38 @@ export async function GET(request: NextRequest): Promise<NextResponse<GetMetrics
     const endDateParam = url.searchParams.get('endDate');
     const campaignIdParam = url.searchParams.get('campaign_id');
 
+    // Validate date range parameters
+    const dateValidation = validateDateRange(startDateParam, endDateParam);
+    if (!dateValidation.success) {
+      return NextResponse.json<GetMetricsResponse>(
+        { success: false, error: dateValidation.error },
+        { status: 400 }
+      );
+    }
+    const { startDate, endDate } = dateValidation.data;
+
+    // Validate campaign ID filter if provided
+    if (campaignIdParam) {
+      const campValidation = validateRouteId(campaignIdParam, 'Campaign ID');
+      if (!campValidation.success) {
+        return NextResponse.json<GetMetricsResponse>(
+          { success: false, error: campValidation.error },
+          { status: 400 }
+        );
+      }
+    }
+
     let query = supabaseServer
       .from('metric_entries')
       .select('*')
       .eq('agency_id', agency_id);
 
     // Add date filtering
-    if (startDateParam) {
-      const startDate = startDateParam.split('T')[0];
+    if (startDate) {
       query = query.gte('reporting_period', startDate);
     }
 
-    if (endDateParam) {
-      const endDate = endDateParam.split('T')[0];
+    if (endDate) {
       query = query.lte('reporting_period', endDate);
     }
 
@@ -136,8 +156,15 @@ export async function POST(request: NextRequest): Promise<NextResponse<CreateMet
 
     const { agency_id, user_id, role } = auth.payload;
 
-    // Step 2: Parse request
-    const body: CreateMetricEntryRequest = await request.json();
+    // Step 2: Parse and validate request
+    const body = await request.json().catch(() => null);
+    const validation = validateCreateMetricInput(body);
+    if (!validation.success) {
+      return NextResponse.json<CreateMetricEntryResponse>(
+        { success: false, error: validation.error },
+        { status: 400 }
+      );
+    }
     const {
       campaign_id,
       reporting_period,
@@ -146,29 +173,7 @@ export async function POST(request: NextRequest): Promise<NextResponse<CreateMet
       clicks,
       leads,
       conversions,
-    } = body;
-
-    // Step 3: Validate input
-    if (!campaign_id || !reporting_period) {
-      return NextResponse.json<CreateMetricEntryResponse>(
-        { success: false, error: 'Campaign ID and reporting period are required' },
-        { status: 400 }
-      );
-    }
-
-    // Validate numbers (no negatives)
-    if (
-      ad_spend < 0 ||
-      impressions < 0 ||
-      clicks < 0 ||
-      leads < 0 ||
-      conversions < 0
-    ) {
-      return NextResponse.json<CreateMetricEntryResponse>(
-        { success: false, error: 'Metrics cannot be negative' },
-        { status: 400 }
-      );
-    }
+    } = validation.data;
 
     // Step 4: Verify campaign exists and belongs to user's agency
     const { data: campaign } = await supabaseServer

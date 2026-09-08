@@ -10,6 +10,7 @@ import {
 } from '@/lib/utils/rateLimit';
 import { TeamListResponse, AddTeamMemberResponse } from '@/types';
 import { hashPassword, validateEmail, validatePasswordStrength } from '@/lib/utils/auth';
+import { validateCreateTeamMemberInput } from '@/lib/utils/validation';
 
 /**
  * GET /api/team
@@ -118,30 +119,15 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       );
     }
 
-    const body = await request.json();
-    const { email, password } = body;
-
-    if (!email || !password) {
+    const body = await request.json().catch(() => null);
+    const validation = validateCreateTeamMemberInput(body);
+    if (!validation.success) {
       return NextResponse.json(
-        { success: false, error: 'Email and password are required' },
+        { success: false, error: validation.error },
         { status: 400 }
       );
     }
-
-    if (!validateEmail(email)) {
-      return NextResponse.json(
-        { success: false, error: 'Invalid email format' },
-        { status: 400 }
-      );
-    }
-
-    const passwordError = validatePasswordStrength(password);
-    if (passwordError) {
-      return NextResponse.json(
-        { success: false, error: passwordError },
-        { status: 400 }
-      );
-    }
+    const { email, password } = validation.data;
 
     const { data: existing } = await supabaseServer
       .from('users')

@@ -10,6 +10,7 @@ import {
   createRateLimitResponse,
   getRateLimitConfig,
 } from '@/lib/utils/rateLimit';
+import { validateLoginInput } from '@/lib/utils/validation';
 import { LoginRequest, LoginResponse } from '@/types';
 
 export async function POST(request: NextRequest): Promise<NextResponse<LoginResponse>> {
@@ -31,19 +32,16 @@ export async function POST(request: NextRequest): Promise<NextResponse<LoginResp
     }
 
     // Parse request body
-    const body: LoginRequest = await request.json();
-    const { email, password } = body;
-
-    // Validate input
-    if (!email || !password) {
+    const body = await request.json().catch(() => null);
+    const validation = validateLoginInput(body);
+    if (!validation.success) {
       return NextResponse.json(
-        { success: false, error: 'Email and password are required' },
+        { success: false, error: validation.error },
         { status: 400 }
       );
     }
-
-    // 2. Account-based rate limiting check (keyed by normalized email)
-    const normalizedEmail = email.toLowerCase().trim();
+    const { email, password } = validation.data;
+    const normalizedEmail = email;
     const accountRateLimit = checkRateLimit(
       `login:account:${normalizedEmail}`,
       config.login.accountMax,

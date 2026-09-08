@@ -3,6 +3,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseServer } from '@/lib/supabase/server';
 import { protectedRoute } from '@/lib/middleware';
+import { validateRouteId, validateUpdateMetricInput } from '@/lib/utils/validation';
 
 interface RouteParams { 
     params: Promise<{ id: string }>; 
@@ -43,6 +44,14 @@ export async function GET(
 
         const { agency_id, user_id, role } = auth.payload;
         const { id: metricId } = await params;
+
+        const idValidation = validateRouteId(metricId, 'Metric ID');
+        if (!idValidation.success) {
+            return NextResponse.json(
+                { success: false, error: idValidation.error },
+                { status: 400 }
+            );
+        }
 
         // Step 2: Fetch metric
         const { data: metric, error } = await supabaseServer
@@ -107,51 +116,30 @@ export async function PUT(
         const { agency_id, user_id, role } = auth.payload;
         const { id: metricId } = await params;
 
-        // Step 2: Parse request
-        const body = await request.json();
+        const idValidation = validateRouteId(metricId, 'Metric ID');
+        if (!idValidation.success) {
+            return NextResponse.json(
+                { success: false, error: idValidation.error },
+                { status: 400 }
+            );
+        }
+
+        // Step 2: Parse and validate request
+        const body = await request.json().catch(() => null);
+        const validation = validateUpdateMetricInput(body);
+        if (!validation.success) {
+            return NextResponse.json(
+                { success: false, error: validation.error },
+                { status: 400 }
+            );
+        }
         const {
             ad_spend,
             impressions,
             clicks,
             leads,
             conversions,
-        } = body;
-
-        // Step 3: Validate numbers (if provided)
-        if (ad_spend !== undefined && ad_spend < 0) {
-            return NextResponse.json(
-                { success: false, error: 'Ad spend cannot be negative' },
-                { status: 400 }
-            );
-        }
-
-        if (impressions !== undefined && impressions < 0) {
-            return NextResponse.json(
-                { success: false, error: 'Impressions cannot be negative' },
-                { status: 400 }
-            );
-        }
-
-        if (clicks !== undefined && clicks < 0) {
-            return NextResponse.json(
-                { success: false, error: 'Clicks cannot be negative' },
-                { status: 400 }
-            );
-        }
-
-        if (leads !== undefined && leads < 0) {
-            return NextResponse.json(
-                { success: false, error: 'Leads cannot be negative' },
-                { status: 400 }
-            );
-        }
-
-        if (conversions !== undefined && conversions < 0) {
-            return NextResponse.json(
-                { success: false, error: 'Conversions cannot be negative' },
-                { status: 400 }
-            );
-        }
+        } = validation.data;
 
         // Step 4: Verify metric exists and belongs to user's agency
         const { data: existingMetric } = await supabaseServer
@@ -258,6 +246,14 @@ export async function DELETE(
 
         const { agency_id, role } = auth.payload;
         const { id: metricId } = await params;
+
+        const idValidation = validateRouteId(metricId, 'Metric ID');
+        if (!idValidation.success) {
+            return NextResponse.json(
+                { success: false, error: idValidation.error },
+                { status: 400 }
+            );
+        }
 
         // Step 2: Only owners can delete metric entries
         if (role !== 'owner') {

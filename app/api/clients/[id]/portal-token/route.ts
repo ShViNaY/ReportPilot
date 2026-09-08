@@ -3,6 +3,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseServer } from '@/lib/supabase/server';
 import { protectedRoute } from '@/lib/middleware';
+import { validateRouteId, validatePortalTokenGenerateInput } from '@/lib/utils/validation';
 import { PortalTokenResponse, PortalTokenStatusResponse, RevokePortalTokenResponse } from '@/types';
 import crypto from 'crypto';
 
@@ -34,6 +35,14 @@ export async function GET(
 
     const { agency_id, role } = auth.payload;
     const { id: clientId } = await params;
+
+    const idValidation = validateRouteId(clientId, 'Client ID');
+    if (!idValidation.success) {
+      return NextResponse.json<PortalTokenStatusResponse>(
+        { success: false, error: idValidation.error },
+        { status: 400 }
+      );
+    }
 
     if (role !== 'owner') {
       return NextResponse.json<PortalTokenStatusResponse>(
@@ -101,12 +110,31 @@ export async function POST(
     const { agency_id, role } = auth.payload;
     const { id: clientId } = await params;
 
+    const idValidation = validateRouteId(clientId, 'Client ID');
+    if (!idValidation.success) {
+      return NextResponse.json<PortalTokenResponse>(
+        { success: false, error: idValidation.error },
+        { status: 400 }
+      );
+    }
+
     if (role !== 'owner') {
       return NextResponse.json<PortalTokenResponse>(
         { success: false, error: 'Only agency owners can manage portal tokens' },
         { status: 403 }
       );
     }
+
+    // Parse and validate request
+    const rawBody = await request.json().catch(() => ({}));
+    const tokenValidation = validatePortalTokenGenerateInput(rawBody);
+    if (!tokenValidation.success) {
+      return NextResponse.json<PortalTokenResponse>(
+        { success: false, error: tokenValidation.error },
+        { status: 400 }
+      );
+    }
+    const { expirationDays } = tokenValidation.data;
 
     // Verify client exists and belongs to agency
     const { data: client, error: clientError } = await supabaseServer
@@ -122,10 +150,6 @@ export async function POST(
         { status: 404 }
       );
     }
-
-    // Parse request
-    const body: GenerateTokenRequest = await request.json().catch(() => ({}));
-    const expirationDays = body.expirationDays || null;
 
     // Calculate expiration date
     let expiresAt: string | null = null;
@@ -205,6 +229,14 @@ export async function DELETE(
 
     const { agency_id, role } = auth.payload;
     const { id: clientId } = await params;
+
+    const idValidation = validateRouteId(clientId, 'Client ID');
+    if (!idValidation.success) {
+      return NextResponse.json<RevokePortalTokenResponse>(
+        { success: false, error: idValidation.error },
+        { status: 400 }
+      );
+    }
 
     if (role !== 'owner') {
       return NextResponse.json<RevokePortalTokenResponse>(

@@ -3,6 +3,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseServer } from '@/lib/supabase/server';
 import { protectedRoute } from '@/lib/middleware';
+import { validateDateRange } from '@/lib/utils/validation';
 import { AgencyDashboardResponse, AgencyDashboardSummary } from '@/types';
 
 /**
@@ -30,6 +31,15 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
         const url = new URL(request.url);
         const startDateParam = url.searchParams.get('startDate');
         const endDateParam = url.searchParams.get('endDate');
+
+        const dateValidation = validateDateRange(startDateParam, endDateParam);
+        if (!dateValidation.success) {
+            return NextResponse.json(
+                { success: false, error: dateValidation.error },
+                { status: 400 }
+            );
+        }
+        const { startDate, endDate } = dateValidation.data;
 
         // Step 2: Get clients (filtered by role)
         let clientsQuery = supabaseServer
@@ -119,12 +129,12 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
             .eq('agency_id', agency_id)
             .in('client_id', clientIds);
 
-        if (startDateParam) {
-            metricsQuery = metricsQuery.gte('reporting_period', startDateParam.split('T')[0]);
+        if (startDate) {
+            metricsQuery = metricsQuery.gte('reporting_period', startDate);
         }
 
-        if (endDateParam) {
-            metricsQuery = metricsQuery.lte('reporting_period', endDateParam.split('T')[0]);
+        if (endDate) {
+            metricsQuery = metricsQuery.lte('reporting_period', endDate);
         }
 
         const { data: metrics, error: metricsError } = await metricsQuery;
