@@ -47,7 +47,15 @@ export function CampaignChart({
 }: CampaignChartProps) {
   // Group metrics by campaign
   const campaignData = React.useMemo(() => {
-    return campaigns.map((campaign) => {
+    // Collect campaign IDs that have metric entries in the current view
+    const campaignIdsWithMetrics = new Set(metrics.map((m) => m.campaign_id));
+
+    // Only include campaigns that have metrics in the current view (or if a single campaign is focused)
+    const targetCampaigns = campaigns.filter(
+      (campaign) => campaigns.length === 1 || campaignIdsWithMetrics.has(campaign.id)
+    );
+
+    return targetCampaigns.map((campaign) => {
       const campaignMetrics = metrics.filter((m) => m.campaign_id === campaign.id);
       const totalSpend = campaignMetrics.reduce((sum, m) => sum + m.ad_spend, 0);
       const totalLeads = campaignMetrics.reduce((sum, m) => sum + m.leads, 0);

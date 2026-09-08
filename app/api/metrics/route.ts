@@ -46,11 +46,12 @@ export async function GET(request: NextRequest): Promise<NextResponse<GetMetrics
 
     const { agency_id, user_id, role } = auth.payload;
 
-    // Extract query parameters for date filtering
+    // Extract query parameters for filtering
     const url = new URL(request.url);
     const startDateParam = url.searchParams.get('startDate');
     const endDateParam = url.searchParams.get('endDate');
     const campaignIdParam = url.searchParams.get('campaign_id');
+    const clientIdParam = url.searchParams.get('client_id');
 
     // Validate date range parameters
     const dateValidation = validateDateRange(startDateParam, endDateParam);
@@ -73,10 +74,73 @@ export async function GET(request: NextRequest): Promise<NextResponse<GetMetrics
       }
     }
 
+    // Validate client ID filter if provided
+    if (clientIdParam) {
+      const clientValidation = validateRouteId(clientIdParam, 'Client ID');
+      if (!clientValidation.success) {
+        return NextResponse.json<GetMetricsResponse>(
+          { success: false, error: clientValidation.error },
+          { status: 400 }
+        );
+      }
+    }
+
+    // Step 2: Query existing valid campaigns for this agency/user to ensure data consistency
+    let campaignsQuery = supabaseServer
+      .from('campaigns')
+      .select('id, client_id')
+      .eq('agency_id', agency_id);
+
+    // If account manager, restrict to assigned clients
+    if (role === 'account_manager') {
+      const { data: assignments } = await supabaseServer
+        .from('user_client_assignments')
+        .select('client_id')
+        .eq('user_id', user_id);
+
+      const assignedClientIds = assignments?.map((a) => a.client_id) || [];
+
+      if (assignedClientIds.length === 0) {
+        return NextResponse.json<GetMetricsResponse>(
+          { success: true, metrics: [] },
+          { status: 200 }
+        );
+      }
+
+      campaignsQuery = campaignsQuery.in('client_id', assignedClientIds);
+    }
+
+    if (clientIdParam) {
+      campaignsQuery = campaignsQuery.eq('client_id', clientIdParam);
+    }
+
+    if (campaignIdParam) {
+      campaignsQuery = campaignsQuery.eq('id', campaignIdParam);
+    }
+
+    const { data: validCampaigns, error: campError } = await campaignsQuery;
+    if (campError) {
+      console.error('Error fetching valid campaigns for metrics:', campError);
+      return NextResponse.json<GetMetricsResponse>(
+        { success: false, error: 'Failed to verify active campaigns' },
+        { status: 500 }
+      );
+    }
+
+    const validCampaignIds = validCampaigns?.map((c) => c.id) || [];
+    if (validCampaignIds.length === 0) {
+      return NextResponse.json<GetMetricsResponse>(
+        { success: true, metrics: [] },
+        { status: 200 }
+      );
+    }
+
+    // Step 3: Fetch metrics restricted to active, existing campaigns
     let query = supabaseServer
       .from('metric_entries')
       .select('*')
-      .eq('agency_id', agency_id);
+      .eq('agency_id', agency_id)
+      .in('campaign_id', validCampaignIds);
 
     // Add date filtering
     if (startDate) {
@@ -87,31 +151,17 @@ export async function GET(request: NextRequest): Promise<NextResponse<GetMetrics
       query = query.lte('reporting_period', endDate);
     }
 
+    // Add client filtering if provided
+    if (clientIdParam) {
+      query = query.eq('client_id', clientIdParam);
+    }
+
     // Add campaign filtering if provided
     if (campaignIdParam) {
       query = query.eq('campaign_id', campaignIdParam);
     }
 
-    // Step 2: For account managers, filter by assigned clients
-    if (role === 'account_manager') {
-      const { data: assignments } = await supabaseServer
-        .from('user_client_assignments')
-        .select('client_id')
-        .eq('user_id', user_id);
-
-      const assignedClientIds = assignments?.map(a => a.client_id) || [];
-
-      if (assignedClientIds.length === 0) {
-        return NextResponse.json<GetMetricsResponse>(
-          { success: true, metrics: [] },
-          { status: 200 }
-        );
-      }
-
-      query = query.in('client_id', assignedClientIds);
-    }
-
-    // Step 3: Fetch metrics
+    // Step 4: Fetch metrics
     const { data: metrics, error } = await query.order('reporting_period', {
       ascending: false,
     });

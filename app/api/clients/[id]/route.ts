@@ -224,6 +224,20 @@ export async function DELETE(
       );
     }
 
+    // Delete associated metric_entries
+    await supabaseServer
+      .from('metric_entries')
+      .delete()
+      .eq('client_id', clientId)
+      .eq('agency_id', agency_id);
+
+    // Delete associated campaigns
+    await supabaseServer
+      .from('campaigns')
+      .delete()
+      .eq('client_id', clientId)
+      .eq('agency_id', agency_id);
+
     // Delete associated portal tokens
     await supabaseServer
       .from('client_access_tokens')

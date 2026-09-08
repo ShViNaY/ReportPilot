@@ -133,29 +133,37 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     }
     const { startDate, endDate } = dateValidation.data;
 
-    let metricsQuery = supabaseServer
-      .from('metric_entries')
-      .select('*')
-      .eq('client_id', clientId);
+    const validCampaignIds = campaigns?.map((c) => c.id) || [];
+    let metrics: any[] = [];
 
-    if (startDate) {
-      metricsQuery = metricsQuery.gte('reporting_period', startDate);
-    }
-    if (endDate) {
-      metricsQuery = metricsQuery.lte('reporting_period', endDate);
-    }
+    if (validCampaignIds.length > 0) {
+      let metricsQuery = supabaseServer
+        .from('metric_entries')
+        .select('*')
+        .eq('client_id', clientId)
+        .in('campaign_id', validCampaignIds);
 
-    const { data: metrics, error: metricsError } = await metricsQuery.order(
-      'reporting_period',
-      { ascending: false }
-    );
+      if (startDate) {
+        metricsQuery = metricsQuery.gte('reporting_period', startDate);
+      }
+      if (endDate) {
+        metricsQuery = metricsQuery.lte('reporting_period', endDate);
+      }
 
-    if (metricsError) {
-      console.error('Metrics fetch error:', metricsError);
-      return NextResponse.json(
-        { success: false, error: 'Failed to fetch metrics' },
-        { status: 500 }
+      const { data: metricsData, error: metricsError } = await metricsQuery.order(
+        'reporting_period',
+        { ascending: false }
       );
+
+      if (metricsError) {
+        console.error('Metrics fetch error:', metricsError);
+        return NextResponse.json(
+          { success: false, error: 'Failed to fetch metrics' },
+          { status: 500 }
+        );
+      }
+
+      metrics = metricsData || [];
     }
 
     let totalAdSpend = 0;

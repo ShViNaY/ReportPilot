@@ -67,21 +67,19 @@ function DarkDropdown({
         type="button"
         disabled={disabled}
         onClick={() => !disabled && setOpen(!open)}
-        className={`w-full inline-flex items-center justify-between gap-2.5 rounded-xl text-xs font-medium transition-all shadow-2xs border ${
-          disabled
+        className={`w-full inline-flex items-center justify-between gap-2.5 rounded-xl text-xs font-medium transition-all shadow-2xs border ${disabled
             ? 'opacity-50 cursor-not-allowed bg-zinc-950 border-zinc-850 text-zinc-500'
             : open
-            ? 'border-zinc-700 bg-zinc-900 text-zinc-100 ring-1 ring-zinc-700/50 cursor-pointer'
-            : 'border-zinc-800 hover:border-zinc-700 text-zinc-200 hover:text-zinc-100 cursor-pointer'
-        } ${triggerClassName || 'px-3 py-1.5 bg-zinc-950 hover:bg-zinc-900'}`}
+              ? 'border-zinc-700 bg-zinc-900 text-zinc-100 ring-1 ring-zinc-700/50 cursor-pointer'
+              : 'border-zinc-800 hover:border-zinc-700 text-zinc-200 hover:text-zinc-100 cursor-pointer'
+          } ${triggerClassName || 'px-3 py-1.5 bg-zinc-950 hover:bg-zinc-900'}`}
       >
         <span className={`truncate flex-1 text-left ${!value && placeholder ? 'text-zinc-500 font-normal' : ''}`}>
           {displayLabel}
         </span>
         <svg
-          className={`w-3.5 h-3.5 text-zinc-400 shrink-0 transition-transform duration-200 ${
-            open ? 'rotate-180 text-zinc-200' : ''
-          }`}
+          className={`w-3.5 h-3.5 text-zinc-400 shrink-0 transition-transform duration-200 ${open ? 'rotate-180 text-zinc-200' : ''
+            }`}
           viewBox="0 0 24 24"
           fill="none"
           stroke="currentColor"
@@ -95,9 +93,8 @@ function DarkDropdown({
 
       {open && !disabled && (
         <div
-          className={`absolute top-full mt-1.5 z-50 min-w-[210px] w-full max-h-60 overflow-y-auto bg-[#141416] border border-zinc-800 rounded-xl p-1 shadow-2xl shadow-black/90 space-y-0.5 animate-in fade-in zoom-in-95 duration-100 ${
-            align === 'right' ? 'right-0' : 'left-0'
-          }`}
+          className={`absolute top-full mt-1.5 z-50 min-w-[210px] w-full max-h-60 overflow-y-auto bg-[#141416] border border-zinc-800 rounded-xl p-1 shadow-2xl shadow-black/90 space-y-0.5 animate-in fade-in zoom-in-95 duration-100 ${align === 'right' ? 'right-0' : 'left-0'
+            }`}
         >
           {options.map((option) => {
             const isSelected = option.value === value;
@@ -109,11 +106,10 @@ function DarkDropdown({
                   onChange(option.value);
                   setOpen(false);
                 }}
-                className={`w-full flex items-center justify-between gap-2 px-2.5 py-1.5 rounded-lg text-xs font-medium text-left transition-colors cursor-pointer ${
-                  isSelected
+                className={`w-full flex items-center justify-between gap-2 px-2.5 py-1.5 rounded-lg text-xs font-medium text-left transition-colors cursor-pointer ${isSelected
                     ? 'bg-zinc-800/80 text-zinc-100 font-semibold'
                     : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-850/60'
-                }`}
+                  }`}
               >
                 <span className="truncate">{option.label}</span>
                 {isSelected && (
@@ -142,6 +138,7 @@ export default function MetricsPage() {
   const { user } = useAuth();
   const searchParams = useSearchParams();
   const filterCampaignId = searchParams.get('campaign_id');
+  const filterClientId = searchParams.get('client_id');
 
   const [metrics, setMetrics] = useState<MetricEntry[]>([]);
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
@@ -175,18 +172,24 @@ export default function MetricsPage() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [editingMetric, isEditSubmitting]);
   const [selectedPeriod, setSelectedPeriod] = useState<string>('all');
-  const [selectedClientId, setSelectedClientId] = useState<string>('');
+  const [selectedClientId, setSelectedClientId] = useState<string>(filterClientId || '');
   const [selectedCampaignId, setSelectedCampaignId] = useState<string>(filterCampaignId || '');
   const [dateRange, setDateRange] = useState<DateRange>('thisMonth');
   const [startDate, setStartDate] = useState<Date | null>(null);
   const [endDate, setEndDate] = useState<Date | null>(null);
 
-  // Sync URL filterCampaignId if changed
+  // Sync URL filters if changed
   useEffect(() => {
     if (filterCampaignId) {
       setSelectedCampaignId(filterCampaignId);
     }
   }, [filterCampaignId]);
+
+  useEffect(() => {
+    if (filterClientId) {
+      setSelectedClientId(filterClientId);
+    }
+  }, [filterClientId]);
 
   // Form state
   const [formData, setFormData] = useState({
@@ -213,7 +216,7 @@ export default function MetricsPage() {
     isOpen: false,
     title: '',
     message: '',
-    onConfirm: () => {},
+    onConfirm: () => { },
   });
 
   // Fetch data on mount
@@ -472,7 +475,10 @@ export default function MetricsPage() {
   const exportToCSV = () => {
     if (!selectedClientId) return;
 
-    const clientMetrics = metrics
+    const activeCampaignIds = new Set(campaigns.map((c) => c.id));
+    const validMetrics = metrics.filter((m) => activeCampaignIds.has(m.campaign_id));
+
+    const clientMetrics = validMetrics
       .filter((m) => m.client_id === selectedClientId)
       .sort((a, b) => new Date(a.reporting_period).getTime() - new Date(b.reporting_period).getTime());
 
@@ -523,10 +529,14 @@ export default function MetricsPage() {
     URL.revokeObjectURL(url);
   };
 
+  // Ensure metrics only include entries with existing campaigns in the active workspace
+  const activeCampaignIds = new Set(campaigns.map((c) => c.id));
+  const validMetrics = metrics.filter((m) => activeCampaignIds.has(m.campaign_id));
+
   // Step 1: Filter by selected client (if any)
   const clientFilteredMetrics = selectedClientId
-    ? metrics.filter((m) => m.client_id === selectedClientId)
-    : metrics;
+    ? validMetrics.filter((m) => m.client_id === selectedClientId)
+    : validMetrics;
 
   // Step 2: Filter by selected campaign (clicked in table or selector)
   const campaignFilteredMetrics = selectedCampaignId
@@ -552,13 +562,28 @@ export default function MetricsPage() {
     (a, b) => new Date(b.reporting_period).getTime() - new Date(a.reporting_period).getTime()
   );
 
+  // Filter campaigns list for campaign dropdown and chart:
+  // Only include campaigns belonging to the current workspace/client that actually have active metrics in view
+  const activeMetricCampaignIds = new Set(
+    (selectedClientId ? validMetrics.filter((m) => m.client_id === selectedClientId) : validMetrics)
+      .map((m) => m.campaign_id)
+  );
+
+  const availableCampaigns = campaigns.filter(
+    (c) =>
+      (!selectedClientId || c.client_id === selectedClientId) &&
+      activeMetricCampaignIds.has(c.id)
+  );
+
   // Selected campaign object for info display
   const selectedCampaign = campaigns.find((c) => c.id === selectedCampaignId);
 
-  // Filter campaigns list for campaign dropdown
-  const availableCampaigns = selectedClientId
-    ? campaigns.filter((c) => c.client_id === selectedClientId)
-    : campaigns;
+  // Reset selectedCampaignId if the selected campaign is not available in the current view
+  useEffect(() => {
+    if (selectedCampaignId && !availableCampaigns.some((c) => c.id === selectedCampaignId)) {
+      setSelectedCampaignId('');
+    }
+  }, [availableCampaigns, selectedCampaignId]);
 
   if (isLoading) {
     return (
@@ -894,22 +919,20 @@ export default function MetricsPage() {
                   </span>
                   <h2 className="text-base sm:text-lg font-bold text-zinc-100">{selectedCampaign.name}</h2>
                   <span
-                    className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold ${
-                      selectedCampaign.status === 'active'
+                    className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold ${selectedCampaign.status === 'active'
                         ? 'bg-lime-400/10 text-lime-400 border border-lime-400/20'
                         : selectedCampaign.status === 'paused'
-                        ? 'bg-amber-400/10 text-amber-400 border border-amber-400/20'
-                        : 'bg-zinc-800 text-zinc-400 border border-zinc-700'
-                    }`}
+                          ? 'bg-amber-400/10 text-amber-400 border border-amber-400/20'
+                          : 'bg-zinc-800 text-zinc-400 border border-zinc-700'
+                      }`}
                   >
                     <span
-                      className={`w-1.5 h-1.5 rounded-full ${
-                        selectedCampaign.status === 'active'
+                      className={`w-1.5 h-1.5 rounded-full ${selectedCampaign.status === 'active'
                           ? 'bg-lime-400'
                           : selectedCampaign.status === 'paused'
-                          ? 'bg-amber-400'
-                          : 'bg-zinc-500'
-                      }`}
+                            ? 'bg-amber-400'
+                            : 'bg-zinc-500'
+                        }`}
                     />
                     <span className="capitalize">{selectedCampaign.status}</span>
                   </span>
@@ -1055,11 +1078,10 @@ export default function MetricsPage() {
                       return (
                         <tr
                           key={metric.id}
-                          className={`transition-colors ${
-                            isFocused
+                          className={`transition-colors ${isFocused
                               ? 'bg-lime-400/5 hover:bg-lime-400/10'
                               : 'hover:bg-zinc-900/50'
-                          }`}
+                            }`}
                         >
                           <td className="px-5 py-3.5 font-medium text-zinc-400 whitespace-nowrap">
                             {new Date(metric.reporting_period).toLocaleDateString()}

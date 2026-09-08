@@ -122,29 +122,44 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
             );
         }
 
-        // Step 5: Fetch metrics for aggregation (filtered by date range if provided)
-        let metricsQuery = supabaseServer
-            .from('metric_entries')
-            .select('campaign_id, ad_spend, leads, conversions, cost_per_lead, conversion_rate')
-            .eq('agency_id', agency_id)
-            .in('client_id', clientIds);
+        // Step 5: Fetch metrics for aggregation (filtered by existing campaigns and date range if provided)
+        const validCampaignIds = campaignsData?.map((c) => c.id) || [];
+        let metrics: {
+            campaign_id: string;
+            ad_spend: number;
+            leads: number;
+            conversions: number;
+            cost_per_lead: number | null;
+            conversion_rate: number | null;
+        }[] = [];
 
-        if (startDate) {
-            metricsQuery = metricsQuery.gte('reporting_period', startDate);
-        }
+        if (validCampaignIds.length > 0) {
+            let metricsQuery = supabaseServer
+                .from('metric_entries')
+                .select('campaign_id, ad_spend, leads, conversions, cost_per_lead, conversion_rate')
+                .eq('agency_id', agency_id)
+                .in('client_id', clientIds)
+                .in('campaign_id', validCampaignIds);
 
-        if (endDate) {
-            metricsQuery = metricsQuery.lte('reporting_period', endDate);
-        }
+            if (startDate) {
+                metricsQuery = metricsQuery.gte('reporting_period', startDate);
+            }
 
-        const { data: metrics, error: metricsError } = await metricsQuery;
+            if (endDate) {
+                metricsQuery = metricsQuery.lte('reporting_period', endDate);
+            }
 
-        if (metricsError) {
-            console.error('Metrics fetch error:', metricsError);
-            return NextResponse.json(
-                { success: false, error: 'Failed to fetch metrics' },
-                { status: 500 }
-            );
+            const { data: metricsData, error: metricsError } = await metricsQuery;
+
+            if (metricsError) {
+                console.error('Metrics fetch error:', metricsError);
+                return NextResponse.json(
+                    { success: false, error: 'Failed to fetch metrics' },
+                    { status: 500 }
+                );
+            }
+
+            metrics = metricsData || [];
         }
 
         // Step 6: Calculate aggregates

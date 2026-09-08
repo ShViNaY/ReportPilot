@@ -238,8 +238,13 @@ export async function DELETE(
             );
         }
 
-        // Step 3: Delete campaign
-        // All related metric_entries will cascade delete
+        // Step 3: Delete campaign and its metric_entries explicitly
+        await supabaseServer
+            .from('metric_entries')
+            .delete()
+            .eq('campaign_id', campaignId)
+            .eq('agency_id', agency_id);
+
         const { error } = await supabaseServer
             .from('campaigns')
             .delete()
