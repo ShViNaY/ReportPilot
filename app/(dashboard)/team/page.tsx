@@ -3,13 +3,18 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import Link from 'next/link';
 import { ProtectedRoute } from '@/lib/context/ProtectedRoute';
 import { DashboardLayout } from '@/components/layouts/DashboardLayout';
 import { useAuth } from '@/lib/context/AuthContext';
 import { Icons } from '@/components/common/Icons';
 import { ConfirmModal } from '@/components/common/ConfirmModal';
 import { apiFetch } from '@/lib/utils/apiClient';
-import { TeamMember } from '@/types';
+import { TeamMember, Client } from '@/types';
+
+type ClientWithAssignment = Client & {
+  assigned_manager?: { id: string; email: string } | null;
+};
 
 export default function TeamPage() {
   const { user } = useAuth();
@@ -25,6 +30,10 @@ export default function TeamPage() {
     password: '',
   });
   const [formError, setFormError] = useState('');
+
+  // Clients state for viewing assigned clients
+  const [clients, setClients] = useState<ClientWithAssignment[]>([]);
+  const [selectedMemberForClients, setSelectedMemberForClients] = useState<TeamMember | null>(null);
 
   // Confirmation modal state
   const [confirmModal, setConfirmModal] = useState<{
@@ -42,23 +51,43 @@ export default function TeamPage() {
     onConfirm: () => {},
   });
 
-  // Fetch team members on mount
+  // Fetch team members and clients on mount
   useEffect(() => {
-    fetchMembers();
+    fetchData();
   }, []);
 
-  const fetchMembers = async () => {
+  // Close assigned clients modal on Escape
+  useEffect(() => {
+    if (!selectedMemberForClients) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setSelectedMemberForClients(null);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [selectedMemberForClients]);
+
+  const fetchData = async () => {
     try {
       setIsLoading(true);
-      const res = await apiFetch('/api/team');
-      const data = await res.json();
+      const [teamRes, clientsRes] = await Promise.all([
+        apiFetch('/api/team'),
+        apiFetch('/api/clients'),
+      ]);
 
-      if (!data.success) {
-        setError(data.error || 'Failed to load team members');
+      const teamData = await teamRes.json();
+      const clientsData = await clientsRes.json();
+
+      if (!teamData.success) {
+        setError(teamData.error || 'Failed to load team members');
         return;
       }
 
-      setMembers(data.members || []);
+      setMembers(teamData.members || []);
+      if (clientsData.success) {
+        setClients(clientsData.clients || []);
+      }
     } catch (err) {
       setError('Something went wrong');
       console.error(err);
@@ -103,7 +132,7 @@ export default function TeamPage() {
       // Reset form and refresh list
       setFormData({ email: '', password: '' });
       setShowForm(false);
-      await fetchMembers();
+      await fetchData();
     } catch (err) {
       setFormError('Something went wrong');
       console.error(err);
@@ -337,6 +366,13 @@ export default function TeamPage() {
                 const initials = member.email.substring(0, 2).toUpperCase();
                 const isCurrentUser = user.id === member.id;
 
+                const memberAssignedClients = clients.filter(
+                  (c) => c.assigned_manager?.id === member.id
+                );
+                const assignedCount = clients.length > 0
+                  ? memberAssignedClients.length
+                  : (member.assigned_client_count ?? 0);
+
                 return (
                   <div
                     key={member.id}
@@ -381,12 +417,20 @@ export default function TeamPage() {
                             {isOwner ? 'Agency Owner' : 'Account Manager'}
                           </span>
 
-                          {member.assigned_client_count !== undefined && !isOwner && (
-                            <span className="inline-flex items-center gap-1 text-xs text-zinc-400 font-medium bg-zinc-950 px-2.5 py-0.5 rounded-md border border-zinc-800">
-                              <Icons.Clients className="w-3.5 h-3.5 text-zinc-500" />
-                              {member.assigned_client_count}{' '}
-                              {member.assigned_client_count === 1 ? 'client' : 'clients'} assigned
-                            </span>
+                          {!isOwner && (
+                            <button
+                              type="button"
+                              onClick={() => setSelectedMemberForClients(member)}
+                              className="inline-flex items-center gap-1.5 text-xs text-zinc-400 hover:text-zinc-100 font-medium bg-zinc-950 hover:bg-zinc-900 px-2.5 py-1 rounded-lg border border-zinc-800 hover:border-zinc-700 transition-all cursor-pointer shadow-2xs active:scale-98 group"
+                              title="Click to view assigned clients"
+                            >
+                              <Icons.Clients className="w-3.5 h-3.5 text-zinc-500 group-hover:text-lime-400 transition-colors" />
+                              <span className="font-semibold text-zinc-300 group-hover:text-lime-400 transition-colors">
+                                {assignedCount}{' '}
+                                {assignedCount === 1 ? 'client' : 'clients'} assigned
+                              </span>
+                              <Icons.ChevronRight className="w-3 h-3 text-zinc-600 group-hover:text-zinc-300 transition-transform group-hover:translate-x-0.5" />
+                            </button>
                           )}
 
                           <span className="inline-flex items-center gap-1 text-xs text-zinc-500">
@@ -463,6 +507,106 @@ export default function TeamPage() {
             </div>
           </div>
         </div>
+
+        {/* Assigned Clients Popover / Dialog */}
+        {selectedMemberForClients && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-xs animate-in fade-in duration-150">
+            <div
+              className="fixed inset-0"
+              onClick={() => setSelectedMemberForClients(null)}
+            />
+            <div className="relative w-full max-w-sm bg-[#141416] border border-zinc-800/90 rounded-2xl p-5 shadow-2xl shadow-black/95 space-y-4 animate-in zoom-in-95 duration-150 z-10">
+              {/* Header */}
+              <div className="flex items-start justify-between gap-3 border-b border-zinc-800/80 pb-3">
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-2">
+                    <div className="w-6 h-6 rounded-md bg-zinc-900 border border-zinc-800 text-lime-400 flex items-center justify-center shrink-0">
+                      <Icons.Clients className="w-3.5 h-3.5" />
+                    </div>
+                    <h3 className="text-sm font-bold text-zinc-100 tracking-tight">
+                      Assigned Clients
+                    </h3>
+                  </div>
+                  <p className="text-xs text-zinc-400 mt-1 truncate">
+                    Manager: <span className="text-zinc-200 font-medium">{selectedMemberForClients.email}</span>
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setSelectedMemberForClients(null)}
+                  className="text-zinc-500 hover:text-zinc-300 p-1.5 rounded-lg hover:bg-zinc-850 transition-colors cursor-pointer shrink-0"
+                  aria-label="Close dialog"
+                >
+                  <Icons.X className="w-4 h-4" />
+                </button>
+              </div>
+
+              {/* Clients List */}
+              <div className="space-y-2 max-h-64 overflow-y-auto pr-1">
+                {(() => {
+                  const assignedToThisMember = clients.filter(
+                    (c) => c.assigned_manager?.id === selectedMemberForClients.id
+                  );
+
+                  if (assignedToThisMember.length === 0) {
+                    return (
+                      <div className="py-8 text-center text-xs text-zinc-500">
+                        No active clients currently assigned to this manager.
+                      </div>
+                    );
+                  }
+
+                  return assignedToThisMember.map((client) => (
+                    <div
+                      key={client.id}
+                      className="flex items-center justify-between gap-3 p-2.5 rounded-xl bg-zinc-950/70 border border-zinc-800/70 hover:border-zinc-700 transition-colors"
+                    >
+                      <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                        <span className="w-2 h-2 rounded-full bg-lime-400 shrink-0" />
+                        <div className="min-w-0 flex-1">
+                          <p className="text-xs font-semibold text-zinc-100 truncate">
+                            {client.name}
+                          </p>
+                          {client.contact_email && (
+                            <p className="text-[10px] text-zinc-500 truncate">
+                              {client.contact_email}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                      <Link
+                        href={`/clients`}
+                        className="inline-flex items-center gap-1 text-[11px] font-medium text-zinc-400 hover:text-lime-400 px-2 py-1 rounded-lg hover:bg-zinc-900 transition-colors shrink-0"
+                      >
+                        <span>Manage</span>
+                        <Icons.ArrowUpRight className="w-3 h-3 text-zinc-500" />
+                      </Link>
+                    </div>
+                  ));
+                })()}
+              </div>
+
+              {/* Footer */}
+              <div className="pt-2 border-t border-zinc-800/80 flex items-center justify-between text-xs text-zinc-500">
+                <span>
+                  {(() => {
+                    const count = clients.filter(
+                      (c) => c.assigned_manager?.id === selectedMemberForClients.id
+                    ).length;
+                    return `${count} ${count === 1 ? 'client' : 'clients'} active`;
+                  })()}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setSelectedMemberForClients(null)}
+                  className="px-3.5 py-1.5 rounded-xl bg-zinc-900 hover:bg-zinc-850 text-zinc-300 hover:text-zinc-100 text-xs font-semibold border border-zinc-800 hover:border-zinc-700 transition-colors cursor-pointer"
+                >
+                  Close
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Custom Dark Confirmation Modal */}
         <ConfirmModal

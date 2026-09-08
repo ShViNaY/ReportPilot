@@ -39,17 +39,26 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       );
     }
 
+    // Query existing active clients in this agency to exclude orphaned assignments
+    const { data: agencyClients } = await supabaseServer
+      .from('clients')
+      .select('id')
+      .eq('agency_id', agency_id);
+
+    const validClientIds = new Set((agencyClients || []).map((c) => c.id));
+
     // Attach assigned client counts for account managers
-    const memberIds = (members || []).map(m => m.id);
+    const memberIds = (members || []).map((m) => m.id);
     const { data: assignments } = await supabaseServer
       .from('user_client_assignments')
       .select('user_id, client_id')
       .in('user_id', memberIds);
 
-    const membersWithCounts = (members || []).map(member => ({
+    const validAssignments = (assignments || []).filter((a) => validClientIds.has(a.client_id));
+
+    const membersWithCounts = (members || []).map((member) => ({
       ...member,
-      assigned_client_count:
-        assignments?.filter(a => a.user_id === member.id).length || 0,
+      assigned_client_count: validAssignments.filter((a) => a.user_id === member.id).length,
     }));
 
     return NextResponse.json(
