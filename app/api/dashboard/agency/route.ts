@@ -179,18 +179,11 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
             : 0;
 
         // Step 6b: Determine Active Clients / Active Campaigns
-        // An "active campaign" has status 'active' AND (when a date range is set)
-        // has at least one metric entry within that range.
-        const isDateRangeApplied = Boolean(startDateParam || endDateParam);
-        const metricCampaignIds = new Set((metrics || []).map((m) => m.campaign_id));
-
-        const activeStatusCampaigns = (campaignsData || []).filter(
+        // Active campaigns are those with status 'active'.
+        // Active clients are clients that have at least one active campaign.
+        const activeCampaigns = (campaignsData || []).filter(
             (c) => c.status === 'active'
         );
-
-        const activeCampaigns = isDateRangeApplied
-            ? activeStatusCampaigns.filter((c) => metricCampaignIds.has(c.id))
-            : activeStatusCampaigns;
 
         const activeClientIds = new Set(activeCampaigns.map((c) => c.client_id));
 
