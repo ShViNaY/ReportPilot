@@ -6,8 +6,8 @@
 }
 
 :root {
-  --background: #fafbfc;
-  --foreground: #0f172a;
+  --background: #09090b;
+  --foreground: #f4f4f5;
   --brand-primary: #059669;
   --brand-primary-hover: #047857;
   --brand-accent: #10b981;
@@ -32,11 +32,14 @@
 
 html {
   scroll-behavior: smooth;
+  background-color: #09090b;
+  color-scheme: dark;
 }
 
 body {
   background-color: var(--background);
   color: var(--foreground);
+  min-height: 100%;
   font-feature-settings: "cv02", "cv03", "cv04", "cv11";
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
@@ -47,13 +50,17 @@ body {
   font-variant-numeric: tabular-nums;
 }
 
-/* Custom subtle scrollbar */
+/* Custom subtle scrollbar (Firefox & Chromium) */
+* {
+  scrollbar-color: rgba(148, 163, 184, 0.4) #09090b;
+}
+
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
 }
 ::-webkit-scrollbar-track {
-  background: transparent;
+  background: #09090b;
 }
 ::-webkit-scrollbar-thumb {
   background: rgba(148, 163, 184, 0.4);
