@@ -150,7 +150,7 @@ export async function POST(request: NextRequest): Promise<NextResponse<CreateCam
         if (error) {
             console.error('Insert error:', error);
             return NextResponse.json(
-                { success: false, error: error.message || 'Failed to create campaign' },
+                { success: false, error: 'Failed to create campaign' },
                 { status: 500 }
             );
         }
