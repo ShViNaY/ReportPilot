@@ -2,7 +2,7 @@
 
 import * as React from 'react';
 import Link from 'next/link';
-import { motion, useScroll, useReducedMotion } from 'framer-motion';
+import { motion, AnimatePresence, useScroll, useReducedMotion } from 'framer-motion';
 import { AreaChart, Area, ResponsiveContainer, XAxis, YAxis, Tooltip } from 'recharts';
 
 const chartData = [
@@ -18,15 +18,23 @@ const chartData = [
 export default function HomePage() {
   const { scrollY } = useScroll();
   const [scrolled, setScrolled] = React.useState(false);
+  const [showBackToTop, setShowBackToTop] = React.useState(false);
   const [mounted, setMounted] = React.useState(false);
   const shouldReduceMotion = useReducedMotion();
 
   React.useEffect(() => {
     setMounted(true);
+    setScrolled(scrollY.get() > 80);
+    setShowBackToTop(scrollY.get() > 350);
     return scrollY.on('change', (latest) => {
       setScrolled(latest > 80);
+      setShowBackToTop(latest > 350);
     });
   }, [scrollY]);
+
+  const scrollToTop = () => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
 
   const fadeUp = {
     hidden: { opacity: 0, y: shouldReduceMotion ? 0 : 24 },
@@ -50,7 +58,14 @@ export default function HomePage() {
         }`}
       >
         <div className="max-w-6xl mx-auto px-6 h-20 flex items-center justify-between">
-          <Link href="/" className="text-xl font-bold tracking-tight text-zinc-100">
+          <Link
+            href="/"
+            onClick={(e) => {
+              e.preventDefault();
+              scrollToTop();
+            }}
+            className="text-xl font-bold tracking-tight text-zinc-100 cursor-pointer"
+          >
             Report<span className="text-lime-400">Pilot</span>
           </Link>
           <div className="flex items-center gap-6 text-sm">
@@ -251,7 +266,14 @@ export default function HomePage() {
       {/* Footer */}
       <footer className="border-t border-zinc-900 py-10 px-6">
         <div className="max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-6 text-xs text-zinc-500">
-          <Link href="/" className="font-bold tracking-tight text-zinc-100">
+          <Link
+            href="/"
+            onClick={(e) => {
+              e.preventDefault();
+              scrollToTop();
+            }}
+            className="font-bold tracking-tight text-zinc-100 cursor-pointer"
+          >
             Report<span className="text-lime-400">Pilot</span>
           </Link>
           <div className="flex items-center gap-6">
@@ -268,6 +290,34 @@ export default function HomePage() {
           <p>© {new Date().getFullYear()} ReportPilot. All rights reserved.</p>
         </div>
       </footer>
+
+      {/* Back to Top Button */}
+      <AnimatePresence>
+        {showBackToTop && (
+          <motion.button
+            type="button"
+            initial={{ opacity: 0, scale: 0.8, y: 10 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.8, y: 10 }}
+            transition={{ duration: 0.2 }}
+            onClick={scrollToTop}
+            aria-label="Back to top"
+            className="fixed bottom-6 right-6 z-40 w-10 h-10 sm:w-11 sm:h-11 rounded-full bg-zinc-900/90 hover:bg-zinc-850 border border-zinc-800 hover:border-lime-400/50 text-zinc-400 hover:text-lime-400 shadow-xl shadow-black/80 backdrop-blur-md flex items-center justify-center transition-all duration-200 active:scale-95 focus:outline-none focus:ring-2 focus:ring-lime-400/40 cursor-pointer group"
+          >
+            <svg
+              className="w-5 h-5 transition-transform duration-200 group-hover:-translate-y-0.5"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <polyline points="18 15 12 9 6 15" />
+            </svg>
+          </motion.button>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
