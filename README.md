@@ -15,6 +15,54 @@ Digital agencies managing marketing across multiple clients often struggle with 
 
 ---
 
+## Landing Page
+
+![ReportPilot Landing Page](Screenshots/Landing%20Page.png)
+
+Public-facing marketing page detailing ReportPilot's cross-channel analytics, automated client portal links, and role-based agency management features.
+
+---
+
+## Login Page
+
+![ReportPilot Login Page](Screenshots/Login%20Page.png)
+
+Agency authentication screen supporting secure HMAC-SHA256 JWT sessions and rate-limited credential submissions.
+
+---
+
+## Dashboard
+
+![ReportPilot Dashboard](Screenshots/Dashboard.png)
+
+Centralized agency overview displaying aggregate ad spend, total leads, conversions, average CPL, and performance health metrics across all active accounts.
+
+---
+
+## Clients
+
+![ReportPilot Clients](Screenshots/Clients.png)
+
+Client directory allowing agency administrators to manage client accounts, assign dedicated account managers, and provision instant, token-protected portal links.
+
+---
+
+## Campaign
+
+![ReportPilot Campaign](Screenshots/Campaign.png)
+
+Campaign dashboard for monitoring multi-channel ad initiatives across Google Ads, Meta Ads, and custom advertising platforms with real-time status toggles.
+
+---
+
+## Teams
+
+![ReportPilot Teams](Screenshots/Teams.png)
+
+Team management portal for agency owners to invite account managers, configure account permissions, and assign client portfolios.
+
+---
+
 ## Features
 
 ### 1. Agency & Multi-Tenant Management
