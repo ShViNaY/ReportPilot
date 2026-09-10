@@ -89,11 +89,15 @@ export default function DashboardPage() {
     value,
     subtext,
     icon: Icon,
+    href,
+    ariaLabel,
   }: {
     label: string;
     value: string | number;
     subtext?: string;
     icon: React.ComponentType<{ className?: string }>;
+    href?: string;
+    ariaLabel?: string;
   }) => (
     <div className="bg-[#111113] rounded-2xl border border-zinc-800/80 p-6 hover:border-zinc-700 transition-all duration-200 hover:-translate-y-0.5">
       <div className="flex items-start justify-between">
@@ -104,9 +108,20 @@ export default function DashboardPage() {
             <p className="text-xs text-zinc-500 mt-1 font-medium">{subtext}</p>
           )}
         </div>
-        <div className="w-8 h-8 rounded-lg bg-zinc-950 border border-zinc-800/60 flex items-center justify-center text-zinc-400 shrink-0">
-          <Icon className="w-4 h-4" />
-        </div>
+        {href ? (
+          <Link
+            href={href}
+            aria-label={ariaLabel}
+            title={ariaLabel}
+            className="w-8 h-8 rounded-lg bg-zinc-950 border border-zinc-800/60 flex items-center justify-center text-zinc-400 shrink-0 hover:text-zinc-200 hover:border-zinc-700 hover:bg-zinc-900 transition-all cursor-pointer focus:outline-hidden focus-visible:ring-2 focus-visible:ring-lime-400/50"
+          >
+            <Icon className="w-4 h-4" />
+          </Link>
+        ) : (
+          <div className="w-8 h-8 rounded-lg bg-zinc-950 border border-zinc-800/60 flex items-center justify-center text-zinc-400 shrink-0">
+            <Icon className="w-4 h-4" />
+          </div>
+        )}
       </div>
     </div>
   );
@@ -190,11 +205,15 @@ export default function DashboardPage() {
               label="Active Clients"
               value={summary?.total_clients ?? 0}
               icon={IconClients}
+              href="/clients"
+              ariaLabel="View clients"
             />
             <StatCard
               label="Active Campaigns"
               value={summary?.total_campaigns ?? 0}
               icon={IconCampaigns}
+              href="/campaigns"
+              ariaLabel="View campaigns"
             />
             <StatCard
               label="Total Ad Spend"
