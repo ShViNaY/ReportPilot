@@ -31,27 +31,28 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       );
     }
 
-    const { data: members, error } = await supabaseServer
-      .from('users')
-      .select('id, email, role, created_at')
-      .eq('agency_id', agency_id)
-      .order('created_at', { ascending: true });
+    const [membersResult, agencyClientsResult] = await Promise.all([
+      supabaseServer
+        .from('users')
+        .select('id, email, role, created_at')
+        .eq('agency_id', agency_id)
+        .order('created_at', { ascending: true }),
+      supabaseServer
+        .from('clients')
+        .select('id')
+        .eq('agency_id', agency_id),
+    ]);
 
-    if (error) {
-      console.error('Team fetch error:', error);
+    if (membersResult.error) {
+      console.error('Team fetch error:', membersResult.error);
       return NextResponse.json(
         { success: false, error: 'Failed to fetch team members' },
         { status: 500 }
       );
     }
 
-    // Query existing active clients in this agency to exclude orphaned assignments
-    const { data: agencyClients } = await supabaseServer
-      .from('clients')
-      .select('id')
-      .eq('agency_id', agency_id);
-
-    const validClientIds = new Set((agencyClients || []).map((c) => c.id));
+    const members = membersResult.data || [];
+    const validClientIds = new Set((agencyClientsResult.data || []).map((c) => c.id));
 
     // Attach assigned client counts for account managers
     const memberIds = (members || []).map((m) => m.id);

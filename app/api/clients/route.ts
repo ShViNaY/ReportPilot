@@ -58,17 +58,27 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       );
     }
 
-    // Step 3: Look up assignments for these clients, and the manager for each
+    // Step 3: Look up assignments and portal token status concurrently
     const clientIds = (clients || []).map((c) => c.id);
 
     let assignedManagerByClientId: Record<string, { id: string; email: string }> = {};
+    let tokenStatusByClientId: Record<string, { has_token: boolean; expires_at: string | null }> = {};
 
     if (clientIds.length > 0) {
-      const { data: assignments } = await supabaseServer
-        .from('user_client_assignments')
-        .select('client_id, user_id')
-        .in('client_id', clientIds);
+      const [assignmentsResult, tokenRowsResult] = await Promise.all([
+        supabaseServer
+          .from('user_client_assignments')
+          .select('client_id, user_id')
+          .in('client_id', clientIds),
+        role === 'owner'
+          ? supabaseServer
+              .from('client_access_tokens')
+              .select('client_id, expires_at')
+              .in('client_id', clientIds)
+          : Promise.resolve({ data: null }),
+      ]);
 
+      const assignments = assignmentsResult.data;
       if (assignments && assignments.length > 0) {
         const managerIds = [...new Set(assignments.map((a) => a.user_id))];
 
@@ -85,19 +95,9 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
           return acc;
         }, {} as Record<string, { id: string; email: string }>);
       }
-    }
 
-    // Step 3b: For owners only, batch-lookup portal token status (never secret token_hash)
-    let tokenStatusByClientId: Record<string, { has_token: boolean; expires_at: string | null }> = {};
-
-    if (role === 'owner' && clientIds.length > 0) {
-      const { data: tokenRows } = await supabaseServer
-        .from('client_access_tokens')
-        .select('client_id, expires_at')
-        .in('client_id', clientIds);
-
-      if (tokenRows) {
-        tokenRows.forEach((t) => {
+      if (tokenRowsResult.data) {
+        tokenRowsResult.data.forEach((t) => {
           tokenStatusByClientId[t.client_id] = {
             has_token: true,
             expires_at: t.expires_at,

@@ -1,16 +1,15 @@
 // app/(dashboard)/metrics/page.tsx
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { ProtectedRoute } from '@/lib/context/ProtectedRoute';
-import { DashboardLayout } from '@/components/layouts/DashboardLayout';
 import { useAuth } from '@/lib/context/AuthContext';
 import { DateRangeFilter, DateRange } from '@/components/filters/DateRangeFilter';
 import { TrendChart } from '@/components/charts/TrendChart';
 import { CampaignChart } from '@/components/charts/CampaignChart';
 import { DarkDatePicker } from '@/components/common/DarkDatePicker';
 import { apiFetch } from '@/lib/utils/apiClient';
+import { cachedApiFetch, getCachedData, invalidateMetricsCache } from '@/lib/utils/apiCache';
 import { MetricEntry, Campaign, Client } from '@/types';
 import {
   IconMetrics,
@@ -140,10 +139,22 @@ export default function MetricsPage() {
   const filterCampaignId = searchParams.get('campaign_id');
   const filterClientId = searchParams.get('client_id');
 
-  const [metrics, setMetrics] = useState<MetricEntry[]>([]);
-  const [campaigns, setCampaigns] = useState<Campaign[]>([]);
-  const [clients, setClients] = useState<Client[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [dateRange, setDateRange] = useState<DateRange>('thisMonth');
+  const [startDate, setStartDate] = useState<Date>(() => {
+    const today = new Date();
+    return new Date(today.getFullYear(), today.getMonth(), 1);
+  });
+  const [endDate, setEndDate] = useState<Date>(() => new Date());
+
+  const initialMetricsUrl = `/api/metrics?startDate=${startDate.toISOString()}&endDate=${endDate.toISOString()}`;
+  const cachedMetrics = getCachedData<{ success: boolean; metrics: MetricEntry[] }>(initialMetricsUrl);
+  const cachedCampaigns = getCachedData<{ success: boolean; campaigns: Campaign[] }>('/api/campaigns');
+  const cachedClients = getCachedData<{ success: boolean; clients: Client[] }>('/api/clients');
+
+  const [metrics, setMetrics] = useState<MetricEntry[]>(() => cachedMetrics?.metrics || []);
+  const [campaigns, setCampaigns] = useState<Campaign[]>(() => cachedCampaigns?.campaigns || []);
+  const [clients, setClients] = useState<Client[]>(() => cachedClients?.clients || []);
+  const [isLoading, setIsLoading] = useState<boolean>(!cachedMetrics);
   const [error, setError] = useState('');
   const [showForm, setShowForm] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -174,9 +185,6 @@ export default function MetricsPage() {
   const [selectedPeriod, setSelectedPeriod] = useState<string>('all');
   const [selectedClientId, setSelectedClientId] = useState<string>(filterClientId || '');
   const [selectedCampaignId, setSelectedCampaignId] = useState<string>(filterCampaignId || '');
-  const [dateRange, setDateRange] = useState<DateRange>('thisMonth');
-  const [startDate, setStartDate] = useState<Date | null>(null);
-  const [endDate, setEndDate] = useState<Date | null>(null);
 
   // Sync URL filters if changed
   useEffect(() => {
@@ -219,24 +227,11 @@ export default function MetricsPage() {
     onConfirm: () => { },
   });
 
-  // Fetch data on mount
-  useEffect(() => {
-    const today = new Date();
-    const monthStart = new Date(
-      today.getFullYear(),
-      today.getMonth(),
-      1
-    );
-
-    setStartDate(monthStart);
-    setEndDate(today);
-
-    fetchData(monthStart, today);
-  }, []);
-
-  const fetchData = async (start?: Date, end?: Date) => {
+  const fetchData = useCallback(async (start?: Date, end?: Date, forceRefresh = false) => {
     try {
-      setIsLoading(true);
+      if (forceRefresh) {
+        setIsLoading(true);
+      }
 
       // Fetch metrics, campaigns, and clients concurrently
       let metricsUrl = '/api/metrics';
@@ -245,16 +240,10 @@ export default function MetricsPage() {
         metricsUrl += `?startDate=${start.toISOString()}&endDate=${end.toISOString()}`;
       }
 
-      const [metricsRes, campaignsRes, clientsRes] = await Promise.all([
-        apiFetch(metricsUrl),
-        apiFetch('/api/campaigns'),
-        apiFetch('/api/clients'),
-      ]);
-
       const [metricsData, campaignsData, clientsData] = await Promise.all([
-        metricsRes.json(),
-        campaignsRes.json(),
-        clientsRes.json(),
+        cachedApiFetch<{ success: boolean; metrics?: MetricEntry[]; error?: string }>(metricsUrl, undefined, { forceRefresh }),
+        cachedApiFetch<{ success: boolean; campaigns?: Campaign[]; error?: string }>('/api/campaigns', undefined, { forceRefresh }),
+        cachedApiFetch<{ success: boolean; clients?: Client[]; error?: string }>('/api/clients', undefined, { forceRefresh }),
       ]);
 
       if (!metricsData.success) {
@@ -262,6 +251,7 @@ export default function MetricsPage() {
         return;
       }
 
+      setError('');
       setMetrics(metricsData.metrics || []);
 
       if (campaignsData.success) {
@@ -277,7 +267,12 @@ export default function MetricsPage() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, []);
+
+  // Fetch data on mount
+  useEffect(() => {
+    fetchData(startDate, endDate, false);
+  }, [fetchData, startDate, endDate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -330,6 +325,7 @@ export default function MetricsPage() {
       }
 
       setMetrics([data.entry, ...metrics]);
+      invalidateMetricsCache();
 
       // Reset form
       resetForm();
@@ -405,6 +401,8 @@ export default function MetricsPage() {
         return;
       }
 
+      invalidateMetricsCache();
+
       // Update local state immediately with updated record from DB
       setMetrics((prev) =>
         prev.map((m) => (m.id === editingMetric.id ? data.metric : m))
@@ -439,6 +437,7 @@ export default function MetricsPage() {
             return;
           }
 
+          invalidateMetricsCache();
           setMetrics(metrics.filter((m) => m.id !== metricId));
           setConfirmModal((prev) => ({ ...prev, isOpen: false }));
         } catch (err) {
@@ -585,25 +584,20 @@ export default function MetricsPage() {
     }
   }, [availableCampaigns, selectedCampaignId]);
 
-  if (isLoading) {
+  if (isLoading && metrics.length === 0) {
     return (
-      <ProtectedRoute>
-        <DashboardLayout>
-          <div className="flex items-center justify-center min-h-[60vh]">
-            <div className="text-center space-y-3">
-              <div className="w-10 h-10 rounded-full border-2 border-zinc-800 border-t-lime-400 animate-spin mx-auto" />
-              <p className="text-sm font-medium text-zinc-500">Loading campaign metrics...</p>
-            </div>
-          </div>
-        </DashboardLayout>
-      </ProtectedRoute>
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <div className="text-center space-y-3">
+          <div className="w-10 h-10 rounded-full border-2 border-zinc-800 border-t-lime-400 animate-spin mx-auto" />
+          <p className="text-sm font-medium text-zinc-500">Loading campaign metrics...</p>
+        </div>
+      </div>
     );
   }
 
   return (
-    <ProtectedRoute>
-      <DashboardLayout>
-        <div className="space-y-6 max-w-7xl mx-auto">
+    <>
+      <div className="space-y-6 max-w-7xl mx-auto">
           {/* Header */}
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>
@@ -1444,7 +1438,6 @@ export default function MetricsPage() {
           confirmVariant={confirmModal.confirmVariant}
           isLoading={confirmModal.isLoading}
         />
-      </DashboardLayout>
-    </ProtectedRoute>
+    </>
   );
 }

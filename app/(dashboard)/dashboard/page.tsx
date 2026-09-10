@@ -1,14 +1,12 @@
 // app/(dashboard)/dashboard/page.tsx
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import Link from 'next/link';
-import { ProtectedRoute } from '@/lib/context/ProtectedRoute';
-import { DashboardLayout } from '@/components/layouts/DashboardLayout';
 import { DateRangeFilter, DateRange } from '@/components/filters/DateRangeFilter';
 import { TrendChart } from '@/components/charts/TrendChart';
 import { KPISummary } from '@/components/charts/KPISummary';
-import { apiFetch } from '@/lib/utils/apiClient';
+import { cachedApiFetch, getCachedData } from '@/lib/utils/apiCache';
 import { AgencyDashboardSummary, MetricEntry } from '@/types';
 import {
   IconClients,
@@ -21,49 +19,91 @@ import {
   IconPlus,
 } from '@/components/common/Icons';
 
+const StatCard = ({
+  label,
+  value,
+  subtext,
+  icon: Icon,
+  href,
+  ariaLabel,
+}: {
+  label: string;
+  value: string | number;
+  subtext?: string;
+  icon: React.ComponentType<{ className?: string }>;
+  href?: string;
+  ariaLabel?: string;
+}) => (
+  <div className="bg-[#111113] rounded-2xl border border-zinc-800/80 p-6 hover:border-zinc-700 transition-all duration-200 hover:-translate-y-0.5">
+    <div className="flex items-start justify-between">
+      <div>
+        <p className="text-xs font-semibold text-zinc-500 uppercase tracking-wider">{label}</p>
+        <p className="text-3xl font-semibold text-zinc-100 mt-2 tracking-tight tabular-nums">{value}</p>
+        {subtext && (
+          <p className="text-xs text-zinc-500 mt-1 font-medium">{subtext}</p>
+        )}
+      </div>
+      {href ? (
+        <Link
+          href={href}
+          aria-label={ariaLabel}
+          title={ariaLabel}
+          className="w-8 h-8 rounded-lg bg-zinc-950 border border-zinc-800/60 flex items-center justify-center text-zinc-400 shrink-0 hover:text-zinc-200 hover:border-zinc-700 hover:bg-zinc-900 transition-all cursor-pointer focus:outline-hidden focus-visible:ring-2 focus-visible:ring-lime-400/50"
+        >
+          <Icon className="w-4 h-4" />
+        </Link>
+      ) : (
+        <div className="w-8 h-8 rounded-lg bg-zinc-950 border border-zinc-800/60 flex items-center justify-center text-zinc-400 shrink-0">
+          <Icon className="w-4 h-4" />
+        </div>
+      )}
+    </div>
+  </div>
+);
+
 export default function DashboardPage() {
-  const [summary, setSummary] = useState<AgencyDashboardSummary | null>(null);
-  const [metrics, setMetrics] = useState<MetricEntry[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  // Date range state - initialized synchronously
+  const [dateRange, setDateRange] = useState<DateRange>('thisMonth');
+  const [startDate, setStartDate] = useState<Date>(() => {
+    const today = new Date();
+    return new Date(today.getFullYear(), today.getMonth(), 1);
+  });
+  const [endDate, setEndDate] = useState<Date>(() => new Date());
+
+  const summaryUrl = useMemo(
+    () => `/api/dashboard/agency?startDate=${startDate.toISOString()}&endDate=${endDate.toISOString()}`,
+    [startDate, endDate]
+  );
+  const metricsUrl = useMemo(
+    () => `/api/metrics?startDate=${startDate.toISOString()}&endDate=${endDate.toISOString()}`,
+    [startDate, endDate]
+  );
+
+  // Initialize state with cache if available
+  const initialSummary = useMemo(() => {
+    const cached = getCachedData<{ success: boolean; summary: AgencyDashboardSummary }>(summaryUrl);
+    return cached?.success ? cached.summary : null;
+  }, [summaryUrl]);
+
+  const initialMetrics = useMemo(() => {
+    const cached = getCachedData<{ success: boolean; metrics: MetricEntry[] }>(metricsUrl);
+    return cached?.success ? cached.metrics : [];
+  }, [metricsUrl]);
+
+  const [summary, setSummary] = useState<AgencyDashboardSummary | null>(initialSummary);
+  const [metrics, setMetrics] = useState<MetricEntry[]>(initialMetrics);
+  const [isLoading, setIsLoading] = useState<boolean>(!initialSummary);
   const [error, setError] = useState('');
 
-  // Date range state
-  const [dateRange, setDateRange] = useState<DateRange>('thisMonth');
-  const [startDate, setStartDate] = useState<Date | null>(null);
-  const [endDate, setEndDate] = useState<Date | null>(null);
-
-  // Initialize and fetch data
-  useEffect(() => {
-    // Initialize with "This Month"
-    const today = new Date();
-    const monthStart = new Date(today.getFullYear(), today.getMonth(), 1);
-    setStartDate(monthStart);
-    setEndDate(today);
-  }, []);
-
-  // Fetch data when dates change
-  useEffect(() => {
-    if (startDate && endDate) {
-      fetchDashboard();
-    }
-  }, [startDate, endDate]);
-
-  const fetchDashboard = async () => {
+  const fetchDashboard = useCallback(async (isInitial = false) => {
     try {
-      setIsLoading(true);
-
-      // Fetch dashboard summary and metrics concurrently
-      const summaryUrl = `/api/dashboard/agency?startDate=${startDate?.toISOString()}&endDate=${endDate?.toISOString()}`;
-      const metricsUrl = `/api/metrics?startDate=${startDate?.toISOString()}&endDate=${endDate?.toISOString()}`;
-
-      const [summaryRes, metricsRes] = await Promise.all([
-        apiFetch(summaryUrl),
-        apiFetch(metricsUrl),
-      ]);
+      if (!isInitial) {
+        setIsLoading(true);
+      }
 
       const [summaryData, metricsData] = await Promise.all([
-        summaryRes.json(),
-        metricsRes.json(),
+        cachedApiFetch<{ success: boolean; summary?: AgencyDashboardSummary; error?: string }>(summaryUrl),
+        cachedApiFetch<{ success: boolean; metrics?: MetricEntry[]; error?: string }>(metricsUrl),
       ]);
 
       if (!summaryData.success) {
@@ -71,7 +111,10 @@ export default function DashboardPage() {
         return;
       }
 
-      setSummary(summaryData.summary);
+      setError('');
+      if (summaryData.summary) {
+        setSummary(summaryData.summary);
+      }
 
       if (metricsData.success) {
         setMetrics(metricsData.metrics || []);
@@ -82,81 +125,36 @@ export default function DashboardPage() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [summaryUrl, metricsUrl]);
 
-  const StatCard = ({
-    label,
-    value,
-    subtext,
-    icon: Icon,
-    href,
-    ariaLabel,
-  }: {
-    label: string;
-    value: string | number;
-    subtext?: string;
-    icon: React.ComponentType<{ className?: string }>;
-    href?: string;
-    ariaLabel?: string;
-  }) => (
-    <div className="bg-[#111113] rounded-2xl border border-zinc-800/80 p-6 hover:border-zinc-700 transition-all duration-200 hover:-translate-y-0.5">
-      <div className="flex items-start justify-between">
-        <div>
-          <p className="text-xs font-semibold text-zinc-500 uppercase tracking-wider">{label}</p>
-          <p className="text-3xl font-semibold text-zinc-100 mt-2 tracking-tight tabular-nums">{value}</p>
-          {subtext && (
-            <p className="text-xs text-zinc-500 mt-1 font-medium">{subtext}</p>
-          )}
-        </div>
-        {href ? (
-          <Link
-            href={href}
-            aria-label={ariaLabel}
-            title={ariaLabel}
-            className="w-8 h-8 rounded-lg bg-zinc-950 border border-zinc-800/60 flex items-center justify-center text-zinc-400 shrink-0 hover:text-zinc-200 hover:border-zinc-700 hover:bg-zinc-900 transition-all cursor-pointer focus:outline-hidden focus-visible:ring-2 focus-visible:ring-lime-400/50"
-          >
-            <Icon className="w-4 h-4" />
-          </Link>
-        ) : (
-          <div className="w-8 h-8 rounded-lg bg-zinc-950 border border-zinc-800/60 flex items-center justify-center text-zinc-400 shrink-0">
-            <Icon className="w-4 h-4" />
-          </div>
-        )}
-      </div>
-    </div>
-  );
+  // Fetch data when dates change or on mount
+  useEffect(() => {
+    fetchDashboard(!!summary);
+  }, [fetchDashboard]);
 
-  if (isLoading) {
+
+
+  if (isLoading && !summary) {
     return (
-      <ProtectedRoute>
-        <DashboardLayout>
-          <div className="flex items-center justify-center min-h-[60vh]">
-            <div className="text-center space-y-3">
-              <div className="w-10 h-10 rounded-full border-2 border-zinc-800 border-t-lime-400 animate-spin mx-auto" />
-              <p className="text-sm font-medium text-zinc-500">Loading agency dashboard...</p>
-            </div>
-          </div>
-        </DashboardLayout>
-      </ProtectedRoute>
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <div className="text-center space-y-3">
+          <div className="w-10 h-10 rounded-full border-2 border-zinc-800 border-t-lime-400 animate-spin mx-auto" />
+          <p className="text-sm font-medium text-zinc-500">Loading agency dashboard...</p>
+        </div>
+      </div>
     );
   }
 
-  if (error) {
+  if (error && !summary) {
     return (
-      <ProtectedRoute>
-        <DashboardLayout>
-          <div className="rounded-2xl bg-rose-950/40 border border-rose-800/60 p-5">
-            <p className="text-sm text-rose-300 font-medium">{error}</p>
-          </div>
-        </DashboardLayout>
-      </ProtectedRoute>
+      <div className="rounded-2xl bg-rose-950/40 border border-rose-800/60 p-5">
+        <p className="text-sm text-rose-300 font-medium">{error}</p>
+      </div>
     );
   }
 
   return (
-    <ProtectedRoute>
-      <DashboardLayout>
-        <div className="space-y-8">
+    <div className="space-y-8">
           {/* Header */}
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>
@@ -326,8 +324,6 @@ export default function DashboardPage() {
               </Link>
             </div>
           )}
-        </div>
-      </DashboardLayout>
-    </ProtectedRoute>
+    </div>
   );
 }

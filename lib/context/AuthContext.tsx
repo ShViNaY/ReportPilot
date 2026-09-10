@@ -9,6 +9,7 @@ import {
   ReactNode,
 } from 'react';
 import { useRouter } from 'next/navigation';
+import { clearApiCache } from '@/lib/utils/apiCache';
 import type { User, LoginResponse, SignupResponse } from '@/types';
 
 type AuthUser = Omit<User, 'password_hash'>;
@@ -110,6 +111,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const logout = () => {
+    clearApiCache();
     localStorage.removeItem(TOKEN_KEY);
     localStorage.removeItem(USER_KEY);
     setToken(null);

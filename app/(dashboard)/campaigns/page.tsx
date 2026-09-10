@@ -4,10 +4,9 @@
 import { useState, useEffect, useRef } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
-import { ProtectedRoute } from '@/lib/context/ProtectedRoute';
 import { useAuth } from '@/lib/context/AuthContext';
-import { DashboardLayout } from '@/components/layouts/DashboardLayout';
 import { apiFetch } from '@/lib/utils/apiClient';
+import { cachedApiFetch, getCachedData, invalidateCampaignsCache } from '@/lib/utils/apiCache';
 import { Campaign, Client } from '@/types';
 import {
   IconCampaigns,
@@ -125,9 +124,12 @@ export default function CampaignsPage() {
   const searchParams = useSearchParams();
   const filterClientId = searchParams.get('client_id');
 
-  const [campaigns, setCampaigns] = useState<Campaign[]>([]);
-  const [clients, setClients] = useState<Client[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const cachedCampaigns = getCachedData<{ success: boolean; campaigns: Campaign[] }>('/api/campaigns');
+  const cachedClients = getCachedData<{ success: boolean; clients: Client[] }>('/api/clients');
+
+  const [campaigns, setCampaigns] = useState<Campaign[]>(() => cachedCampaigns?.campaigns || []);
+  const [clients, setClients] = useState<Client[]>(() => cachedClients?.clients || []);
+  const [isLoading, setIsLoading] = useState<boolean>(!cachedCampaigns);
   const [error, setError] = useState('');
   const [showForm, setShowForm] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -160,22 +162,19 @@ export default function CampaignsPage() {
 
   // Fetch data on mount
   useEffect(() => {
-    fetchData();
+    fetchData(false);
   }, []);
 
-  const fetchData = async () => {
+  const fetchData = async (forceRefresh = false) => {
     try {
-      setIsLoading(true);
+      if (forceRefresh) {
+        setIsLoading(true);
+      }
 
       // Fetch campaigns and clients concurrently
-      const [campaignsRes, clientsRes] = await Promise.all([
-        apiFetch('/api/campaigns'),
-        apiFetch('/api/clients'),
-      ]);
-
       const [campaignsData, clientsData] = await Promise.all([
-        campaignsRes.json(),
-        clientsRes.json(),
+        cachedApiFetch<{ success: boolean; campaigns?: Campaign[]; error?: string }>('/api/campaigns', undefined, { forceRefresh }),
+        cachedApiFetch<{ success: boolean; clients?: Client[]; error?: string }>('/api/clients', undefined, { forceRefresh }),
       ]);
 
       if (!campaignsData.success) {
@@ -183,6 +182,7 @@ export default function CampaignsPage() {
         return;
       }
 
+      setError('');
       setCampaigns(campaignsData.campaigns || []);
 
       if (clientsData.success) {
@@ -290,7 +290,8 @@ export default function CampaignsPage() {
 
       resetForm();
       setShowForm(false);
-      await fetchData();
+      invalidateCampaignsCache();
+      await fetchData(true);
     } catch (err) {
       setFormError('Something went wrong');
       console.error(err);
@@ -315,6 +316,8 @@ export default function CampaignsPage() {
         setError(data.error || 'Failed to update campaign');
         return;
       }
+
+      invalidateCampaignsCache();
 
       // Update local state
       setCampaigns(
@@ -349,6 +352,7 @@ export default function CampaignsPage() {
             return;
           }
 
+          invalidateCampaignsCache();
           setCampaigns(campaigns.filter((c) => c.id !== campaignId));
           setConfirmModal((prev) => ({ ...prev, isOpen: false }));
         } catch (err) {
@@ -371,25 +375,20 @@ export default function CampaignsPage() {
     ? campaigns.filter((c) => c.client_id === filterClientId)
     : campaigns;
 
-  if (isLoading) {
+  if (isLoading && campaigns.length === 0) {
     return (
-      <ProtectedRoute>
-        <DashboardLayout>
-          <div className="flex items-center justify-center min-h-[60vh]">
-            <div className="text-center space-y-3">
-              <div className="w-10 h-10 rounded-full border-2 border-zinc-800 border-t-lime-400 animate-spin mx-auto" />
-              <p className="text-sm font-medium text-zinc-500">Loading campaigns...</p>
-            </div>
-          </div>
-        </DashboardLayout>
-      </ProtectedRoute>
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <div className="text-center space-y-3">
+          <div className="w-10 h-10 rounded-full border-2 border-zinc-800 border-t-lime-400 animate-spin mx-auto" />
+          <p className="text-sm font-medium text-zinc-500">Loading campaigns...</p>
+        </div>
+      </div>
     );
   }
 
   return (
-    <ProtectedRoute>
-      <DashboardLayout>
-        <div className="space-y-6 max-w-7xl mx-auto">
+    <>
+      <div className="space-y-6 max-w-7xl mx-auto">
           {/* Header */}
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>
@@ -724,7 +723,6 @@ export default function CampaignsPage() {
           confirmVariant={confirmModal.confirmVariant}
           isLoading={confirmModal.isLoading}
         />
-      </DashboardLayout>
-    </ProtectedRoute>
+    </>
   );
 }

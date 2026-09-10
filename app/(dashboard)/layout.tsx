@@ -2,15 +2,18 @@
 
 import { ProtectedRoute } from '@/lib/context/ProtectedRoute';
 import { SidebarProvider } from '@/lib/context/SidebarContext';
+import { DashboardLayout } from '@/components/layouts/DashboardLayout';
 
-export default function DashboardLayout({
+export default function DashboardRouteLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
   return (
     <ProtectedRoute>
-      <SidebarProvider>{children}</SidebarProvider>
+      <SidebarProvider>
+        <DashboardLayout>{children}</DashboardLayout>
+      </SidebarProvider>
     </ProtectedRoute>
   );
 }

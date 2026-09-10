@@ -47,8 +47,6 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
             .select('id, agency_id, name, contact_email, created_at, updated_at')
             .eq('agency_id', agency_id);
 
-        let clientIds: string[] = [];
-
         if (role === 'account_manager') {
             // Get assigned clients
             const { data: assignments } = await supabaseServer
@@ -81,29 +79,38 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
             }
 
             clientsQuery = clientsQuery.in('id', assignedIds);
-            clientIds = assignedIds;
-        } else {
-            // Owner sees all clients
-            const { data: allClients } = await supabaseServer
-                .from('clients')
-                .select('id')
-                .eq('agency_id', agency_id);
-
-            clientIds = allClients?.map(c => c.id) || [];
         }
 
-        // Step 3: Fetch full client details
-        const { data: clients, error: clientError } = await supabaseServer
-            .from('clients')
-            .select('id, agency_id, name, contact_email, created_at, updated_at')
-            .eq('agency_id', agency_id)
-            .in('id', clientIds);
+        // Step 3: Fetch client details
+        const { data: clients, error: clientError } = await clientsQuery;
 
         if (clientError) {
             console.error('Client fetch error:', clientError);
             return NextResponse.json(
                 { success: false, error: 'Failed to fetch clients' },
                 { status: 500 }
+            );
+        }
+
+        const clientIds = (clients || []).map((c) => c.id);
+        if (clientIds.length === 0) {
+            const emptySummary: AgencyDashboardSummary = {
+                total_clients: 0,
+                total_campaigns: 0,
+                total_ad_spend: 0,
+                total_leads: 0,
+                total_conversions: 0,
+                average_cpl: 0,
+                average_conversion_rate: 0,
+            };
+
+            return NextResponse.json(
+                {
+                    success: true,
+                    summary: emptySummary,
+                    clients_overview: [],
+                },
+                { status: 200 }
             );
         }
 

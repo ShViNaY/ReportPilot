@@ -3,10 +3,9 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import Link from 'next/link';
-import { ProtectedRoute } from '@/lib/context/ProtectedRoute';
-import { DashboardLayout } from '@/components/layouts/DashboardLayout';
 import { useAuth } from '@/lib/context/AuthContext';
 import { apiFetch } from '@/lib/utils/apiClient';
+import { cachedApiFetch, getCachedData, invalidateClientsCache, invalidateCache } from '@/lib/utils/apiCache';
 import { Client, TeamMember } from '@/types';
 import {
   IconClients,
@@ -171,10 +170,15 @@ export default function ClientsPage() {
   const { user } = useAuth();
   const isOwner = user?.role === 'owner';
 
-  const [clients, setClients] = useState<ClientWithAssignment[]>([]);
-  const [managers, setManagers] = useState<TeamMember[]>([]);
+  const cachedClientsData = getCachedData<{ success: boolean; clients: ClientWithAssignment[] }>('/api/clients');
+  const cachedManagersData = getCachedData<{ success: boolean; members: TeamMember[] }>('/api/team');
+
+  const [clients, setClients] = useState<ClientWithAssignment[]>(() => cachedClientsData?.clients || []);
+  const [managers, setManagers] = useState<TeamMember[]>(() =>
+    (cachedManagersData?.members || []).filter((m: TeamMember) => m.role === 'account_manager')
+  );
   const [assigningClientId, setAssigningClientId] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(!cachedClientsData);
   const [error, setError] = useState('');
   const [showForm, setShowForm] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -185,7 +189,22 @@ export default function ClientsPage() {
   const [formError, setFormError] = useState('');
 
   // Portal token state map: clientId → PortalTokenState (owner only)
-  const [portalState, setPortalState] = useState<Record<string, PortalTokenState>>({});
+  const [portalState, setPortalState] = useState<Record<string, PortalTokenState>>(() => {
+    if (cachedClientsData?.clients && cachedClientsData.clients.length > 0) {
+      const initialPortalState: Record<string, PortalTokenState> = {};
+      cachedClientsData.clients.forEach((c) => {
+        if (c.portal_token) {
+          initialPortalState[c.id] = {
+            ...defaultPortalState(),
+            hasToken: c.portal_token.has_token,
+            expiresAt: c.portal_token.expires_at,
+          };
+        }
+      });
+      return initialPortalState;
+    }
+    return {};
+  });
 
   // Pagination
   const PAGE_SIZE = 12;
@@ -222,15 +241,21 @@ export default function ClientsPage() {
   // Data fetching
   // ---------------------------------------------------------------------------
 
-  const fetchClients = useCallback(async () => {
+  const fetchClients = useCallback(async (forceRefresh = false) => {
     try {
-      setIsLoading(true);
-      const res = await apiFetch('/api/clients');
-      const data = await res.json();
+      if (forceRefresh) {
+        setIsLoading(true);
+      }
+      const data = await cachedApiFetch<{ success: boolean; clients?: ClientWithAssignment[]; error?: string }>(
+        '/api/clients',
+        undefined,
+        { forceRefresh }
+      );
       if (!data.success) {
         setError(data.error || 'Failed to load clients');
         return;
       }
+      setError('');
       const loadedClients: ClientWithAssignment[] = data.clients || [];
       setClients(loadedClients);
 
@@ -258,10 +283,13 @@ export default function ClientsPage() {
     }
   }, [isOwner]);
 
-  const fetchManagers = useCallback(async () => {
+  const fetchManagers = useCallback(async (forceRefresh = false) => {
     try {
-      const res = await apiFetch('/api/team');
-      const data = await res.json();
+      const data = await cachedApiFetch<{ success: boolean; members?: TeamMember[] }>(
+        '/api/team',
+        undefined,
+        { forceRefresh }
+      );
       if (data.success) {
         setManagers((data.members || []).filter((m: TeamMember) => m.role === 'account_manager'));
       }
@@ -323,7 +351,8 @@ export default function ClientsPage() {
           body: JSON.stringify({ client_id: clientId }),
         });
       }
-      await fetchClients();
+      invalidateClientsCache();
+      await fetchClients(true);
     } catch (err) {
       setError('Failed to update assignment');
       console.error(err);
@@ -356,7 +385,8 @@ export default function ClientsPage() {
       }
       setFormData({ name: '', contact_email: '' });
       setShowForm(false);
-      await fetchClients();
+      invalidateClientsCache();
+      await fetchClients(true);
     } catch (err) {
       setFormError('Something went wrong');
       console.error(err);
@@ -381,6 +411,7 @@ export default function ClientsPage() {
             setError(data.error || 'Failed to delete client');
             return;
           }
+          invalidateClientsCache();
           setClients((prev) => prev.filter((c) => c.id !== clientId));
           setConfirmModal((prev) => ({ ...prev, isOpen: false }));
         } catch (err) {
@@ -475,18 +506,14 @@ export default function ClientsPage() {
   // Loading screen
   // ---------------------------------------------------------------------------
 
-  if (isLoading) {
+  if (isLoading && clients.length === 0) {
     return (
-      <ProtectedRoute>
-        <DashboardLayout>
-          <div className="flex items-center justify-center min-h-[60vh]">
-            <div className="text-center space-y-3">
-              <div className="w-10 h-10 rounded-full border-2 border-zinc-800 border-t-lime-400 animate-spin mx-auto" />
-              <p className="text-sm font-medium text-zinc-500">Loading agency clients...</p>
-            </div>
-          </div>
-        </DashboardLayout>
-      </ProtectedRoute>
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <div className="text-center space-y-3">
+          <div className="w-10 h-10 rounded-full border-2 border-zinc-800 border-t-lime-400 animate-spin mx-auto" />
+          <p className="text-sm font-medium text-zinc-500">Loading agency clients...</p>
+        </div>
+      </div>
     );
   }
 
@@ -495,9 +522,8 @@ export default function ClientsPage() {
   // ---------------------------------------------------------------------------
 
   return (
-    <ProtectedRoute>
-      <DashboardLayout>
-        <div className="space-y-6 max-w-7xl mx-auto">
+    <>
+      <div className="space-y-6 max-w-7xl mx-auto">
           {/* Header */}
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>
@@ -900,7 +926,6 @@ export default function ClientsPage() {
           confirmVariant={confirmModal.confirmVariant}
           isLoading={confirmModal.isLoading}
         />
-      </DashboardLayout>
-    </ProtectedRoute>
+    </>
   );
 }

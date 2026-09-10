@@ -2,14 +2,13 @@
 
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
-import { ProtectedRoute } from '@/lib/context/ProtectedRoute';
-import { DashboardLayout } from '@/components/layouts/DashboardLayout';
 import { useAuth } from '@/lib/context/AuthContext';
 import { Icons } from '@/components/common/Icons';
 import { ConfirmModal } from '@/components/common/ConfirmModal';
 import { apiFetch } from '@/lib/utils/apiClient';
+import { cachedApiFetch, getCachedData, invalidateTeamCache } from '@/lib/utils/apiCache';
 import { TeamMember, Client } from '@/types';
 
 type ClientWithAssignment = Client & {
@@ -18,8 +17,12 @@ type ClientWithAssignment = Client & {
 
 export default function TeamPage() {
   const { user } = useAuth();
-  const [members, setMembers] = useState<TeamMember[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const cachedTeam = getCachedData<{ success: boolean; members: TeamMember[] }>('/api/team');
+  const cachedClients = getCachedData<{ success: boolean; clients: ClientWithAssignment[] }>('/api/clients');
+
+  const [members, setMembers] = useState<TeamMember[]>(() => cachedTeam?.members || []);
+  const [clients, setClients] = useState<ClientWithAssignment[]>(() => cachedClients?.clients || []);
+  const [isLoading, setIsLoading] = useState<boolean>(!cachedTeam);
   const [error, setError] = useState('');
   const [showForm, setShowForm] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -32,7 +35,6 @@ export default function TeamPage() {
   const [formError, setFormError] = useState('');
 
   // Clients state for viewing assigned clients
-  const [clients, setClients] = useState<ClientWithAssignment[]>([]);
   const [selectedMemberForClients, setSelectedMemberForClients] = useState<TeamMember | null>(null);
 
   // Confirmation modal state
@@ -51,10 +53,38 @@ export default function TeamPage() {
     onConfirm: () => {},
   });
 
+  const fetchData = useCallback(async (forceRefresh = false) => {
+    try {
+      if (forceRefresh) {
+        setIsLoading(true);
+      }
+      const [teamData, clientsData] = await Promise.all([
+        cachedApiFetch<{ success: boolean; members?: TeamMember[]; error?: string }>('/api/team', undefined, { forceRefresh }),
+        cachedApiFetch<{ success: boolean; clients?: ClientWithAssignment[]; error?: string }>('/api/clients', undefined, { forceRefresh }),
+      ]);
+
+      if (!teamData.success) {
+        setError(teamData.error || 'Failed to load team members');
+        return;
+      }
+
+      setError('');
+      setMembers(teamData.members || []);
+      if (clientsData.success) {
+        setClients(clientsData.clients || []);
+      }
+    } catch (err) {
+      setError('Something went wrong');
+      console.error(err);
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
   // Fetch team members and clients on mount
   useEffect(() => {
-    fetchData();
-  }, []);
+    fetchData(false);
+  }, [fetchData]);
 
   // Close assigned clients modal on Escape
   useEffect(() => {
@@ -67,34 +97,6 @@ export default function TeamPage() {
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [selectedMemberForClients]);
-
-  const fetchData = async () => {
-    try {
-      setIsLoading(true);
-      const [teamRes, clientsRes] = await Promise.all([
-        apiFetch('/api/team'),
-        apiFetch('/api/clients'),
-      ]);
-
-      const teamData = await teamRes.json();
-      const clientsData = await clientsRes.json();
-
-      if (!teamData.success) {
-        setError(teamData.error || 'Failed to load team members');
-        return;
-      }
-
-      setMembers(teamData.members || []);
-      if (clientsData.success) {
-        setClients(clientsData.clients || []);
-      }
-    } catch (err) {
-      setError('Something went wrong');
-      console.error(err);
-    } finally {
-      setIsLoading(false);
-    }
-  };
 
   const handleAddMember = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -132,7 +134,8 @@ export default function TeamPage() {
       // Reset form and refresh list
       setFormData({ email: '', password: '' });
       setShowForm(false);
-      await fetchData();
+      invalidateTeamCache();
+      await fetchData(true);
     } catch (err) {
       setFormError('Something went wrong');
       console.error(err);
@@ -162,6 +165,7 @@ export default function TeamPage() {
             return;
           }
 
+          invalidateTeamCache();
           setMembers(members.filter((m) => m.id !== memberId));
           setConfirmModal((prev) => ({ ...prev, isOpen: false }));
         } catch (err) {
@@ -177,39 +181,30 @@ export default function TeamPage() {
   // Only show to owners
   if (!user || user.role !== 'owner') {
     return (
-      <ProtectedRoute requiredRole="owner">
-        <DashboardLayout>
-          <div className="flex flex-col items-center justify-center min-h-[60vh] text-center px-4">
-            <div className="w-12 h-12 rounded-2xl bg-zinc-900 text-zinc-400 flex items-center justify-center mb-4 border border-zinc-800">
-              <Icons.X className="w-6 h-6" />
-            </div>
-            <h1 className="text-xl font-bold tracking-tight text-zinc-100">Access Restricted</h1>
-            <p className="text-sm text-zinc-500 mt-1.5 max-w-sm">
-              Only agency owners have permissions to manage team members and their account roles.
-            </p>
-          </div>
-        </DashboardLayout>
-      </ProtectedRoute>
+      <div className="flex flex-col items-center justify-center min-h-[60vh] text-center px-4">
+        <div className="w-12 h-12 rounded-2xl bg-zinc-900 text-zinc-400 flex items-center justify-center mb-4 border border-zinc-800">
+          <Icons.X className="w-6 h-6" />
+        </div>
+        <h1 className="text-xl font-bold tracking-tight text-zinc-100">Access Restricted</h1>
+        <p className="text-sm text-zinc-500 mt-1.5 max-w-sm">
+          Only agency owners have permissions to manage team members and their account roles.
+        </p>
+      </div>
     );
   }
 
-  if (isLoading) {
+  if (isLoading && members.length === 0) {
     return (
-      <ProtectedRoute requiredRole="owner">
-        <DashboardLayout>
-          <div className="flex flex-col items-center justify-center min-h-[60vh] space-y-3">
-            <div className="w-10 h-10 rounded-full border-2 border-zinc-800 border-t-lime-400 animate-spin mx-auto" />
-            <p className="text-sm font-medium text-zinc-500">Loading team members...</p>
-          </div>
-        </DashboardLayout>
-      </ProtectedRoute>
+      <div className="flex flex-col items-center justify-center min-h-[60vh] space-y-3">
+        <div className="w-10 h-10 rounded-full border-2 border-zinc-800 border-t-lime-400 animate-spin mx-auto" />
+        <p className="text-sm font-medium text-zinc-500">Loading team members...</p>
+      </div>
     );
   }
 
   return (
-    <ProtectedRoute requiredRole="owner">
-      <DashboardLayout>
-        <div className="space-y-6 max-w-6xl mx-auto">
+    <>
+      <div className="space-y-6 max-w-6xl mx-auto">
           {/* Header */}
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>
@@ -619,7 +614,6 @@ export default function TeamPage() {
           confirmVariant={confirmModal.confirmVariant}
           isLoading={confirmModal.isLoading}
         />
-      </DashboardLayout>
-    </ProtectedRoute>
+    </>
   );
 }
