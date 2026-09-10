@@ -85,97 +85,101 @@ export async function GET(request: NextRequest): Promise<NextResponse<GetMetrics
       }
     }
 
-    // Step 2: Query existing valid campaigns for this agency/user to ensure data consistency
-    let campaignsQuery = supabaseServer
-      .from('campaigns')
-      .select('id, client_id')
-      .eq('agency_id', agency_id);
-
-    // If account manager, restrict to assigned clients
+    // Step 2: Determine client scope for account manager if applicable
+    let allowedClientIds: string[] | null = null;
     if (role === 'account_manager') {
       const { data: assignments } = await supabaseServer
         .from('user_client_assignments')
         .select('client_id')
         .eq('user_id', user_id);
 
-      const assignedClientIds = assignments?.map((a) => a.client_id) || [];
+      allowedClientIds = assignments?.map((a) => a.client_id) || [];
 
-      if (assignedClientIds.length === 0) {
+      if (allowedClientIds.length === 0) {
         return NextResponse.json<GetMetricsResponse>(
           { success: true, metrics: [] },
           { status: 200 }
         );
       }
 
-      campaignsQuery = campaignsQuery.in('client_id', assignedClientIds);
+      if (clientIdParam && !allowedClientIds.includes(clientIdParam)) {
+        return NextResponse.json<GetMetricsResponse>(
+          { success: true, metrics: [] },
+          { status: 200 }
+        );
+      }
+    }
+
+    // Step 3: Build concurrent queries for valid campaigns and metric entries
+    let campaignsQuery = supabaseServer
+      .from('campaigns')
+      .select('id, client_id')
+      .eq('agency_id', agency_id);
+
+    let metricsQuery = supabaseServer
+      .from('metric_entries')
+      .select('id, campaign_id, client_id, agency_id, reporting_period, ad_spend, impressions, clicks, leads, conversions, cost_per_lead, conversion_rate, created_at, updated_at')
+      .eq('agency_id', agency_id);
+
+    if (allowedClientIds !== null) {
+      campaignsQuery = campaignsQuery.in('client_id', allowedClientIds);
+      metricsQuery = metricsQuery.in('client_id', allowedClientIds);
     }
 
     if (clientIdParam) {
       campaignsQuery = campaignsQuery.eq('client_id', clientIdParam);
+      metricsQuery = metricsQuery.eq('client_id', clientIdParam);
     }
 
     if (campaignIdParam) {
       campaignsQuery = campaignsQuery.eq('id', campaignIdParam);
+      metricsQuery = metricsQuery.eq('campaign_id', campaignIdParam);
     }
 
-    const { data: validCampaigns, error: campError } = await campaignsQuery;
-    if (campError) {
-      console.error('Error fetching valid campaigns for metrics:', campError);
+    if (startDate) {
+      metricsQuery = metricsQuery.gte('reporting_period', startDate);
+    }
+
+    if (endDate) {
+      metricsQuery = metricsQuery.lte('reporting_period', endDate);
+    }
+
+    metricsQuery = metricsQuery.order('reporting_period', { ascending: false });
+
+    // Step 4: Execute campaigns and metrics queries concurrently
+    const [campResult, metricsResult] = await Promise.all([
+      campaignsQuery,
+      metricsQuery,
+    ]);
+
+    if (campResult.error) {
+      console.error('Error fetching valid campaigns for metrics:', campResult.error);
       return NextResponse.json<GetMetricsResponse>(
         { success: false, error: 'Failed to verify active campaigns' },
         { status: 500 }
       );
     }
 
-    const validCampaignIds = validCampaigns?.map((c) => c.id) || [];
-    if (validCampaignIds.length === 0) {
-      return NextResponse.json<GetMetricsResponse>(
-        { success: true, metrics: [] },
-        { status: 200 }
-      );
-    }
-
-    // Step 3: Fetch metrics restricted to active, existing campaigns
-    let query = supabaseServer
-      .from('metric_entries')
-      .select('*')
-      .eq('agency_id', agency_id)
-      .in('campaign_id', validCampaignIds);
-
-    // Add date filtering
-    if (startDate) {
-      query = query.gte('reporting_period', startDate);
-    }
-
-    if (endDate) {
-      query = query.lte('reporting_period', endDate);
-    }
-
-    // Add client filtering if provided
-    if (clientIdParam) {
-      query = query.eq('client_id', clientIdParam);
-    }
-
-    // Add campaign filtering if provided
-    if (campaignIdParam) {
-      query = query.eq('campaign_id', campaignIdParam);
-    }
-
-    // Step 4: Fetch metrics
-    const { data: metrics, error } = await query.order('reporting_period', {
-      ascending: false,
-    });
-
-    if (error) {
-      console.error('Query error:', error);
+    if (metricsResult.error) {
+      console.error('Query error:', metricsResult.error);
       return NextResponse.json<GetMetricsResponse>(
         { success: false, error: 'Failed to fetch metrics' },
         { status: 500 }
       );
     }
 
+    const validCampaignIds = new Set((campResult.data || []).map((c) => c.id));
+    if (validCampaignIds.size === 0) {
+      return NextResponse.json<GetMetricsResponse>(
+        { success: true, metrics: [] },
+        { status: 200 }
+      );
+    }
+
+    const metrics = (metricsResult.data || []).filter((m) => validCampaignIds.has(m.campaign_id));
+
     return NextResponse.json<GetMetricsResponse>(
-      { success: true, metrics: metrics || [] },
+      { success: true, metrics },
       { status: 200 }
     );
   } catch (error) {

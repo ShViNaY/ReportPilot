@@ -1,19 +1,26 @@
 'use client';
 
 import * as React from 'react';
-import { useState, FormEvent } from 'react';
+import { useState, useEffect, FormEvent } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { motion, useReducedMotion } from 'framer-motion';
 import { useAuth } from '@/lib/context/AuthContext';
 import { IconEye, IconEyeOff } from '@/components/common/Icons';
 
 export default function LoginPage() {
+  const router = useRouter();
   const { login } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+
+  // Preload dashboard bundle so transition after login is instant
+  useEffect(() => {
+    router.prefetch('/dashboard');
+  }, [router]);
 
   const shouldReduceMotion = useReducedMotion();
 

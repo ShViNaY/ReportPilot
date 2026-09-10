@@ -65,7 +65,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     let tokenStatusByClientId: Record<string, { has_token: boolean; expires_at: string | null }> = {};
 
     if (clientIds.length > 0) {
-      const [assignmentsResult, tokenRowsResult] = await Promise.all([
+      const [assignmentsResult, tokenRowsResult, managersResult] = await Promise.all([
         supabaseServer
           .from('user_client_assignments')
           .select('client_id, user_id')
@@ -76,18 +76,18 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
               .select('client_id, expires_at')
               .in('client_id', clientIds)
           : Promise.resolve({ data: null }),
+        role === 'owner'
+          ? supabaseServer
+              .from('users')
+              .select('id, email')
+              .eq('agency_id', agency_id)
+              .eq('role', 'account_manager')
+          : Promise.resolve({ data: null }),
       ]);
 
       const assignments = assignmentsResult.data;
-      if (assignments && assignments.length > 0) {
-        const managerIds = [...new Set(assignments.map((a) => a.user_id))];
-
-        const { data: managers } = await supabaseServer
-          .from('users')
-          .select('id, email')
-          .in('id', managerIds);
-
-        const managerById = new Map((managers || []).map((m) => [m.id, m]));
+      if (assignments && assignments.length > 0 && managersResult.data) {
+        const managerById = new Map(managersResult.data.map((m) => [m.id, m]));
 
         assignedManagerByClientId = assignments.reduce((acc, a) => {
           const manager = managerById.get(a.user_id);

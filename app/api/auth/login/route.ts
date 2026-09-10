@@ -58,8 +58,9 @@ export async function POST(request: NextRequest): Promise<NextResponse<LoginResp
     // Query Supabase for user
     const { data: users, error: queryError } = await supabaseServer
       .from('users')
-      .select('*')
-      .eq('email', normalizedEmail);
+      .select('id, agency_id, email, password_hash, role, created_at, updated_at')
+      .eq('email', normalizedEmail)
+      .limit(1);
 
     if (queryError) {
       console.error('Database query error:', queryError);

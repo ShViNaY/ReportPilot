@@ -6,7 +6,7 @@ import Link from 'next/link';
 import { DateRangeFilter, DateRange } from '@/components/filters/DateRangeFilter';
 import { TrendChart } from '@/components/charts/TrendChart';
 import { KPISummary } from '@/components/charts/KPISummary';
-import { cachedApiFetch, getCachedData } from '@/lib/utils/apiCache';
+import { cachedApiFetch, getCachedData, formatDateParam } from '@/lib/utils/apiCache';
 import { AgencyDashboardSummary, MetricEntry } from '@/types';
 import {
   IconClients,
@@ -71,11 +71,11 @@ export default function DashboardPage() {
   const [endDate, setEndDate] = useState<Date>(() => new Date());
 
   const summaryUrl = useMemo(
-    () => `/api/dashboard/agency?startDate=${startDate.toISOString()}&endDate=${endDate.toISOString()}`,
+    () => `/api/dashboard/agency?startDate=${formatDateParam(startDate)}&endDate=${formatDateParam(endDate)}`,
     [startDate, endDate]
   );
   const metricsUrl = useMemo(
-    () => `/api/metrics?startDate=${startDate.toISOString()}&endDate=${endDate.toISOString()}`,
+    () => `/api/metrics?startDate=${formatDateParam(startDate)}&endDate=${formatDateParam(endDate)}`,
     [startDate, endDate]
   );
 
@@ -95,9 +95,9 @@ export default function DashboardPage() {
   const [isLoading, setIsLoading] = useState<boolean>(!initialSummary);
   const [error, setError] = useState('');
 
-  const fetchDashboard = useCallback(async (isInitial = false) => {
+  const fetchDashboard = useCallback(async (hasCachedData = false) => {
     try {
-      if (!isInitial) {
+      if (!hasCachedData) {
         setIsLoading(true);
       }
 

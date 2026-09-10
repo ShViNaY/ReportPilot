@@ -23,7 +23,7 @@ export async function GET(request: NextRequest): Promise<NextResponse<GetCampaig
 
         let query = supabaseServer
             .from('campaigns')
-            .select('*')
+            .select('id, client_id, agency_id, name, platform, status, created_at, updated_at')
             .eq('agency_id', agency_id); // DATA ISOLATION: User's agency only
 
         // Step 2: If account manager, filter by assigned clients

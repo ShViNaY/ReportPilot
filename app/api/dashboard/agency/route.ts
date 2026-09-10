@@ -41,33 +41,28 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
         }
         const { startDate, endDate } = dateValidation.data;
 
-        // Step 2: Get clients (filtered by role)
-        let clientsQuery = supabaseServer
-            .from('clients')
-            .select('id, agency_id, name, contact_email, created_at, updated_at')
-            .eq('agency_id', agency_id);
+        const emptySummary: AgencyDashboardSummary = {
+            total_clients: 0,
+            total_campaigns: 0,
+            total_ad_spend: 0,
+            total_leads: 0,
+            total_conversions: 0,
+            average_cpl: 0,
+            average_conversion_rate: 0,
+        };
 
+        // Step 2: Determine client scope (all for owner, assigned for account_manager)
+        let assignedIds: string[] | null = null;
         if (role === 'account_manager') {
-            // Get assigned clients
             const { data: assignments } = await supabaseServer
                 .from('user_client_assignments')
                 .select('client_id')
                 .eq('user_id', user_id);
 
-            const assignedIds = assignments?.map(a => a.client_id) || [];
+            assignedIds = assignments?.map((a) => a.client_id) || [];
 
             if (assignedIds.length === 0) {
                 // Manager has no assigned clients
-                const emptySummary: AgencyDashboardSummary = {
-                    total_clients: 0,
-                    total_campaigns: 0,
-                    total_ad_spend: 0,
-                    total_leads: 0,
-                    total_conversions: 0,
-                    average_cpl: 0,
-                    average_conversion_rate: 0,
-                };
-
                 return NextResponse.json(
                     {
                         success: true,
@@ -77,33 +72,74 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
                     { status: 200 }
                 );
             }
-
-            clientsQuery = clientsQuery.in('id', assignedIds);
         }
 
-        // Step 3: Fetch client details
-        const { data: clients, error: clientError } = await clientsQuery;
+        // Step 3: Build concurrent queries for clients, campaigns, and metrics
+        let clientsQuery = supabaseServer
+            .from('clients')
+            .select('id, agency_id, name, contact_email, created_at, updated_at')
+            .eq('agency_id', agency_id);
 
-        if (clientError) {
-            console.error('Client fetch error:', clientError);
+        let campaignsQuery = supabaseServer
+            .from('campaigns')
+            .select('id, client_id, status')
+            .eq('agency_id', agency_id);
+
+        let metricsQuery = supabaseServer
+            .from('metric_entries')
+            .select('campaign_id, client_id, ad_spend, leads, conversions, cost_per_lead, conversion_rate')
+            .eq('agency_id', agency_id);
+
+        if (assignedIds !== null) {
+            clientsQuery = clientsQuery.in('id', assignedIds);
+            campaignsQuery = campaignsQuery.in('client_id', assignedIds);
+            metricsQuery = metricsQuery.in('client_id', assignedIds);
+        }
+
+        if (startDate) {
+            metricsQuery = metricsQuery.gte('reporting_period', startDate);
+        }
+
+        if (endDate) {
+            metricsQuery = metricsQuery.lte('reporting_period', endDate);
+        }
+
+        // Step 4: Execute all queries concurrently
+        const [clientsRes, campaignsRes, metricsRes] = await Promise.all([
+            clientsQuery,
+            campaignsQuery,
+            metricsQuery,
+        ]);
+
+        if (clientsRes.error) {
+            console.error('Client fetch error:', clientsRes.error);
             return NextResponse.json(
                 { success: false, error: 'Failed to fetch clients' },
                 { status: 500 }
             );
         }
 
-        const clientIds = (clients || []).map((c) => c.id);
-        if (clientIds.length === 0) {
-            const emptySummary: AgencyDashboardSummary = {
-                total_clients: 0,
-                total_campaigns: 0,
-                total_ad_spend: 0,
-                total_leads: 0,
-                total_conversions: 0,
-                average_cpl: 0,
-                average_conversion_rate: 0,
-            };
+        if (campaignsRes.error) {
+            console.error('Campaigns fetch error:', campaignsRes.error);
+            return NextResponse.json(
+                { success: false, error: 'Failed to fetch campaigns' },
+                { status: 500 }
+            );
+        }
 
+        if (metricsRes.error) {
+            console.error('Metrics fetch error:', metricsRes.error);
+            return NextResponse.json(
+                { success: false, error: 'Failed to fetch metrics' },
+                { status: 500 }
+            );
+        }
+
+        const clients = clientsRes.data || [];
+        const campaignsData = campaignsRes.data || [];
+        const rawMetrics = metricsRes.data || [];
+
+        if (clients.length === 0) {
             return NextResponse.json(
                 {
                     success: true,
@@ -114,60 +150,9 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
             );
         }
 
-        // Step 4: Fetch campaigns (needed to determine which are Active)
-        const { data: campaignsData, error: campaignsError } = await supabaseServer
-            .from('campaigns')
-            .select('id, client_id, status')
-            .eq('agency_id', agency_id)
-            .in('client_id', clientIds);
-
-        if (campaignsError) {
-            console.error('Campaigns fetch error:', campaignsError);
-            return NextResponse.json(
-                { success: false, error: 'Failed to fetch campaigns' },
-                { status: 500 }
-            );
-        }
-
-        // Step 5: Fetch metrics for aggregation (filtered by existing campaigns and date range if provided)
-        const validCampaignIds = campaignsData?.map((c) => c.id) || [];
-        let metrics: {
-            campaign_id: string;
-            ad_spend: number;
-            leads: number;
-            conversions: number;
-            cost_per_lead: number | null;
-            conversion_rate: number | null;
-        }[] = [];
-
-        if (validCampaignIds.length > 0) {
-            let metricsQuery = supabaseServer
-                .from('metric_entries')
-                .select('campaign_id, ad_spend, leads, conversions, cost_per_lead, conversion_rate')
-                .eq('agency_id', agency_id)
-                .in('client_id', clientIds)
-                .in('campaign_id', validCampaignIds);
-
-            if (startDate) {
-                metricsQuery = metricsQuery.gte('reporting_period', startDate);
-            }
-
-            if (endDate) {
-                metricsQuery = metricsQuery.lte('reporting_period', endDate);
-            }
-
-            const { data: metricsData, error: metricsError } = await metricsQuery;
-
-            if (metricsError) {
-                console.error('Metrics fetch error:', metricsError);
-                return NextResponse.json(
-                    { success: false, error: 'Failed to fetch metrics' },
-                    { status: 500 }
-                );
-            }
-
-            metrics = metricsData || [];
-        }
+        // Step 5: Filter metrics to existing campaigns
+        const validCampaignIds = new Set(campaignsData.map((c) => c.id));
+        const metrics = rawMetrics.filter((m) => validCampaignIds.has(m.campaign_id));
 
         // Step 6: Calculate aggregates
         let totalAdSpend = 0;

@@ -9,7 +9,7 @@ import { TrendChart } from '@/components/charts/TrendChart';
 import { CampaignChart } from '@/components/charts/CampaignChart';
 import { DarkDatePicker } from '@/components/common/DarkDatePicker';
 import { apiFetch } from '@/lib/utils/apiClient';
-import { cachedApiFetch, getCachedData, invalidateMetricsCache } from '@/lib/utils/apiCache';
+import { cachedApiFetch, getCachedData, invalidateMetricsCache, formatDateParam } from '@/lib/utils/apiCache';
 import { MetricEntry, Campaign, Client } from '@/types';
 import {
   IconMetrics,
@@ -146,7 +146,7 @@ export default function MetricsPage() {
   });
   const [endDate, setEndDate] = useState<Date>(() => new Date());
 
-  const initialMetricsUrl = `/api/metrics?startDate=${startDate.toISOString()}&endDate=${endDate.toISOString()}`;
+  const initialMetricsUrl = `/api/metrics?startDate=${formatDateParam(startDate)}&endDate=${formatDateParam(endDate)}`;
   const cachedMetrics = getCachedData<{ success: boolean; metrics: MetricEntry[] }>(initialMetricsUrl);
   const cachedCampaigns = getCachedData<{ success: boolean; campaigns: Campaign[] }>('/api/campaigns');
   const cachedClients = getCachedData<{ success: boolean; clients: Client[] }>('/api/clients');
@@ -237,7 +237,7 @@ export default function MetricsPage() {
       let metricsUrl = '/api/metrics';
 
       if (start && end) {
-        metricsUrl += `?startDate=${start.toISOString()}&endDate=${end.toISOString()}`;
+        metricsUrl += `?startDate=${formatDateParam(start)}&endDate=${formatDateParam(end)}`;
       }
 
       const [metricsData, campaignsData, clientsData] = await Promise.all([
