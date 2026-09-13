@@ -1,0 +1,41 @@
+name: Keep-Alive
+
+on:
+  schedule:
+    # Runs at 10:25 UTC on days 1, 6, 12, 18, 24, and 30 of every month.
+    # Standard POSIX cron cannot track a true fixed interval across calendar month boundaries.
+    # This schedule guarantees that elapsed time between runs never exceeds 6 days.
+    - cron: '25 10 1,6,12,18,24,30 * *'
+  workflow_dispatch:
+
+jobs:
+  ping:
+    name: Ping Health Endpoint
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Send keep-alive ping to health endpoint
+        env:
+          APP_URL: ${{ vars.PRODUCTION_URL || secrets.PRODUCTION_URL || 'https://reportpilot.vercel.app' }}
+        run: |
+          ENDPOINT="${APP_URL%/}/api/health"
+          echo "Target Endpoint: $ENDPOINT"
+
+          RESPONSE_FILE=$(mktemp)
+          HTTP_STATUS=$(curl -sS --max-time 30 -w "%{http_code}" -o "$RESPONSE_FILE" "$ENDPOINT" || echo "000")
+
+          echo "HTTP Status Code: $HTTP_STATUS"
+          echo "Response Body:"
+          cat "$RESPONSE_FILE"
+          echo ""
+
+          if [ "$HTTP_STATUS" = "200" ] && grep -q '"success":true' "$RESPONSE_FILE" 2>/dev/null || [ "$HTTP_STATUS" = "200" ] && grep -q '"success": true' "$RESPONSE_FILE" 2>/dev/null; then
+            echo "Keep-alive check succeeded with HTTP 200 and success response."
+            rm -f "$RESPONSE_FILE"
+            exit 0
+          else
+            echo "Keep-alive check failed. Expected HTTP 200 with success status, received: $HTTP_STATUS"
+            rm -f "$RESPONSE_FILE"
+            exit 1
+          fi
