@@ -17,7 +17,7 @@ jobs:
     steps:
       - name: Send keep-alive ping to health endpoint
         env:
-          APP_URL: ${{ vars.PRODUCTION_URL || secrets.PRODUCTION_URL || 'https://reportpilot.vercel.app' }}
+          APP_URL: ${{ vars.PRODUCTION_URL || secrets.PRODUCTION_URL || 'https://report-pilot-omega.vercel.app' }}
         run: |
           ENDPOINT="${APP_URL%/}/api/health"
           echo "Target Endpoint: $ENDPOINT"
