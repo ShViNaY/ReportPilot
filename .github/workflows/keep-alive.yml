@@ -22,27 +22,40 @@ jobs:
           ENDPOINT="${APP_URL%/}/api/health"
           echo "Target Endpoint: $ENDPOINT"
 
+          MAX_ATTEMPTS=3
+          RETRY_DELAY=30
           RESPONSE_FILE=$(mktemp)
-          HTTP_STATUS=$(curl -sS --max-time 30 -w "%{http_code}" -o "$RESPONSE_FILE" "$ENDPOINT" || echo "000")
 
-          echo "HTTP Status Code: $HTTP_STATUS"
-          echo "Response Body:"
-          cat "$RESPONSE_FILE"
-          echo ""
+          # Ensure temporary file cleanup on exit
+          trap 'rm -f "$RESPONSE_FILE"' EXIT
 
-          SUCCESS_STATUS=false
-          if jq -e '.success == true and .status == "healthy"' "$RESPONSE_FILE" >/dev/null 2>&1; then
-            SUCCESS_STATUS=true
-          elif grep -Eq '"success"[[:space:]]*:[[:space:]]*true' "$RESPONSE_FILE" 2>/dev/null && grep -Eq '"status"[[:space:]]*:[[:space:]]*"healthy"' "$RESPONSE_FILE" 2>/dev/null; then
-            SUCCESS_STATUS=true
-          fi
+          for attempt in 1 2 3; do
+            echo "--- Attempt $attempt of $MAX_ATTEMPTS ---"
 
-          if [ "$HTTP_STATUS" = "200" ] && [ "$SUCCESS_STATUS" = "true" ]; then
-            echo "Keep-alive check succeeded with HTTP 200 and healthy status."
-            rm -f "$RESPONSE_FILE"
-            exit 0
-          else
-            echo "Keep-alive check failed. Expected HTTP 200 with healthy status, received: $HTTP_STATUS"
-            rm -f "$RESPONSE_FILE"
-            exit 1
-          fi
+            HTTP_STATUS=$(curl -sS --max-time 30 -w "%{http_code}" -o "$RESPONSE_FILE" "$ENDPOINT" || echo "000")
+
+            echo "HTTP Status Code: $HTTP_STATUS"
+            echo "Response Body:"
+            cat "$RESPONSE_FILE"
+            echo ""
+
+            SUCCESS_STATUS=false
+            if jq -e '.success == true and .status == "healthy"' "$RESPONSE_FILE" >/dev/null 2>&1; then
+              SUCCESS_STATUS=true
+            elif grep -Eq '"success"[[:space:]]*:[[:space:]]*true' "$RESPONSE_FILE" 2>/dev/null && grep -Eq '"status"[[:space:]]*:[[:space:]]*"healthy"' "$RESPONSE_FILE" 2>/dev/null; then
+              SUCCESS_STATUS=true
+            fi
+
+            if [ "$HTTP_STATUS" = "200" ] && [ "$SUCCESS_STATUS" = "true" ]; then
+              echo "Keep-alive check succeeded on attempt $attempt with HTTP 200 and healthy status."
+              exit 0
+            fi
+
+            if [ "$attempt" -lt "$MAX_ATTEMPTS" ]; then
+              echo "Attempt $attempt failed (HTTP status: $HTTP_STATUS). Retrying in $RETRY_DELAY seconds..."
+              sleep "$RETRY_DELAY"
+            fi
+          done
+
+          echo "Keep-alive check failed after $MAX_ATTEMPTS attempts."
+          exit 1

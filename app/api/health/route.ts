@@ -108,72 +108,40 @@ async function checkSupabaseReachability(attempt: number): Promise<{ ok: boolean
     // Helper to sanitize any string against accidental URL or key leakage
     const sanitize = (val: unknown): string => {
       if (val === undefined || val === null) return 'undefined';
-      let str = typeof val === 'object' ? JSON.stringify(val) : String(val);
+      let str = String(val);
       if (supabaseUrl) str = str.split(supabaseUrl).join('[SUPABASE_URL]');
       if (supabaseKey) str = str.split(supabaseKey).join('[SUPABASE_KEY]');
       return str.slice(0, 300);
     };
 
-    // Safely extract top-level error fields
-    const errObj   = (typeof err === 'object' && err !== null) ? (err as Record<string, unknown>) : null;
-    const errName  = typeof errObj?.name === 'string' ? errObj.name : (err instanceof Error ? err.name : 'UnknownError');
-    const errMsg   = typeof errObj?.message === 'string' ? errObj.message : String(err);
-    const errProps = errObj ? Object.getOwnPropertyNames(err) : [];
+    const errName = err instanceof Error ? err.name : 'UnknownError';
+    const errMsg  = err instanceof Error ? err.message : String(err);
 
     // Safely extract underlying cause (Node.js fetch wraps OS/DNS/TLS errors in error.cause)
-    const causeRaw = errObj ? errObj['cause'] : (err instanceof Error ? err.cause : undefined);
-    const causeObj = (typeof causeRaw === 'object' && causeRaw !== null)
-      ? (causeRaw as Record<string, unknown>)
+    const rawCause = (typeof err === 'object' && err !== null && 'cause' in err)
+      ? (err as { cause?: unknown }).cause
+      : (err instanceof Error ? err.cause : undefined);
+
+    const causeObj = (typeof rawCause === 'object' && rawCause !== null)
+      ? (rawCause as Record<string, unknown>)
       : null;
 
-    const causeName     = causeObj?.name !== undefined ? String(causeObj.name) : undefined;
-    const causeMsg      = causeObj?.message !== undefined ? String(causeObj.message) : undefined;
+    const causeName     = causeObj?.name !== undefined ? String(causeObj.name) : (typeof rawCause === 'string' ? 'string' : undefined);
+    const causeMsg      = causeObj?.message !== undefined ? String(causeObj.message) : (typeof rawCause === 'string' ? rawCause : undefined);
     const causeCode     = causeObj?.code !== undefined ? String(causeObj.code) : undefined;
-    const causeErrno    = causeObj?.errno !== undefined ? String(causeObj.errno) : undefined;
     const causeSyscall  = causeObj?.syscall !== undefined ? String(causeObj.syscall) : undefined;
     const causeHostname = causeObj?.hostname !== undefined ? String(causeObj.hostname) : undefined;
     const causeAddress  = causeObj?.address !== undefined ? String(causeObj.address) : undefined;
     const causePort     = causeObj?.port !== undefined ? String(causeObj.port) : undefined;
-    const causeProps    = causeObj ? Object.getOwnPropertyNames(causeObj) : undefined;
 
     console.error(
-      '[health] diag=fetch_exception attempt=%d elapsed_ms=%d ' +
-      'error_name=%s error_message=%s error_props=%s ' +
-      'cause_name=%s cause_message=%s cause_code=%s cause_errno=%s ' +
-      'cause_syscall=%s cause_hostname=%s cause_address=%s cause_port=%s ' +
-      'cause_props=%s',
-      attempt,
-      elapsedMs,
-      errName,
-      sanitize(errMsg),
-      JSON.stringify(errProps),
-      sanitize(causeName),
-      sanitize(causeMsg),
-      sanitize(causeCode),
-      sanitize(causeErrno),
-      sanitize(causeSyscall),
-      sanitize(causeHostname),
-      sanitize(causeAddress),
-      sanitize(causePort),
-      causeProps ? JSON.stringify(causeProps) : 'undefined'
+      `[health] diag=fetch_exception attempt=${attempt} elapsed_ms=${elapsedMs} ` +
+      `error_name=${errName} error_message=${sanitize(errMsg)} ` +
+      `cause_name=${sanitize(causeName)} cause_message=${sanitize(causeMsg)} ` +
+      `cause_code=${sanitize(causeCode)} cause_syscall=${sanitize(causeSyscall)} ` +
+      `cause_hostname=${sanitize(causeHostname)} cause_address=${sanitize(causeAddress)} ` +
+      `cause_port=${sanitize(causePort)}`
     );
-
-    console.error('[health] diag=fetch_exception_details', JSON.stringify({
-      attempt,
-      elapsed_ms: elapsedMs,
-      error_name: errName,
-      error_message: sanitize(errMsg),
-      error_props: errProps,
-      cause_name: causeName !== undefined ? sanitize(causeName) : undefined,
-      cause_message: causeMsg !== undefined ? sanitize(causeMsg) : undefined,
-      cause_code: causeCode !== undefined ? sanitize(causeCode) : undefined,
-      cause_errno: causeErrno !== undefined ? sanitize(causeErrno) : undefined,
-      cause_syscall: causeSyscall !== undefined ? sanitize(causeSyscall) : undefined,
-      cause_hostname: causeHostname !== undefined ? sanitize(causeHostname) : undefined,
-      cause_address: causeAddress !== undefined ? sanitize(causeAddress) : undefined,
-      cause_port: causePort !== undefined ? sanitize(causePort) : undefined,
-      cause_props: causeProps,
-    }));
 
     return { ok: false, errorMessage: `fetch exception: ${errName}` };
   }
