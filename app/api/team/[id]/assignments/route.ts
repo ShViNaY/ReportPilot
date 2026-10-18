@@ -74,12 +74,15 @@ export async function POST(
       );
     }
 
+    // Ensure client has only one assigned manager at a time: clear any prior assignment
+    await supabaseServer
+      .from('user_client_assignments')
+      .delete()
+      .eq('client_id', client_id);
+
     const { data: assignment, error } = await supabaseServer
       .from('user_client_assignments')
-      .upsert(
-        { user_id: managerId, client_id },
-        { onConflict: 'user_id,client_id' }
-      )
+      .insert({ user_id: managerId, client_id })
       .select()
       .single();
 
@@ -169,7 +172,6 @@ export async function DELETE(
     const { error } = await supabaseServer
       .from('user_client_assignments')
       .delete()
-      .eq('user_id', managerId)
       .eq('client_id', clientId);
 
     if (error) {

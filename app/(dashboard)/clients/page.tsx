@@ -5,7 +5,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import Link from 'next/link';
 import { useAuth } from '@/lib/context/AuthContext';
 import { apiFetch } from '@/lib/utils/apiClient';
-import { cachedApiFetch, getCachedData, invalidateClientsCache, invalidateCache } from '@/lib/utils/apiCache';
+import { cachedApiFetch, getCachedData, invalidateClientsCache, invalidateTeamCache, invalidateCache } from '@/lib/utils/apiCache';
 import { Client, TeamMember } from '@/types';
 import {
   IconClients,
@@ -339,9 +339,10 @@ export default function ClientsPage() {
     try {
       if (managerId === '') {
         const client = clients.find((c) => c.id === clientId);
-        if (client?.assigned_manager) {
+        const managerIdParam = client?.assigned_manager?.id || managers[0]?.id;
+        if (managerIdParam) {
           await apiFetch(
-            `/api/team/${client.assigned_manager.id}/assignments?client_id=${clientId}`,
+            `/api/team/${managerIdParam}/assignments?client_id=${clientId}`,
             { method: 'DELETE' }
           );
         }
@@ -352,6 +353,7 @@ export default function ClientsPage() {
         });
       }
       invalidateClientsCache();
+      invalidateTeamCache();
       await fetchClients(true);
     } catch (err) {
       setError('Failed to update assignment');

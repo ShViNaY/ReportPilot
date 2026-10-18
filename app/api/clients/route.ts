@@ -76,13 +76,11 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
               .select('client_id, expires_at')
               .in('client_id', clientIds)
           : Promise.resolve({ data: null }),
-        role === 'owner'
-          ? supabaseServer
-              .from('users')
-              .select('id, email')
-              .eq('agency_id', agency_id)
-              .eq('role', 'account_manager')
-          : Promise.resolve({ data: null }),
+        supabaseServer
+          .from('users')
+          .select('id, email')
+          .eq('agency_id', agency_id)
+          .eq('role', 'account_manager'),
       ]);
 
       const assignments = assignmentsResult.data;

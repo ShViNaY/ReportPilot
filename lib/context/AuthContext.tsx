@@ -60,6 +60,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const login = async (email: string, password: string) => {
     try {
+      clearApiCache();
       const res = await fetch('/api/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -86,6 +87,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     agencyName: string
   ) => {
     try {
+      clearApiCache();
       const res = await fetch('/api/auth/signup', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
