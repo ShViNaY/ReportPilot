@@ -4,6 +4,7 @@ import * as React from 'react';
 import Link from 'next/link';
 import { motion, AnimatePresence, useScroll, useReducedMotion } from 'framer-motion';
 import { AreaChart, Area, ResponsiveContainer, XAxis, YAxis, Tooltip } from 'recharts';
+import { ScreenshotCarousel } from '@/components/landing/ScreenshotCarousel';
 
 const chartData = [
   { name: 'Mon', spend: 2100 },
@@ -163,6 +164,9 @@ export function HomePageClient() {
             ))}
           </div>
         </section>
+
+        {/* Product Screenshot Carousel */}
+        <ScreenshotCarousel />
 
         {/* Product Preview */}
         <section aria-labelledby="preview-heading" className="max-w-6xl mx-auto px-6">
