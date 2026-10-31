@@ -5,7 +5,7 @@ on:
     # Runs at 10:25 UTC on days 1, 6, 12, 18, 24, and 30 of every month.
     # Standard POSIX cron cannot track a true fixed interval across calendar month boundaries.
     # This schedule guarantees that elapsed time between runs never exceeds 6 days.
-    - cron: '25 10 1,6,12,18,24,30 * *'
+    - cron: '25 10 */2 * *'
   workflow_dispatch:
 
 jobs:
